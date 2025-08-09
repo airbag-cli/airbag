@@ -1,0 +1,13 @@
+T__0=1
+T__1=2
+EOF_KEYWORD=3
+ERROR=4
+RULE=5
+TOKEN=6
+INT=7
+STRING=8
+WS=9
+'('=1
+')'=2
+'EOF'=3
+'<error>'=4
