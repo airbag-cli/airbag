@@ -1,5 +1,8 @@
 package io.github.airbag;
 
+import io.github.airbag.token.TokenProvider;
+import io.github.airbag.tree.TreeProvider;
+import io.github.airbag.tree.ValidationTree;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,6 +51,6 @@ public class AirbagTest {
                     EOF
                 )""".formatted());
         ParseTree actual = treeProvider.fromSource(tokenProvider.fromInput("x = 5\n"), "prog");
-        airbag.assertParseTree(expected, actual);
+        assertDoesNotThrow(() -> airbag.assertParseTree(expected, actual));
     }
 }

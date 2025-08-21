@@ -1,5 +1,6 @@
-package io.github.airbag;
+package io.github.airbag.token;
 
+import io.github.airbag.util.Utils;
 import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.Vocabulary;
@@ -150,7 +151,7 @@ public class Tokens {
             return "EOF";
         }
         int type = token.getType();
-        String text = Util.escape(token.getText());
+        String text = Utils.escape(token.getText());
         String typeString = String.valueOf(type);
         if (voc != null) {
             String literalName = voc.getLiteralName(type);

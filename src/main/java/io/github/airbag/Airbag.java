@@ -1,5 +1,12 @@
 package io.github.airbag;
 
+import io.github.airbag.token.TokenProvider;
+import io.github.airbag.token.Tokens;
+import io.github.airbag.tree.TreeProvider;
+import io.github.airbag.tree.Trees;
+import io.github.airbag.tree.ValidationTree;
+import io.github.airbag.tree.Validator;
+import io.github.airbag.util.Utils;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opentest4j.AssertionFailedError;
@@ -137,7 +144,7 @@ public class Airbag {
      * @throws AssertionFailedError if the actual list of tokens does not match the expected list.
      */
     public void assertTokenList(List<? extends Token> expected, List<? extends Token> actual) {
-        if (!Util.listEquals(expected, actual, Tokens::isWeakEqual)) {
+        if (!Utils.listEquals(expected, actual, Tokens::isWeakEqual)) {
             List<String> expectedLines = expected.stream().map(t -> Tokens.format(t, recognizer.getVocabulary())).toList();
             List<String> actualLines = actual.stream().map(t -> Tokens.format(t, recognizer.getVocabulary())).toList();
             throw new AssertionFailedError("Tokens lists are not equal", expectedLines, actualLines);

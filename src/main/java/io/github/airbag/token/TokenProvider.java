@@ -1,4 +1,4 @@
-package io.github.airbag;
+package io.github.airbag.token;
 
 import io.github.airbag.gen.ValidationTreeBaseVisitor;
 import io.github.airbag.gen.ValidationTreeLexer;

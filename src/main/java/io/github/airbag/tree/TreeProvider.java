@@ -1,9 +1,10 @@
-package io.github.airbag;
+package io.github.airbag.tree;
 
 import io.github.airbag.gen.ValidationTreeBaseVisitor;
 import io.github.airbag.gen.ValidationTreeLexer;
 import io.github.airbag.gen.ValidationTreeParser;
 import io.github.airbag.gen.ValidationTreeVisitor;
+import io.github.airbag.token.Tokens;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.ParseTree;
 

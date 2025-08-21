@@ -1,4 +1,4 @@
-package io.github.airbag;
+package io.github.airbag.tree;
 
 /**
  * A validation node that represents a rule in the parse tree.

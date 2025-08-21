@@ -1,4 +1,4 @@
-package io.github.airbag;
+package io.github.airbag.tree;
 
 import java.util.ArrayList;
 import java.util.List;

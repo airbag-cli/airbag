@@ -1,4 +1,4 @@
-package io.github.airbag;
+package io.github.airbag.tree;
 
 import org.antlr.v4.runtime.Token;
 

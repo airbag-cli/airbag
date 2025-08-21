@@ -1,4 +1,4 @@
-package io.github.airbag;
+package io.github.airbag.util;
 
 import java.util.List;
 import java.util.function.BiPredicate;
@@ -9,12 +9,12 @@ import java.util.stream.IntStream;
  * <p>
  * This class provides static methods for escaping and unescaping special characters in strings.
  */
-public class Util {
+public class Utils {
 
     /**
      * Private constructor to prevent instantiation of this utility class.
      */
-    private Util() {
+    private Utils() {
     }
 
     /**
