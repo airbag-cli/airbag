@@ -17,7 +17,7 @@ public class ErrorValidationNode extends AbstractValidationNode {
     /**
      * Constructs a new ErrorValidationNode with the specified parent and token.
      *
-     * @param parent The parent of this schema node.
+     * @param parent The parent of this validation node.
      * @param token  The token that represents the error.
      */
     protected ErrorValidationNode(ValidationTree parent, Token token) {
@@ -25,6 +25,13 @@ public class ErrorValidationNode extends AbstractValidationNode {
         this.token = token;
     }
 
+    /**
+     * Creates a new ErrorValidationNode and attaches it to the specified parent.
+     *
+     * @param parent The parent of this validation node.
+     * @param token The token that this validation node represents.
+     * @return The new ErrorValidationNode.
+     */
     public static ErrorValidationNode attachTo(ValidationTree parent, Token token) {
         return new ErrorValidationNode(parent, token);
     }

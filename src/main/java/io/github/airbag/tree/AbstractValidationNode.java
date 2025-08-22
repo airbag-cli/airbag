@@ -7,7 +7,8 @@ import java.util.List;
  * An abstract base class for implementing the {@link ValidationTree} interface.
  * <p>
  * This class provides a skeletal implementation of the {@link ValidationTree} interface to minimize
- * the effort required to implement it. It manages the parent-child relationships in the schema tree.
+ * the effort required to implement it. It manages the parent-child relationships in the validation tree,
+ * allowing subclasses to focus on the specific details of the nodes they represent.
  */
 public non-sealed abstract class AbstractValidationNode implements ValidationTree {
 
@@ -60,11 +61,17 @@ public non-sealed abstract class AbstractValidationNode implements ValidationTre
         return children.size();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String toStringTree() {
         throw new UnsupportedOperationException("Not implemented yet");
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean isRoot() {
         return parent == this;
