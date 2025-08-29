@@ -100,10 +100,10 @@ public class Tokens {
         if (type.matches("-?\\d+")) {
             return Integer.parseInt(type);
         }
+        if (type.equals("EOF")) {
+            return Token.EOF;
+        }
         for (int i = 0; i < voc.getMaxTokenType() + 1; i++) {
-            if (type.equals("EOF")) {
-                return Token.EOF;
-            }
             if (Objects.equals(voc.getSymbolicName(i), type)) {
                 return i;
             }

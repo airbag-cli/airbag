@@ -3,8 +3,8 @@ package io.github.airbag.format;
 import io.github.airbag.format.TokenFormatterBuilder.CompositePrinterParser;
 import io.github.airbag.token.TokenField;
 import io.github.airbag.token.Tokens;
-import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.Vocabulary;
 
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +23,8 @@ public class TokenFormatter {
 
     private final List<TokenField<?>> fields;
 
+    private final Vocabulary vocabulary;
+
     /**
      * Constructs a new TokenFormatter.
      *
@@ -30,9 +32,11 @@ public class TokenFormatter {
      * @param fields The fields that are used by this formatter.
      */
     TokenFormatter(CompositePrinterParser printerParser,
-                          List<TokenField<?>> fields) {
+                          List<TokenField<?>> fields,
+                   Vocabulary vocabulary) {
         this.printerParser = printerParser;
         this.fields = List.copyOf(fields);
+        this.vocabulary = vocabulary;
     }
 
     /**
@@ -43,10 +47,10 @@ public class TokenFormatter {
      * @throws TokenException if the token cannot be formatted.
      */
     public String format(Token token) {
-        TokenFormatContext ctx = new TokenFormatContext(token);
+        TokenFormatContext ctx = new TokenFormatContext(token, vocabulary);
         StringBuilder buf = new StringBuilder();
         if (!printerParser.format(ctx, buf)) {
-            throw new TokenException("Failed to format token %s".formatted(Tokens.format(token, null)));
+            throw new TokenException("Failed to format token %s".formatted(Tokens.format(token, vocabulary)));
         }
         return buf.toString();
     }
@@ -59,12 +63,19 @@ public class TokenFormatter {
      * @throws TokenParseException if the string cannot be parsed.
      */
     public Token parse(String input) {
-        TokenParseContext ctx = new TokenParseContext(new HashMap<>());
+        TokenParseContext ctx = new TokenParseContext(new HashMap<>(), printerParser, vocabulary);
         int position = printerParser.parse(ctx, input, 0);
         if (position < 0) {
             throw new TokenParseException(input, ~position);
         }
         return ctx.resolveFields();
+    }
+
+    public TokenFormatter withVocabulary(Vocabulary vocabulary) {
+        if (Objects.equals(vocabulary, this.vocabulary)) {
+            return this;
+        }
+        return new TokenFormatter(printerParser, fields, vocabulary);
     }
 
     /**

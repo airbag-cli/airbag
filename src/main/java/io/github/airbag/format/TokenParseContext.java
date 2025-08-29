@@ -1,8 +1,10 @@
 package io.github.airbag.format;
 
+import io.github.airbag.format.TokenFormatterBuilder.CompositePrinterParser;
 import io.github.airbag.token.TokenBuilder;
 import io.github.airbag.token.TokenField;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.Vocabulary;
 
 import java.util.Collections;
 import java.util.Map;
@@ -12,7 +14,7 @@ import java.util.Map;
  *
  * @param fieldMap A map of token fields to their values.
  */
-record TokenParseContext(Map<TokenField<?>, Object> fieldMap) {
+record TokenParseContext(Map<TokenField<?>, Object> fieldMap, CompositePrinterParser printerParser, Vocabulary vocabulary) {
 
     @Override
     public Map<TokenField<?>, Object> fieldMap() {
@@ -25,7 +27,7 @@ record TokenParseContext(Map<TokenField<?>, Object> fieldMap) {
      * @param field The field to add.
      * @param value The value of the field.
      */
-    void addField(TokenField<?> field, Object value) {
+    <T> void addField(TokenField<T> field, T value) {
         fieldMap.put(field, value);
     }
 

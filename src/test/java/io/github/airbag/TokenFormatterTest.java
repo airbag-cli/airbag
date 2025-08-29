@@ -1,8 +1,10 @@
 package io.github.airbag;
 
+import io.github.airbag.format.TokenException;
 import io.github.airbag.format.TokenFormatter;
 import io.github.airbag.format.TokenFormatterBuilder;
 import io.github.airbag.format.TokenParseException;
+import io.github.airbag.gen.ExpressionLexer;
 import io.github.airbag.token.TokenField;
 import io.github.airbag.token.Tokens;
 import org.antlr.v4.runtime.Token;
@@ -76,4 +78,129 @@ public class TokenFormatterTest {
                 .toFormatter();
         assertThrows(TokenParseException.class, () -> formatter.parse("(0;-10)"));
     }
+
+    @Test
+    void testTextParserWithDelimiter() {
+        TokenFormatter formatter = new TokenFormatterBuilder().appendLiteral("(")
+                .appendInteger(TokenField.TYPE)
+                .appendLiteral(":")
+                .appendText()
+                .appendLiteral(":")
+                .appendInteger(TokenField.INDEX)
+                .appendLiteral(")")
+                .toFormatter();
+        assertEquals("(-213:Hello:0)", formatter.format(TOKEN));
+        var equalizer = formatter.equalizer();
+        assertTrue(equalizer.test(TOKEN, formatter.parse("(-213:Hello:0)")));
+    }
+
+    @Test
+    void testTextParserWithoutDelimiter() {
+        TokenFormatter formatter = new TokenFormatterBuilder()
+                .appendInteger(TokenField.TYPE)
+                .appendLiteral(":")
+                .appendText().toFormatter();
+        assertEquals("-213:Hello", formatter.format(TOKEN));
+        var equalizer = formatter.equalizer();
+        assertTrue(equalizer.test(TOKEN, formatter.parse("-213:Hello")));
+    }
+
+    @Test
+    void testSymbolicTypeParser() {
+        TokenFormatter formatter = new TokenFormatterBuilder().appendLiteral("(")
+                .appendSymbolicType()
+                .appendLiteral(":")
+                .appendText()
+                .appendLiteral(")")
+                .toFormatter()
+                .withVocabulary(
+                        ExpressionLexer.VOCABULARY);
+        Token token = Tokens.singleTokenOf().type(ExpressionLexer.ID).text("number").get();
+        assertEquals("(ID:number)", formatter.format(token));
+        Token parsed = assertDoesNotThrow(() -> formatter.parse("(ID:number)"));
+        assertEquals(ExpressionLexer.ID, parsed.getType());
+        assertEquals("number", parsed.getText());
+    }
+
+    @Test
+    void testOnlySymbolic() {
+        TokenFormatter formatter = new TokenFormatterBuilder().appendSymbolicType()
+                .toFormatter()
+                .withVocabulary(ExpressionLexer.VOCABULARY);
+        Token token = Tokens.singleTokenOf().type(ExpressionLexer.ID).text("number").get();
+        assertEquals("ID", formatter.format(token));
+        Token parsed = assertDoesNotThrow(() -> formatter.parse("ID"));
+        assertEquals(ExpressionLexer.ID, parsed.getType());
+    }
+
+    @Test
+    void testSymbolicTypeParserNoVocabulary() {
+        TokenFormatter formatter = new TokenFormatterBuilder()
+                .appendSymbolicType()
+                .toFormatter();
+        Token token = Tokens.singleTokenOf().type(ExpressionLexer.ID).text("id").get();
+
+        // Formatting should fail because there's no vocabulary to find the symbolic name
+        assertThrows(TokenException.class, () -> formatter.format(token));
+
+        // Parsing should fail for the same reason
+        assertThrows(TokenParseException.class, () -> formatter.parse("ID"));
+    }
+
+    @Test
+    void testSymbolicTypeParserForLiteral() {
+        TokenFormatter formatter = new TokenFormatterBuilder()
+                .appendSymbolicType()
+                .toFormatter()
+                .withVocabulary(ExpressionLexer.VOCABULARY);
+
+        // EQ corresponds to the '=' literal, which has a literal name but no symbolic name
+        Token token = Tokens.singleTokenOf().type(ExpressionLexer.T__0).text("=").get();
+
+        // Formatting should fail because '=' has no symbolic name
+        assertThrows(TokenException.class, () -> formatter.format(token));
+    }
+
+    @Test
+    void testLiteralTypeParser() {
+        TokenFormatter formatter = new TokenFormatterBuilder()
+                .appendLiteralType()
+                .toFormatter()
+                .withVocabulary(
+                        ExpressionLexer.VOCABULARY);
+        Token token = Tokens.singleTokenOf().type(ExpressionLexer.T__0).get();
+        assertEquals("'='", formatter.format(token));
+        Token parsed = assertDoesNotThrow(() -> formatter.parse("'='"));
+        assertEquals(ExpressionLexer.T__0, parsed.getType());
+    }
+
+    @Test
+    void testLiteralTypeParserNoVocabulary() {
+        TokenFormatter formatter = new TokenFormatterBuilder()
+                .appendLiteralType()
+                .toFormatter();
+        Token token = Tokens.singleTokenOf().type(ExpressionLexer.T__0).text("=").get();
+
+        // Formatting should fail because there's no vocabulary to find the literal name
+        assertThrows(TokenException.class, () -> formatter.format(token));
+
+        // Parsing should fail for the same reason
+        assertThrows(TokenParseException.class, () -> formatter.parse("="));
+    }
+
+    @Test
+    void testLiteralTypeParserForSymbolic() {
+        TokenFormatter formatter = new TokenFormatterBuilder()
+                .appendLiteralType()
+                .toFormatter()
+                .withVocabulary(ExpressionLexer.VOCABULARY);
+
+        // ID has a symbolic name but no literal name
+        Token token = Tokens.singleTokenOf().type(ExpressionLexer.ID).text("id").get();
+
+        // Formatting should fail because 'ID' has no literal name
+        assertThrows(TokenException.class, () -> formatter.format(token));
+    }
+
+
 }
