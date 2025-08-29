@@ -8,18 +8,25 @@ import java.util.function.Function;
 /**
  * Represents a specific field or attribute of an ANTLR {@link Token}.
  * <p>
- * This class provides a type-safe way to define and access various properties of a {@link Token},
- * such as its type, text, line number, etc. Each {@code TokenField} encapsulates a field's name
- * and a function to extract its value from a {@code Token} instance.
+ * This class provides a type-safe enum-like pattern for defining and interacting with {@link Token}
+ * properties. Each {@code TokenField} encapsulates:
+ * <ul>
+ *     <li>A {@code name} for identification.</li>
+ *     <li>An {@code accessor} function to get the field's value from a {@link Token}.</li>
+ *     <li>A {@code resolver} consumer to set the field's value on a {@link TokenBuilder}.</li>
+ * </ul>
  * <p>
- * The class provides predefined static instances for common token fields.
+ * This design allows for flexible and type-safe manipulation of token data, especially when
+ * building or transforming tokens. The class includes predefined static instances for all
+ * standard {@link Token} fields.
  *
- * @param <T> The type of the value this field extracts from a token.
+ * @param <T> The type of the value this field represents (e.g., {@link Integer} for line number,
+ *            {@link String} for text).
  */
-public class TokenField<T> {
+public final class TokenField<T> {
 
     /**
-     * A {@link TokenField} that extracts the token type.
+     * Represents the token type, an integer identifier for the token's category.
      *
      * @see Token#getType()
      */
@@ -27,7 +34,7 @@ public class TokenField<T> {
             TokenBuilder::type);
 
     /**
-     * A {@link TokenField} that extracts the token's text.
+     * Represents the literal text matched for the token.
      *
      * @see Token#getText()
      */
@@ -36,7 +43,7 @@ public class TokenField<T> {
             TokenBuilder::text);
 
     /**
-     * A {@link TokenField} that extracts the token's index.
+     * Represents the zero-based index of the token within the token stream.
      *
      * @see Token#getTokenIndex()
      */
@@ -45,7 +52,7 @@ public class TokenField<T> {
             TokenBuilder::index);
 
     /**
-     * A {@link TokenField} that extracts the line number where the token appears.
+     * Represents the line number where the token begins.
      *
      * @see Token#getLine()
      */
@@ -54,7 +61,7 @@ public class TokenField<T> {
             TokenBuilder::line);
 
     /**
-     * A {@link TokenField} that extracts the character position within the line.
+     * Represents the character position within the line where the token begins.
      *
      * @see Token#getCharPositionInLine()
      */
@@ -62,7 +69,7 @@ public class TokenField<T> {
             Token::getCharPositionInLine, TokenBuilder::charPositionInLine);
 
     /**
-     * A {@link TokenField} that extracts the channel of the token.
+     * Represents the channel to which the token belongs (e.g., default, hidden).
      *
      * @see Token#getChannel()
      */
@@ -70,7 +77,7 @@ public class TokenField<T> {
             Token::getChannel, TokenBuilder::channel);
 
     /**
-     * A {@link TokenField} that extracts the starting character index of the token in the input stream.
+     * Represents the starting character index of the token in the input stream.
      *
      * @see Token#getStartIndex()
      */
@@ -79,7 +86,7 @@ public class TokenField<T> {
             TokenBuilder::startIndex);
 
     /**
-     * A {@link TokenField} that extracts the ending character index of the token in the input stream.
+     * Represents the ending character index of the token in the input stream.
      *
      * @see Token#getStopIndex()
      */
@@ -87,9 +94,18 @@ public class TokenField<T> {
             Token::getStopIndex,
             TokenBuilder::stopIndex);
 
+    /**
+     * The name of the field, used for identification and debugging.
+     */
     private final String name;
 
+    /**
+     * A function that extracts this field's value from a {@link Token}.
+     */
     private final Function<? super Token, T> accessor;
+    /**
+     * A consumer that sets this field's value on a {@link TokenBuilder}.
+     */
     private final BiConsumer<TokenBuilder, T> resolver;
 
     /**
@@ -97,6 +113,7 @@ public class TokenField<T> {
      *
      * @param name     The name of the field. This is used for identification and debugging.
      * @param accessor A {@link Function} that, when applied to a {@link Token}, returns the value of this field.
+     * @param resolver A {@link BiConsumer} that sets the value of this field on a {@link TokenBuilder}.
      */
     private TokenField(String name,
                       Function<? super Token, T> accessor,
@@ -125,6 +142,15 @@ public class TokenField<T> {
         return name;
     }
 
+    /**
+     * Sets the field's value on a {@link TokenBuilder}.
+     * <p>
+     * This method uses the field's resolver to apply the given value to the appropriate setter
+     * on the {@link TokenBuilder}. It is a key part of the token construction process.
+     *
+     * @param builder The token builder to modify.
+     * @param value   The value to set for this field.
+     */
     public void resolve(TokenBuilder builder, T value) {
         resolver.accept(builder, value);
     }

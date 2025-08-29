@@ -42,13 +42,38 @@ public class TokenFormatterTest {
     void invalidNegative() {
         TokenFormatter formatter = new TokenFormatterBuilder().appendInteger(TokenField.TYPE)
                 .toFormatter();
-        assertThrows(TokenParseException.class,() -> formatter.parse("-"));
+        assertThrows(TokenParseException.class, () -> formatter.parse("-"));
     }
 
     @Test
     void multipleDashes() {
         TokenFormatter formatter = new TokenFormatterBuilder().appendInteger(TokenField.TYPE)
                 .toFormatter();
-        assertThrows(TokenParseException.class,() -> formatter.parse("--10"));
+        assertThrows(TokenParseException.class, () -> formatter.parse("--10"));
+    }
+
+    @Test
+    void testCharacterParserPrinter() {
+        TokenFormatter formatter = new TokenFormatterBuilder().appendLiteral("(")
+                .appendInteger(TokenField.INDEX)
+                .appendLiteral(":")
+                .appendInteger(TokenField.TYPE)
+                .appendLiteral(")")
+                .toFormatter();
+
+        assertEquals("(0:-213)", formatter.format(TOKEN));
+        Token parsed = formatter.parse("(0:-213)");
+        assertTrue(formatter.equalizer().test(TOKEN, parsed));
+    }
+
+    @Test
+    void testInvalidLiteral() {
+        TokenFormatter formatter = new TokenFormatterBuilder().appendLiteral("(")
+                .appendInteger(TokenField.INDEX)
+                .appendLiteral(":")
+                .appendInteger(TokenField.TYPE)
+                .appendLiteral(")")
+                .toFormatter();
+        assertThrows(TokenParseException.class, () -> formatter.parse("(0;-10)"));
     }
 }

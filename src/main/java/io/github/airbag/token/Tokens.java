@@ -168,6 +168,14 @@ public class Tokens {
         return "(%s '%s')".formatted(typeString, text);
     }
 
+    /**
+     * Returns a {@link BiPredicate} that can be used to compare two tokens for equality.
+     * <p>
+     * The predicate compares only the fields that are given.
+     *
+     * @param fields The fields to compare.
+     * @return A predicate that can be used to compare two tokens for equality.
+     */
     public static BiPredicate<Token, Token> equalizer(List<TokenField<?>> fields) {
         return (t1, t2) -> {
             for (var field : fields) {

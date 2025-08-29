@@ -11,14 +11,37 @@ import org.antlr.v4.runtime.Token;
  */
 public class TokenBuilder {
 
-
+    /**
+     * The type of the token.
+     */
     private int type;
+    /**
+     * The text of the token.
+     */
     private String text;
+    /**
+     * The index of the token.
+     */
     private int index = -1;
+    /**
+     * The line number of the token.
+     */
     private int line;
+    /**
+     * The character position in the line of the token.
+     */
     private int charPositionInLine = -1;
+    /**
+     * The channel of the token.
+     */
     private int channel = Token.DEFAULT_CHANNEL;
+    /**
+     * The start index of the token.
+     */
     private int startIndex = -1;
+    /**
+     * The stop index of the token.
+     */
     private int stopIndex = -1;
 
     /**
@@ -125,9 +148,15 @@ public class TokenBuilder {
         return token;
     }
 
+    /**
+     * Resolves a token field.
+     * @param field The field to resolve.
+     * @param value The value of the field.
+     * @return This builder.
+     * @param <T> The type of the field.
+     */
     public <T> TokenBuilder resolve(TokenField<T> field, T value) {
         field.resolve(this, value);
         return this;
     }
 }
-
