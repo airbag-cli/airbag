@@ -202,5 +202,7 @@ public class TokenFormatterTest {
         assertThrows(TokenException.class, () -> formatter.format(token));
     }
 
+    //TODO test type EOF more
+
 
 }

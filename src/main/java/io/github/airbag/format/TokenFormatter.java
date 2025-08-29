@@ -19,10 +19,19 @@ import java.util.function.BiPredicate;
  */
 public class TokenFormatter {
 
+    /**
+     * The composite printer/parser that defines the formatting and parsing logic.
+     */
     private final CompositePrinterParser printerParser;
 
+    /**
+     * The list of token fields that this formatter operates on.
+     */
     private final List<TokenField<?>> fields;
 
+    /**
+     * The ANTLR vocabulary used for resolving symbolic and literal token names.
+     */
     private final Vocabulary vocabulary;
 
     /**
@@ -71,6 +80,18 @@ public class TokenFormatter {
         return ctx.resolveFields();
     }
 
+    /**
+     * Returns a new {@link TokenFormatter} instance with the specified ANTLR vocabulary.
+     * <p>
+     * This method allows for configuring the vocabulary after the formatter has been built.
+     * Since {@link TokenFormatter} is immutable, this method returns a new instance
+     * with the new vocabulary, or the current instance if the vocabulary is unchanged.
+     * The vocabulary is required for formatters that use {@link TokenFormatterBuilder#appendSymbolicType()}
+     * or {@link TokenFormatterBuilder#appendLiteralType()}.
+     *
+     * @param vocabulary The ANTLR vocabulary to use for formatting and parsing.
+     * @return A new formatter instance with the given vocabulary.
+     */
     public TokenFormatter withVocabulary(Vocabulary vocabulary) {
         if (Objects.equals(vocabulary, this.vocabulary)) {
             return this;
