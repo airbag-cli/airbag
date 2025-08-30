@@ -7,6 +7,7 @@ import org.antlr.v4.runtime.Vocabulary;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.BiPredicate;
 
 /**
@@ -176,7 +177,7 @@ public class Tokens {
      * @param fields The fields to compare.
      * @return A predicate that can be used to compare two tokens for equality.
      */
-    public static BiPredicate<Token, Token> equalizer(List<TokenField<?>> fields) {
+    public static BiPredicate<Token, Token> equalizer(Set<TokenField<?>> fields) {
         return (t1, t2) -> {
             for (var field : fields) {
                 if (!Objects.equals(field.access(t1), field.access(t2))) {

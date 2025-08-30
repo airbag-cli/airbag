@@ -26,7 +26,7 @@ public class TokenFormatterBuilder {
     /**
      * The list of token fields that are used by the printer/parsers.
      */
-    List<TokenField<?>> fields = new ArrayList<>();
+    Set<TokenField<?>> fields = new HashSet<>();
 
     /**
      * Appends a printer/parser for an integer field to the formatter.
@@ -65,6 +65,7 @@ public class TokenFormatterBuilder {
      */
     public TokenFormatterBuilder appendText() {
         printerParsers.add(new TextPrinterParser());
+        fields.add(TokenField.TEXT);
         return this;
     }
 
@@ -86,6 +87,7 @@ public class TokenFormatterBuilder {
      */
     public TokenFormatterBuilder appendSymbolicType() {
         printerParsers.add(new SymbolicTypePrinterParser());
+        fields.add(TokenField.TYPE);
         return this;
     }
 
@@ -109,6 +111,7 @@ public class TokenFormatterBuilder {
      */
     public TokenFormatterBuilder appendLiteralType() {
         printerParsers.addLast(new LiteralTypePrinterParser());
+        fields.add(TokenField.TYPE);
         return this;
     }
 

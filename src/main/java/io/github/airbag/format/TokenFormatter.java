@@ -9,6 +9,7 @@ import org.antlr.v4.runtime.Vocabulary;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.BiPredicate;
 
 /**
@@ -19,15 +20,47 @@ import java.util.function.BiPredicate;
  */
 public class TokenFormatter {
 
+    //TODO type, channel as optional
+    public static final TokenFormatter ANTLR = new TokenFormatterBuilder().appendLiteral("[@")
+            .appendInteger(TokenField.INDEX)
+            .appendLiteral(",")
+            .appendInteger(TokenField.START)
+            .appendLiteral(":")
+            .appendInteger(TokenField.STOP)
+            .appendLiteral("='")
+            .appendText()
+            .appendLiteral("',<")
+            .appendInteger(TokenField.TYPE)
+            .appendLiteral(">,")
+            .appendInteger(TokenField.LINE)
+            .appendLiteral(":")
+            .appendInteger(TokenField.POSITION)
+            .appendLiteral("]")
+            .toFormatter();
+
+    //TODO alternatives
+    public static final TokenFormatter SIMPLE = new TokenFormatterBuilder().appendLiteral("(")
+            .appendInteger(TokenField.TYPE)
+            .appendLiteral(" '")
+            .appendText()
+            .appendLiteral("')")
+            .toFormatter();
+
+    //TODO
+    public static final TokenFormatter JSON = null;
+
+    //TODO
+    public static final TokenFormatter XML = null;
+
     /**
      * The composite printer/parser that defines the formatting and parsing logic.
      */
     private final CompositePrinterParser printerParser;
 
     /**
-     * The list of token fields that this formatter operates on.
+     * The set of token fields that this formatter operates on.
      */
-    private final List<TokenField<?>> fields;
+    private final Set<TokenField<?>> fields;
 
     /**
      * The ANTLR vocabulary used for resolving symbolic and literal token names.
@@ -38,13 +71,13 @@ public class TokenFormatter {
      * Constructs a new TokenFormatter.
      *
      * @param printerParser The printer/parser to use for formatting and parsing.
-     * @param fields The fields that are used by this formatter.
+     * @param fields        The fields that are used by this formatter.
      */
     TokenFormatter(CompositePrinterParser printerParser,
-                          List<TokenField<?>> fields,
+                   Set<TokenField<?>> fields,
                    Vocabulary vocabulary) {
         this.printerParser = printerParser;
-        this.fields = List.copyOf(fields);
+        this.fields = Set.copyOf(fields);
         this.vocabulary = vocabulary;
     }
 
@@ -59,7 +92,8 @@ public class TokenFormatter {
         TokenFormatContext ctx = new TokenFormatContext(token, vocabulary);
         StringBuilder buf = new StringBuilder();
         if (!printerParser.format(ctx, buf)) {
-            throw new TokenException("Failed to format token %s".formatted(Tokens.format(token, vocabulary)));
+            throw new TokenException("Failed to format token %s".formatted(Tokens.format(token,
+                    vocabulary)));
         }
         return buf.toString();
     }
