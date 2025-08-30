@@ -8,6 +8,7 @@ import io.github.airbag.gen.ExpressionLexer;
 import io.github.airbag.token.TokenField;
 import io.github.airbag.token.Tokens;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.Vocabulary;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,6 +24,40 @@ public class TokenFormatterTest {
             .line(1)
             .charPositionInLine(0)
             .get();
+
+    private static final Vocabulary VOCABULARY = new Vocabulary() {
+
+
+        @Override
+        public int getMaxTokenType() {
+            return 4;
+        }
+
+        @Override
+        public String getLiteralName(int tokenType) {
+            if (tokenType == 3) {
+                return "'='";
+            } else if (tokenType == 4){
+                return "'=='";
+            }
+            return null;
+        }
+
+        @Override
+        public String getSymbolicName(int tokenType) {
+            if (tokenType == 1) {
+                return "ID";
+            } else if (tokenType == 2) {
+                return "IDENTIFIER";
+            }
+            return null;
+        }
+
+        @Override
+        public String getDisplayName(int tokenType) {
+            return "";
+        }
+    };
 
     @Test
     void testIntegerFormatter() {
@@ -202,7 +237,34 @@ public class TokenFormatterTest {
         assertThrows(TokenException.class, () -> formatter.format(token));
     }
 
-    //TODO test type EOF more
+    @Test
+    void testTakeLongestSymbolicMatch() {
+        TokenFormatter formatter = new TokenFormatterBuilder().appendSymbolicType()
+                .toFormatter()
+                .withVocabulary(VOCABULARY);
+        Token parsed = formatter.parse("IDENTIFIER");
+        assertEquals(2, parsed.getType());
+    }
 
+        @Test
+    void testTakeLongestLiteralMatch() {
+        TokenFormatter formatter = new TokenFormatterBuilder().appendLiteralType()
+                .toFormatter()
+                .withVocabulary(VOCABULARY);
+        Token parsed = formatter.parse("'=='");
+        assertEquals(4, parsed.getType());
+    }
+
+    @Test
+    void testSymbolicPrinterForEOF() {
+        TokenFormatter formatter = new TokenFormatterBuilder().appendSymbolicType()
+                .toFormatter()
+                .withVocabulary(
+                        ExpressionLexer.VOCABULARY);
+        Token token = Tokens.singleTokenOf().type(Token.EOF).get();
+        assertEquals("EOF", formatter.format(token));
+        Token parsed = assertDoesNotThrow(() -> formatter.parse("EOF"));
+        assertEquals(Token.EOF, parsed.getType());
+    }
 
 }

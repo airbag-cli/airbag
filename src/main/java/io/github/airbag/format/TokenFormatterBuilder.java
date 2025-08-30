@@ -4,10 +4,7 @@ import io.github.airbag.token.TokenField;
 import io.github.airbag.token.Tokens;
 import org.antlr.v4.runtime.Vocabulary;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -318,7 +315,7 @@ public class TokenFormatterBuilder {
             validatePosition(text, position);
             TokenPrinterParser[] parserChain = context.printerParser().printerParsers;
             int parserIndex = findParserIndex(parserChain);
-            TokenPrinterParser next = parserIndex + 1< parserChain.length ?
+            TokenPrinterParser next = parserIndex + 1 < parserChain.length ?
                     parserChain[parserIndex + 1] :
                     null;
             if (next == null) {
@@ -374,20 +371,21 @@ public class TokenFormatterBuilder {
             if (vocabulary == null) {
                 return ~position;
             }
-            Map<String, Integer> symbolicTable = IntStream.range(0,
-                            vocabulary.getMaxTokenType() + 1)
-                    .filter(i -> vocabulary.getSymbolicName(i) != null)
-                    .boxed()
-                    .collect(Collectors.toMap(vocabulary::getSymbolicName, Function.identity()));
-            int end = position;
-            //TODO look for the longest match
-            while (end <= text.length()) {
-                if (symbolicTable.containsKey(text.subSequence(position, end).toString())) {
-                    return end;
+            int longestMatch = 0;
+            for (int i = -1; i < vocabulary.getMaxTokenType() + 1; i++) {
+                String symbolicName = vocabulary.getSymbolicName(i);
+                if (symbolicName == null) {
+                    continue;
                 }
-                end++;
+                int length = symbolicName.length();
+                if (position + length > text.length()) {
+                    continue;
+                }
+                if (symbolicName.equals(text.subSequence(position, position + length).toString())) {
+                    longestMatch = Math.max(longestMatch, length);
+                }
             }
-            return ~position;
+            return longestMatch == 0 ? ~position : position + longestMatch;
         }
     }
 
@@ -420,7 +418,7 @@ public class TokenFormatterBuilder {
         }
 
         private int findLiteralType(String literal, Vocabulary vocabulary) {
-            for (int i = 1; i < vocabulary.getMaxTokenType(); i++) {
+            for (int i = 1; i < vocabulary.getMaxTokenType() + 1; i++) {
                 if (Objects.equals(literal, vocabulary.getLiteralName(i))) {
                     return i;
                 }
@@ -434,20 +432,21 @@ public class TokenFormatterBuilder {
             if (vocabulary == null) {
                 return ~position;
             }
-            Map<String, Integer> literalTable = IntStream.range(0,
-                            vocabulary.getMaxTokenType() + 1)
-                    .filter(i -> vocabulary.getLiteralName(i) != null)
-                    .boxed()
-                    .collect(Collectors.toMap(vocabulary::getLiteralName, Function.identity()));
-            int end = position;
-            //TODO look for the longest possible match
-            while (end <= text.length()) {
-                if (literalTable.containsKey(text.subSequence(position, end).toString())) {
-                    return end;
+            int longestMatch = 0;
+            for (int i = 1; i < vocabulary.getMaxTokenType() + 1; i++) {
+                String literalName = vocabulary.getLiteralName(i);
+                if (literalName == null) {
+                    continue;
                 }
-                end++;
+                int length = literalName.length();
+                if (position + length > text.length()) {
+                    continue;
+                }
+                if (literalName.equals(text.subSequence(position, position + length).toString())) {
+                    longestMatch = Math.max(longestMatch, length);
+                }
             }
-            return ~position;
+            return longestMatch == 0 ? ~position : position + longestMatch;
         }
     }
 }
