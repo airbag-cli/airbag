@@ -9,6 +9,7 @@ import io.github.airbag.token.TokenField;
 import io.github.airbag.token.Tokens;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.Vocabulary;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -64,7 +65,8 @@ public class TokenFormatterTest {
         TokenFormatter formatter = new TokenFormatterBuilder().appendInteger(TokenField.INDEX)
                 .toFormatter();
         assertEquals("0", formatter.format(TOKEN));
-        assertTrue(formatter.equalizer().test(TOKEN, formatter.parse("0")));
+        var equalizer = Tokens.equalizer(formatter.getFields());
+        assertTrue(equalizer.test(TOKEN, formatter.parse("0")));
     }
 
     @Test
@@ -72,7 +74,8 @@ public class TokenFormatterTest {
         TokenFormatter formatter = new TokenFormatterBuilder().appendInteger(TokenField.TYPE)
                 .toFormatter();
         assertEquals("-213", formatter.format(TOKEN));
-        assertTrue(formatter.equalizer().test(TOKEN, formatter.parse("-213")));
+        var equalizer = Tokens.equalizer(formatter.getFields());
+        assertTrue(equalizer.test(TOKEN, formatter.parse("-213")));
     }
 
     @Test
@@ -100,7 +103,8 @@ public class TokenFormatterTest {
 
         assertEquals("(0:-213)", formatter.format(TOKEN));
         Token parsed = formatter.parse("(0:-213)");
-        assertTrue(formatter.equalizer().test(TOKEN, parsed));
+        var equalizer = Tokens.equalizer(formatter.getFields());
+        assertTrue(equalizer.test(TOKEN, parsed));
     }
 
     @Test
@@ -125,7 +129,7 @@ public class TokenFormatterTest {
                 .appendLiteral(")")
                 .toFormatter();
         assertEquals("(-213:Hello:0)", formatter.format(TOKEN));
-        var equalizer = formatter.equalizer();
+        var equalizer = Tokens.equalizer(formatter.getFields());
         assertTrue(equalizer.test(TOKEN, formatter.parse("(-213:Hello:0)")));
     }
 
@@ -136,7 +140,7 @@ public class TokenFormatterTest {
                 .appendLiteral(":")
                 .appendText().toFormatter();
         assertEquals("-213:Hello", formatter.format(TOKEN));
-        var equalizer = formatter.equalizer();
+        var equalizer = Tokens.equalizer(formatter.getFields());
         assertTrue(equalizer.test(TOKEN, formatter.parse("-213:Hello")));
     }
 
@@ -265,6 +269,37 @@ public class TokenFormatterTest {
         assertEquals("EOF", formatter.format(token));
         Token parsed = assertDoesNotThrow(() -> formatter.parse("EOF"));
         assertEquals(Token.EOF, parsed.getType());
+    }
+
+    @Test
+    void testAntlrFormatterStyle() {
+        TokenFormatter antlr = TokenFormatter.ANTLR.withVocabulary(ExpressionLexer.VOCABULARY);
+        assertEquals("[@0,0:2='Hello',<-213>,1:0]", antlr.format(TOKEN));
+        Token literalToken = Tokens.singleTokenOf().type(2).text("*").index(5).startIndex(1).stopIndex(2).line(6).charPositionInLine(9).get();
+        assertEquals("[@5,1:2='*',<'*'>,6:9]", antlr.format(literalToken));
+        Token symbolicToken = Tokens.singleTokenOf().type(ExpressionLexer.ID).text("var").index(4).startIndex(1).stopIndex(2).line(6).charPositionInLine(9).get();
+        assertEquals("[@4,1:2='var',<ID>,6:9]", antlr.format(symbolicToken));
+        assertTrue(Tokens.isStrongEqual(TOKEN, antlr.parse("[@0,0:2='Hello',<-213>,1:0]")));
+        assertTrue(Tokens.isStrongEqual(literalToken, antlr.parse("[@5,1:2='*',<'*'>,6:9]")));
+        assertTrue(Tokens.isStrongEqual(symbolicToken, antlr.parse("[@4,1:2='var',<ID>,6:9]")));
+    }
+
+    @Test
+    @Disabled
+    void testAntlrFormatterEscaping() {
+        TokenFormatter antlr = TokenFormatter.ANTLR.withVocabulary(ExpressionLexer.VOCABULARY);
+        Token newline = Tokens.singleTokenOf()
+                .type(ExpressionLexer.NEWLINE)
+                .text("\n")
+                .index(1)
+                .startIndex(10)
+                .stopIndex(10)
+                .line(2)
+                .charPositionInLine(0)
+                .get();
+        String formatted = "[@1,10:10='\\n',<NEWLINE>,2:0]";
+        assertEquals(formatted, antlr.format(newline));
+        assertTrue(Tokens.isStrongEqual(newline, antlr.parse(formatted)));
     }
 
 }

@@ -5,9 +5,8 @@ import io.github.airbag.token.Tokens;
 import org.antlr.v4.runtime.Vocabulary;
 
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+
+import static java.util.Map.entry;
 
 /**
  * A builder for creating {@link TokenFormatter} instances.
@@ -69,6 +68,12 @@ public class TokenFormatterBuilder {
         return this;
     }
 
+    public TokenFormatterBuilder appendText(TextOption option) {
+        printerParsers.add(new TextPrinterParser(option));
+        fields.add(TokenField.TEXT);
+        return this;
+    }
+
     /**
      * Appends a printer/parser for the token's symbolic type name (e.g., "ID", "INT").
      * <p>
@@ -92,7 +97,7 @@ public class TokenFormatterBuilder {
     }
 
     /**
-     * Appends a printer/parser for the token's literal type name (e.g., "'='", "'*'").
+     * Appends a printer/parser for the token's literal type name (e.g., {@code '='}, {@code '*'}).
      * <p>
      * This component maps a token's type to its literal name as defined in the ANTLR
      * {@link Vocabulary}. Literal names are the exact strings defined in the grammar,
@@ -110,7 +115,39 @@ public class TokenFormatterBuilder {
      * @return This builder.
      */
     public TokenFormatterBuilder appendLiteralType() {
-        printerParsers.addLast(new LiteralTypePrinterParser());
+        printerParsers.add(new LiteralTypePrinterParser());
+        fields.add(TokenField.TYPE);
+        return this;
+    }
+
+    /**
+     * Appends a printer/parser for the token's type, with a configurable format.
+     * <p>
+     * This method provides a flexible way to format and parse a token's type by specifying
+     * a {@link TypeFormat}. The format determines which representations of the type are
+     * used and in what order. For example, a type can be represented by its symbolic name
+     * (e.g., "ID"), its literal name (e.g., "'='"), or its raw integer value.
+     * <p>
+     * <b>Formatting:</b> The formatter will attempt to represent the token's type using the
+     * strategies defined by the {@link TypeFormat}, in order. The first successful
+     * representation will be appended to the output. If no representation is successful
+     * (e.g., a symbolic name is requested but not available), the formatting for this
+     * component fails.
+     * <p>
+     * <b>Parsing:</b> The parser will attempt to match the input text against the possible
+     * representations defined by the {@link TypeFormat}, in order. The first representation
+     * that successfully matches and parses the input will be used.
+     * <p>
+     * This is a more general version of {@link #appendSymbolicType()} and
+     * {@link #appendLiteralType()}, which correspond to {@link TypeFormat#SYMBOLIC_ONLY}
+     * and {@link TypeFormat#LITERAL_ONLY} respectively.
+     *
+     * @param format The format to use for the token's type.
+     * @return This builder.
+     * @see TypeFormat
+     */
+    public TokenFormatterBuilder appendType(TypeFormat format) {
+        printerParsers.add(new TypePrinterParser(format));
         fields.add(TokenField.TYPE);
         return this;
     }
@@ -292,10 +329,17 @@ public class TokenFormatterBuilder {
 
     }
 
-    /**
-     * A printer/parser for the text of a token.
-     */
     static class TextPrinterParser implements TokenPrinterParser {
+
+        private final TextOption option;
+
+        TextPrinterParser() {
+            this(TextOption.NOTHING);
+        }
+
+        TextPrinterParser(TextOption option) {
+            this.option = option;
+        }
 
         @Override
         public boolean format(TokenFormatContext context, StringBuilder buf) {
@@ -450,6 +494,62 @@ public class TokenFormatterBuilder {
                 }
             }
             return longestMatch == 0 ? ~position : position + longestMatch;
+        }
+    }
+
+    static class TypePrinterParser implements TokenPrinterParser {
+
+        private TokenPrinterParser[] printerParsers;
+
+        TypePrinterParser(TypeFormat format) {
+            switch (format) {
+                case INTEGER_ONLY ->
+                        printerParsers = new TokenPrinterParser[]{new IntegerPrinterParser(
+                                TokenField.TYPE)};
+                case SYMBOLIC_FIRST ->
+                        printerParsers = new TokenPrinterParser[]{new SymbolicTypePrinterParser(),
+                                new LiteralTypePrinterParser(),
+                                new IntegerPrinterParser(TokenField.TYPE)};
+                case LITERAL_FIRST ->
+                        printerParsers = new TokenPrinterParser[]{new LiteralTypePrinterParser(),
+                                new SymbolicTypePrinterParser(),
+                                new IntegerPrinterParser(TokenField.TYPE)};
+                case SYMBOLIC_ONLY ->
+                        printerParsers = new TokenPrinterParser[]{new SymbolicTypePrinterParser()};
+                case LITERAL_ONLY ->
+                        printerParsers = new TokenPrinterParser[]{new LiteralTypePrinterParser()};
+            }
+        }
+
+        @Override
+        public boolean format(TokenFormatContext context, StringBuilder buf) {
+            for (TokenPrinterParser printer : printerParsers) {
+                if (printer.format(context, buf)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public int parse(TokenParseContext context, CharSequence text, int position) {
+            for (TokenPrinterParser parser : printerParsers) {
+                if (parser.peek(context, text, position) > 0) {
+                    return parser.parse(context, text, position);
+                }
+            }
+            return ~position;
+        }
+
+        @Override
+        public int peek(TokenParseContext context, CharSequence text, int position) {
+            for (TokenPrinterParser parser : printerParsers) {
+                int peeked = parser.peek(context, text, position);
+                if (peeked > 0) {
+                    return peeked;
+                }
+            }
+            return ~position;
         }
     }
 }

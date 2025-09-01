@@ -6,8 +6,8 @@ import io.github.airbag.token.Tokens;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.Vocabulary;
 
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiPredicate;
@@ -20,7 +20,7 @@ import java.util.function.BiPredicate;
  */
 public class TokenFormatter {
 
-    //TODO type, channel as optional
+    //TODO channel as optional
     public static final TokenFormatter ANTLR = new TokenFormatterBuilder().appendLiteral("[@")
             .appendInteger(TokenField.INDEX)
             .appendLiteral(",")
@@ -28,9 +28,9 @@ public class TokenFormatter {
             .appendLiteral(":")
             .appendInteger(TokenField.STOP)
             .appendLiteral("='")
-            .appendText()
+            .appendText(TextOption.ESCAPED)
             .appendLiteral("',<")
-            .appendInteger(TokenField.TYPE)
+            .appendType(TypeFormat.LITERAL_FIRST)
             .appendLiteral(">,")
             .appendInteger(TokenField.LINE)
             .appendLiteral(":")
@@ -133,15 +133,8 @@ public class TokenFormatter {
         return new TokenFormatter(printerParser, fields, vocabulary);
     }
 
-    /**
-     * Returns a {@link BiPredicate} that can be used to compare two tokens for equality.
-     * <p>
-     * The predicate compares only the fields that are used by this formatter.
-     *
-     * @return A predicate that can be used to compare two tokens for equality.
-     */
-    public BiPredicate<Token, Token> equalizer() {
-        return Tokens.equalizer(fields);
+    public Set<TokenField<?>> getFields() {
+        return fields;
     }
 
 }
