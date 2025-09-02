@@ -13,4 +13,26 @@ public class TokenParseException extends TokenException {
         this.input = input;
         this.position = position;
     }
+
+    public TokenParseException(String input, int position, String message) {
+        super(message);
+        this.input = input;
+        this.position = position;
+    }
+
+    public String getInput() {
+        return input;
+    }
+
+    public void setInput(String input) {
+        this.input = input;
+    }
+
+    public int getPosition() {
+        return position;
+    }
+
+    public void setPosition(int position) {
+        this.position = position;
+    }
 }

@@ -1,5 +1,6 @@
 package io.github.airbag.token;
 
+import io.github.airbag.format.TokenFormatter;
 import io.github.airbag.gen.ValidationTreeBaseVisitor;
 import io.github.airbag.gen.ValidationTreeLexer;
 import io.github.airbag.gen.ValidationTreeParser;
@@ -11,24 +12,24 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 /**
- * Provides a simplified way to generate lists of ANTLR {@link Token} objects from various sources.
+ * Provides a simplified way to generate and format lists of ANTLR {@link Token} objects.
  * <p>
- * This utility class abstracts the boilerplate code required to set up an ANTLR lexer,
- * including the creation of {@link CharStream} and {@link CommonTokenStream}. It is designed
- * to be initialized with a specific ANTLR-generated {@link Lexer} class and then used to
- * produce token lists from input strings. This is particularly useful for testing parser rules
- * or other components that operate on a stream of tokens.
+ * This utility class abstracts the boilerplate code required to set up an ANTLR lexer
+ * and produce token lists from input strings. It also provides configurable utilities
+ * for formatting tokens back into strings, making it a versatile tool for testing
+ * and debugging components that work with tokens.
  *
  * @see org.antlr.v4.runtime.Lexer
  * @see org.antlr.v4.runtime.Token
+ * @see TokenFormatter
  */
 public class TokenProvider {
 
-    /**
-     * The ANTLR lexer instance used for tokenizing input strings.
-     * This field is initialized in the constructor with a specific lexer implementation.
-     */
+    /** The ANTLR lexer instance used for tokenizing input strings. */
     private final Lexer lexer;
+
+    /** The formatter used to convert tokens back to strings. */
+    private TokenFormatter formatter;
 
     /**
      * Constructs a new TokenProvider for a specific ANTLR lexer.
@@ -36,20 +37,23 @@ public class TokenProvider {
      * This constructor uses reflection to create an instance of the provided {@code lexerClass}.
      * It assumes that the lexer class has a public constructor that accepts a {@link CharStream}
      * as its sole argument, which is standard for ANTLR-generated lexers.
+     * <p>
+     * This also initializes a default token formatter ({@link TokenFormatter#SIMPLE}) using the
+     * vocabulary from the provided lexer. This default can be overridden using
+     * {@link #setTokenFormatter(TokenFormatter)}.
      *
      * @param lexerClass The class of the ANTLR-generated lexer to be used for tokenization.
      *                   For example, {@code MyGrammarLexer.class}.
      * @throws IllegalArgumentException if the {@code lexerClass} cannot be instantiated. This
      *                                  can happen if the class does not have a public constructor
      *                                  accepting a {@link CharStream}, or if any other reflection-related
-     *                                  error occurs during instantiation (e.g., {@link InstantiationException},
-     *                                  {@link IllegalAccessException}, {@link InvocationTargetException},
-     *                                  {@link NoSuchMethodException}).
+     *                                  error occurs during instantiation.
      */
     public TokenProvider(Class<? extends Lexer> lexerClass) {
         try {// Instantiate the lexer. ANTLR lexers require a CharStream, but we can pass null
             // for initialization and set the actual stream later for each tokenization operation.
             lexer = lexerClass.getConstructor(CharStream.class).newInstance((CharStream) null);
+            formatter = TokenFormatter.SIMPLE.withVocabulary(lexer.getVocabulary());
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
                  NoSuchMethodException e) {
             throw new IllegalArgumentException("Failed to instantiate the provided Lexer class. " +
@@ -82,53 +86,34 @@ public class TokenProvider {
      * Generates a list of {@link Token}s from a structured string specification.
      * <p>
      * This method provides a powerful way to define a list of tokens using a concise
-     * string-based format, which is formally defined by the {@code tokenList} rule in the
-     * {@code ValidationTree.g4} grammar. It is designed for creating precise token sequences,
-     * making it ideal for setting up detailed test cases for parsers or other token-consuming components.
+     * string-based format. The format is designed to be human-readable and corresponds
+     * directly to the format produced by {@link TokenFormatter#SIMPLE}.
      *
-     * <p><b>Specification Grammar</b></p>
-     * The input string can contain a sequence of token specifications. According to the {@code ValidationTree.g4}
-     * grammar, a token can be specified in three distinct ways:
+     * <p><b>Specification Format</b></p>
+     * The input string can contain a sequence of token specifications, which can be:
      * <ol>
-     *   <li><b>As a simple literal:</b> A string enclosed in single quotes (e.g., {@code '='},
-     *       {@code 'keyword'}). The method will look up the corresponding token type in the
-     *       provided lexer's vocabulary. The text of the token will be the text inside the quotes.
-     *       For example, {@code '='} creates a token with text "=" and the type corresponding to the '=' literal.</li>
-     *   <li><b>As a compound token:</b> A parenthesized expression in the format {@code (TYPE 'text')}.
-     *       <ul>
-     *         <li>{@code TYPE} is the symbolic name of the token (e.g., {@code ID}, {@code INT}).</li>
-     *         <li>{@code 'text'} is the exact text for the token, enclosed in single quotes.</li>
-     *       </ul>
-     *       This allows creating tokens with specific values, such as an identifier with the name "x"
-     *       or an integer with the value "5". For example, {@code (ID 'x')} creates a token with type {@code ID}
-     *       and text "x".</li>
-     *   <li><b>As the EOF token:</b> The special keyword {@code EOF} creates an end-of-file token.
-     *       This is useful for testing parser rules that expect an EOF marker.</li>
+     *   <li><b>A literal name:</b> A string enclosed in single quotes (e.g., {@code '='},
+     *       {@code 'keyword'}). The provider looks up the corresponding token type in the
+     *       lexer's vocabulary. The token's text is the content inside the quotes.</li>
+     *   <li><b>A symbolic representation:</b> A parenthesized expression in the format {@code (TYPE 'text')}.
+     *       {@code TYPE} is the symbolic name (e.g., {@code ID}), and {@code 'text'} is the token's
+     *       exact text. This is used for tokens without a fixed literal name.</li>
+     *   <li><b>The EOF token:</b> The special keyword {@code EOF} creates an end-of-file token.</li>
      * </ol>
      *
      * <p><b>Example</b></p>
      * <p>
-     * To create a sequence of three tokens representing the assignment "x = 5" followed by EOF, you would use the
-     * following specification:
+     * To create tokens for the assignment "x = 5", you would use the following specification,
+     * which is the same format produced by {@code TokenFormatter.SIMPLE}:
      * </p>
      * <pre>{@code
      * List<Token> tokens = tokenProvider.fromSpec("(ID 'x') '=' (INT '5') EOF");
      * }</pre>
-     * This will produce a list containing:
-     * <ol>
-     *   <li>A token with type {@code ID} and text "x".</li>
-     *   <li>A token with the type corresponding to the literal "=" and text "=".</li>
-     *   <li>A token with type {@code INT} and text "5".</li>
-     *   <li>An EOF token.</li>
-     * </ol>
-     * The token types for {@code ID}, {@code INT}, and {@code '='} are all resolved using the
-     * vocabulary of the lexer that was provided to this {@code TokenProvider}'s constructor.
      *
-     * @param input The string containing the token specification, conforming to the {@code tokenList}
-     *              rule in {@code ValidationTree.g4}.
+     * @param input The string containing the token specification.
      * @return A {@link List} of {@link Token} objects generated from the specification.
-     * @see #TokenProvider(Class)
-     * @see Tokens#getTokenType(String, Vocabulary)
+     * @see #format(Token)
+     * @see TokenFormatter#SIMPLE
      */
     public List<Token> fromSpec(String input) {
         ValidationTreeLexer validationTreeLexer = new ValidationTreeLexer(CharStreams.fromString(input));
@@ -172,20 +157,32 @@ public class TokenProvider {
     }
 
     /**
-     * Formats a given {@link Token} into a human-readable string representation using the lexer's vocabulary.
+     * Formats a given {@link Token} into a string using the currently configured formatter.
      * <p>
-     * This method is a convenience wrapper around {@link Tokens#format(Token, Vocabulary)}. It automatically
-     * uses the vocabulary of the lexer associated with this {@code TokenProvider} instance to generate
-     * a string that is compatible with the {@link #fromSpec(String)} method. This is useful for
-     * debugging or creating string-based representations of tokens.
+     * By default, this method uses the {@link TokenFormatter#SIMPLE} formatter, which produces
+     * a string representation that is compatible with the {@link #fromSpec(String)} method.
+     * The formatter can be customized for different output styles using {@link #setTokenFormatter(TokenFormatter)}.
      *
      * @param token The token to be formatted.
      * @return A string representation of the token.
-     * @see Tokens#format(Token, Vocabulary)
+     * @see #fromSpec(String)
+     * @see #setTokenFormatter(TokenFormatter)
+     * @see TokenFormatter#SIMPLE
      */
     public String format(Token token) {
-        return Tokens.format(token, lexer.getVocabulary());
+        return formatter.format(token);
     }
 
+    /**
+     * Overrides the default token formatter for this provider.
+     * <p>
+     * The provided formatter will be automatically configured with this provider's
+     * {@link Vocabulary}, ensuring that it can correctly resolve token type names.
+     *
+     * @param tokenFormatter The new formatter to use for the {@link #format(Token)} method.
+     */
+    public void setTokenFormatter(TokenFormatter tokenFormatter) {
+        this.formatter = tokenFormatter.withVocabulary(lexer.getVocabulary());
+    }
 
 }

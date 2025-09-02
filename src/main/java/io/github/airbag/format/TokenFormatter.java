@@ -18,7 +18,29 @@ import static java.util.Map.entry;
  */
 public class TokenFormatter {
 
-    //TODO channel as optional
+    /**
+     * A formatter that mimics the default ANTLR {@link Token#toString} format.
+     * <p>
+     * This formatter provides a detailed, parsable representation of a token, including all its core attributes.
+     * The format is: {@code "[@<index>,<start>:<stop>='<text>',<<type>>,<line>:<pos>]"}
+     * <ul>
+     *     <li>{@code <index>}: The token's index within the stream. See {@link Token#getTokenIndex()}.</li>
+     *     <li>{@code <start>:<stop>}: The start and stop character indices in the input stream. See {@link Token#getStartIndex()} and {@link Token#getStopIndex()}.</li>
+     *     <li>{@code '<text>'}: The matched text of the token, with special characters escaped. See {@link Token#getText()}.</li>
+     *     <li>{@code <<type>>}: The token's type, resolved first as a literal name (e.g., {@code '='}), then as a symbolic name (e.g., {@code ID}).</li>
+     *     <li>{@code <line>:<pos>}: The line number and character position within the line. See {@link Token#getLine()} and {@link Token#getCharPositionInLine()}.</li>
+     * </ul>
+     * <p><b>Example:</b>
+     * <pre>{@code
+     * // Given a token representing an identifier "user"
+     *  Token token = new CommonToken(MyLexer.ID, "user");
+     * // Assuming index=10, start=50, stop=53, line=5, pos=4
+     *
+     *  String formatted = TokenFormatter.ANTLR.withVocabulary(MyLexer.VOCABULARY).format(token);
+     * // formatted will be: "[@10,50:53='user',<ID>,5:4]"
+     * }</pre>
+     * This format is particularly useful for debugging and logging, as it captures the full context of a token.
+     */
     public static final TokenFormatter ANTLR = new TokenFormatterBuilder().appendLiteral("[@")
             .appendInteger(TokenField.INDEX)
             .appendLiteral(",")
@@ -36,42 +58,88 @@ public class TokenFormatter {
             .appendLiteral("]")
             .toFormatter();
 
-    public static final TokenFormatter SIMPLE =
-            new TokenFormatterBuilder().appendLiteralType()
-                    .toFormatter()
-                    .withAlternative(new TokenFormatterBuilder().appendEOF().toFormatter())
-                    .withAlternative(
-                            new TokenFormatterBuilder().appendLiteral("(")
-                                    .appendSymbolicType()
-                                    .appendLiteral(" '")
-                                    .appendText(new TextOption().withDefaultValue("")
-                                            .withEscapeChar('\\')
-                                            .withEscapeMap(Map.ofEntries(entry('\n', 'n'),
-                                                    entry('\r', 'r'),
-                                                    entry('\t', 't'),
-                                                    entry('\\', '\\'),
-                                                    entry('\'', '\''))))
-                                    .appendLiteral("')")
-                                    .toFormatter());
+    /**
+     * A formatter for the token's literal name (e.g., '=', '*').
+     */
+    private static final TokenFormatter LITERAL = new TokenFormatterBuilder().appendLiteralType()
+            .toFormatter();
 
-    //TODO
+    /**
+     * A formatter for the special end-of-file token.
+     */
+    private static final TokenFormatter EOF = new TokenFormatterBuilder().appendEOF().toFormatter();
+
+    /**
+     * A formatter for the token's symbolic name and text (e.g., "(ID 'myVar')").
+     */
+    private static final TokenFormatter SYMBOLIC = new TokenFormatterBuilder().appendLiteral("(")
+            .appendSymbolicType()
+            .appendLiteral(" '")
+            .appendText(new TextOption().withDefaultValue("")
+                    .withEscapeChar('\\')
+                    .withEscapeMap(Map.ofEntries(entry('\n', 'n'),
+                            entry('\r', 'r'),
+                            entry('\t', 't'),
+                            entry('\\', '\\'),
+                            entry('\'', '\''))))
+            .appendLiteral("')")
+            .toFormatter();
+
+    /**
+     * A simple, human-readable formatter with intelligent alternatives.
+     * <p>
+     * This formatter tries different representations in a specific order, making it
+     * flexible for a variety of token types. The order of preference is:
+     * <ol>
+     *     <li><b>EOF Token:</b> If the token is the end-of-file marker, it is formatted as the string {@code "EOF"}.</li>
+     *     <li><b>Literal Name:</b> If the token has a literal name in the vocabulary (e.g., a keyword or operator),
+     *     it is formatted as that name, including quotes (e.g., {@code "'='"}).</li>
+     *     <li><b>Symbolic Name and Text:</b> If the token has no literal name (e.g., an identifier or number),
+     *     it is formatted as {@code "(<SymbolicName> '<text>')"}.</li>
+     * </ol>
+     * This is the most commonly used formatter for simple, readable output.
+     * <p><b>Examples:</b>
+     * <pre>{@code
+     * Token eof = new CommonToken(Token.EOF);
+     * Token plus = new CommonToken(MyLexer.PLUS, "+");
+     * Token id = new CommonToken(MyLexer.ID, "myVar");
+     *
+     * TokenFormatter formatter = TokenFormatter.SIMPLE.withVocabulary(MyLexer.VOCABULARY);
+     *
+     * formatter.format(eof);   // Returns "EOF"
+     * formatter.format(plus);  // Returns "'='"
+     * formatter.format(id);    // Returns "(ID 'myVar')"
+     * }</pre>
+     */
+    public static final TokenFormatter SIMPLE = EOF.withAlternative(LITERAL)
+            .withAlternative(SYMBOLIC);
+
+    /**
+     * A formatter that represents a token as a JSON object.
+     * <p>
+     * <b>Note:</b> This formatter is not yet implemented.
+     */
     public static final TokenFormatter JSON = null;
 
-    //TODO
+    /**
+     * A formatter that represents a token as an XML element.
+     * <p>
+     * <b>Note:</b> This formatter is not yet implemented.
+     */
     public static final TokenFormatter XML = null;
 
     /**
-     * A list of printer parsers which will be applied in order until the fist success.
+     * The chain of parsers to attempt in order.
      */
     private final List<CompositePrinterParser> printerParsers;
 
     /**
-     * The set of token fields that this formatter operates on.
+     * The set of all token fields this formatter can process.
      */
     private final Set<TokenField<?>> fields;
 
     /**
-     * The ANTLR vocabulary used for resolving symbolic and literal token names.
+     * The vocabulary for resolving token type names.
      */
     private final Vocabulary vocabulary;
 
@@ -139,6 +207,9 @@ public class TokenFormatter {
         }
         if (position < 0) {
             throw new TokenParseException(input, ~position);
+        }
+        if (position != input.length()) {
+            throw new TokenParseException(input, position, "Input '%s' has trailing unparsed text at position %d".formatted(input, position));
         }
         return Objects.requireNonNull(ctx).resolveFields();
     }
