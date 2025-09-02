@@ -2,6 +2,7 @@ package io.github.airbag.format;
 
 import io.github.airbag.token.TokenField;
 import io.github.airbag.token.Tokens;
+import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.Vocabulary;
 
 import java.util.*;
@@ -160,6 +161,23 @@ public class TokenFormatterBuilder {
      */
     public TokenFormatterBuilder appendType(TypeFormat format) {
         printerParsers.add(new TypePrinterParser(format));
+        fields.add(TokenField.TYPE);
+        return this;
+    }
+
+    /**
+     * Appends a printer/parser for the end-of-file (EOF) token.
+     * <p>
+     * <b>Formatting:</b> If the token's type is {@link Token#EOF}, this component
+     * appends the string "EOF". For any other token type, it fails.
+     * <p>
+     * <b>Parsing:</b> It matches the literal string "EOF" and resolves it to a
+     * token of type {@link Token#EOF}.
+     *
+     * @return This builder.
+     */
+    public TokenFormatterBuilder appendEOF() {
+        printerParsers.add(new EOFPrinterParser());
         fields.add(TokenField.TYPE);
         return this;
     }
@@ -418,7 +436,8 @@ public class TokenFormatterBuilder {
             var escapeChar = option.getEscapeChar();
             while (position < text.length() && next.peek(context, text, position) < 0) {
                 if (text.charAt(position) == escapeChar) {
-                    if (text.length() == position + 1 || !unescapeMap.containsKey(text.charAt(position + 1))) {
+                    if (text.length() == position + 1 ||
+                        !unescapeMap.containsKey(text.charAt(position + 1))) {
                         return ~position; //Invalid escape
                     } else {
                         position++; //Escape characters cannot be delimiters.
@@ -469,6 +488,7 @@ public class TokenFormatterBuilder {
 
         @Override
         public int peek(TokenParseContext context, CharSequence text, int position) {
+            validatePosition(text, position);
             Vocabulary vocabulary = context.vocabulary();
             if (vocabulary == null) {
                 return ~position;
@@ -516,6 +536,7 @@ public class TokenFormatterBuilder {
             String literalName = text.subSequence(position, endPosition).toString();
             int type = findLiteralType(literalName, context.vocabulary());
             context.addField(TokenField.TYPE, type);
+            context.addField(TokenField.TEXT, literalName.substring(1, literalName.length() - 1));
             return endPosition;
         }
 
@@ -530,6 +551,7 @@ public class TokenFormatterBuilder {
 
         @Override
         public int peek(TokenParseContext context, CharSequence text, int position) {
+            validatePosition(text, position);
             Vocabulary vocabulary = context.vocabulary();
             if (vocabulary == null) {
                 return ~position;
@@ -605,6 +627,39 @@ public class TokenFormatterBuilder {
                 }
             }
             return ~position;
+        }
+    }
+
+    static class EOFPrinterParser implements TokenPrinterParser {
+
+        @Override
+        public boolean format(TokenFormatContext context, StringBuilder buf) {
+            Token token = context.token();
+            if (token.getType() == Token.EOF) {
+                buf.append("EOF");
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public int parse(TokenParseContext context, CharSequence text, int position) {
+            int end = peek(context, text, position);
+            if (end < 0) {
+                return end;
+            }
+            context.addField(TokenField.TYPE, Token.EOF);
+            return end;
+        }
+
+        @Override
+        public int peek(TokenParseContext context, CharSequence text, int position) {
+            validatePosition(text, position);
+            if (position + 3 > text.length()) {
+                return ~position;
+            }
+            boolean matches = text.subSequence(position, position + 3).toString().equals("EOF");
+            return matches ? position + 3 : ~position;
         }
     }
 }
