@@ -9,7 +9,6 @@ import io.github.airbag.token.TokenField;
 import io.github.airbag.token.Tokens;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.Vocabulary;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -285,7 +284,6 @@ public class TokenFormatterTest {
     }
 
     @Test
-    @Disabled
     void testAntlrFormatterEscaping() {
         TokenFormatter antlr = TokenFormatter.ANTLR.withVocabulary(ExpressionLexer.VOCABULARY);
         Token newline = Tokens.singleTokenOf()

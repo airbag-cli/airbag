@@ -6,8 +6,6 @@ import org.antlr.v4.runtime.Vocabulary;
 
 import java.util.*;
 
-import static java.util.Map.entry;
-
 /**
  * A builder for creating {@link TokenFormatter} instances.
  * <p>
@@ -59,6 +57,9 @@ public class TokenFormatterBuilder {
      * <p>
      * It is useful for capturing variable text that is situated between more
      * well-defined components (like literals or symbolic types).
+     * <p>
+     * This method uses the {@link TextOption#NOTHING} option, which means no
+     * escaping is performed.
      *
      * @return This builder.
      */
@@ -68,6 +69,17 @@ public class TokenFormatterBuilder {
         return this;
     }
 
+    /**
+     * Appends a printer/parser for the token's text, with custom escaping and default value behavior.
+     * <p>
+     * This component is non-greedy; it consumes characters only up to the point
+     * where the next component in the formatter is able to match. If this is the
+     * last component in the sequence, it will consume the remainder of the input string.
+     *
+     * @param option The {@link TextOption} to use for formatting and parsing the text.
+     * @return This builder.
+     * @see TextOption
+     */
     public TokenFormatterBuilder appendText(TextOption option) {
         printerParsers.add(new TextPrinterParser(option));
         fields.add(TokenField.TEXT);
@@ -343,7 +355,19 @@ public class TokenFormatterBuilder {
 
         @Override
         public boolean format(TokenFormatContext context, StringBuilder buf) {
-            buf.append(context.token().getText());
+            String text = context.token().getText();
+            var escapeMap = option.getEscapeMap();
+            for (int i = 0; i < text.length(); i++) {
+                char c = text.charAt(i);
+                if (escapeMap.containsKey(c)) {
+                    buf.append(option.getEscapeChar()).append(escapeMap.get(c));
+                } else {
+                    buf.append(c);
+                }
+            }
+            if (text.isEmpty()) {
+                buf.append(option.getDefaultValue());
+            }
             return true;
         }
 
@@ -353,8 +377,30 @@ public class TokenFormatterBuilder {
             if (endPosition < 0) {
                 return endPosition;
             }
-            context.addField(TokenField.TEXT, text.subSequence(position, endPosition).toString());
+            StringBuilder buf = unescapeText(text, position, endPosition);
+            String tokenText = buf.toString();
+            if (tokenText.equals(option.getDefaultValue())) {
+                tokenText = "";
+            }
+            context.addField(TokenField.TEXT, tokenText);
             return endPosition;
+        }
+
+        private StringBuilder unescapeText(CharSequence text, int position, int endPosition) {
+            StringBuilder buf = new StringBuilder();
+            //Since we peeked before we know that reescaping will work
+            char escape = option.getEscapeChar();
+            var unescapeMap = option.getUnescapeMap();
+            for (int i = position; i < endPosition; i++) {
+                char c = text.charAt(i);
+                if (c == escape) {
+                    buf.append(unescapeMap.get(text.charAt(i + 1)));
+                    i++;
+                } else {
+                    buf.append(c);
+                }
+            }
+            return buf;
         }
 
         @Override
@@ -368,7 +414,16 @@ public class TokenFormatterBuilder {
             if (next == null) {
                 return text.length();
             }
+            var unescapeMap = option.getUnescapeMap();
+            var escapeChar = option.getEscapeChar();
             while (position < text.length() && next.peek(context, text, position) < 0) {
+                if (text.charAt(position) == escapeChar) {
+                    if (text.length() == position + 1 || !unescapeMap.containsKey(text.charAt(position + 1))) {
+                        return ~position; //Invalid escape
+                    } else {
+                        position++; //Escape characters cannot be delimiters.
+                    }
+                }
                 position++;
             }
             return position;
