@@ -23,6 +23,7 @@ public class TextOption {
      *     <li>Newline ({@code \n})</li>
      *     <li>Carriage return ({@code \r})</li>
      *     <li>Tab ({@code \t})</li>
+     *     <li>Backslash ({@code \})</li>
      * </ul>
      */
     public static final TextOption ESCAPED = new TextOption();
@@ -50,7 +51,8 @@ public class TextOption {
         withEscapeMap(Map.ofEntries(
                 entry('\n', 'n'),
                 entry('\r', 'r'),
-                entry('\t', 't')
+                entry('\t', 't'),
+                entry('\\', '\\')
         ));
         escapeChar = '\\';
     }
