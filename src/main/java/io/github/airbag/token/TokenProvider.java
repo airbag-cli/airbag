@@ -1,15 +1,12 @@
 package io.github.airbag.token;
 
 import io.github.airbag.format.TokenFormatter;
-import io.github.airbag.gen.ValidationTreeBaseVisitor;
-import io.github.airbag.gen.ValidationTreeLexer;
-import io.github.airbag.gen.ValidationTreeParser;
-import io.github.airbag.gen.ValidationTreeVisitor;
 import org.antlr.v4.runtime.*;
 
 import java.lang.reflect.InvocationTargetException;
+import java.text.ParsePosition;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.IntStream;
 
 /**
  * Provides a simplified way to generate and format lists of ANTLR {@link Token} objects.
@@ -25,10 +22,14 @@ import java.util.stream.IntStream;
  */
 public class TokenProvider {
 
-    /** The ANTLR lexer instance used for tokenizing input strings. */
+    /**
+     * The ANTLR lexer instance used for tokenizing input strings.
+     */
     private final Lexer lexer;
 
-    /** The formatter used to convert tokens back to strings. */
+    /**
+     * The formatter used to convert tokens back to strings.
+     */
     private TokenFormatter formatter;
 
     /**
@@ -57,7 +58,7 @@ public class TokenProvider {
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
                  NoSuchMethodException e) {
             throw new IllegalArgumentException("Failed to instantiate the provided Lexer class. " +
-                    "Ensure it's a valid ANTLR-generated lexer with a public constructor accepting a CharStream.",
+                                               "Ensure it's a valid ANTLR-generated lexer with a public constructor accepting a CharStream.",
                     e);
         }
     }
@@ -85,75 +86,64 @@ public class TokenProvider {
     /**
      * Generates a list of {@link Token}s from a structured string specification.
      * <p>
-     * This method provides a powerful way to define a list of tokens using a concise
-     * string-based format. The format is designed to be human-readable and corresponds
-     * directly to the format produced by {@link TokenFormatter#SIMPLE}.
+     * This method iteratively parses a string containing one or more token specifications
+     * using the provider's currently configured token formatter. By default, this is
+     * {@link TokenFormatter#SIMPLE}, so the input string should conform to its format.
+     * The behavior of this method can be altered by providing a different formatter
+     * via {@link #setTokenFormatter(TokenFormatter)}.
+     * <p>
+     * Whitespace between token specifications is ignored.
      *
-     * <p><b>Specification Format</b></p>
-     * The input string can contain a sequence of token specifications, which can be:
+     * <p><b>Specification Format (Default)</b></p>
+     * The default format, defined by {@link TokenFormatter#SIMPLE}, allows for:
      * <ol>
      *   <li><b>A literal name:</b> A string enclosed in single quotes (e.g., {@code '='},
-     *       {@code 'keyword'}). The provider looks up the corresponding token type in the
-     *       lexer's vocabulary. The token's text is the content inside the quotes.</li>
-     *   <li><b>A symbolic representation:</b> A parenthesized expression in the format {@code (TYPE 'text')}.
-     *       {@code TYPE} is the symbolic name (e.g., {@code ID}), and {@code 'text'} is the token's
-     *       exact text. This is used for tokens without a fixed literal name.</li>
-     *   <li><b>The EOF token:</b> The special keyword {@code EOF} creates an end-of-file token.</li>
+     *       {@code 'keyword'}).</li>
+     *   <li><b>A symbolic representation:</b> A parenthesized expression, e.g., {@code (ID 'text')}.</li>
+     *   <li><b>The EOF token:</b> The special keyword {@code EOF}.</li>
      * </ol>
      *
      * <p><b>Example</b></p>
-     * <p>
-     * To create tokens for the assignment "x = 5", you would use the following specification,
-     * which is the same format produced by {@code TokenFormatter.SIMPLE}:
-     * </p>
      * <pre>{@code
      * List<Token> tokens = tokenProvider.fromSpec("(ID 'x') '=' (INT '5') EOF");
      * }</pre>
      *
-     * @param input The string containing the token specification.
+     * @param input The string containing the token specifications.
      * @return A {@link List} of {@link Token} objects generated from the specification.
-     * @see #format(Token)
+     * @throws IllegalArgumentException if any part of the input string cannot be parsed.
+     * @see #setTokenFormatter(TokenFormatter)
      * @see TokenFormatter#SIMPLE
      */
     public List<Token> fromSpec(String input) {
-        ValidationTreeLexer validationTreeLexer = new ValidationTreeLexer(CharStreams.fromString(input));
-        ValidationTreeParser validationTreeParser = new ValidationTreeParser(new CommonTokenStream(validationTreeLexer));
-        ValidationTreeVisitor<List<Token>> visitor = new ValidationTreeBaseVisitor<>() {
-
-            @Override
-            public List<Token> visitTokenList(ValidationTreeParser.TokenListContext ctx) {
-                return IntStream.range(0, ctx.token().size()).mapToObj(i -> visitToken(ctx.token(i), i)).toList();
+        ParsePosition position = new ParsePosition(0);
+        List<Token> tokens = new ArrayList<>();
+        int index = 0;
+        while (position.getIndex() < input.length()) {
+            char c = input.charAt(position.getIndex());
+            if (Character.isWhitespace(c)) {
+                position.setIndex(position.getIndex() + 1);
+                continue;
             }
 
-            private Token visitToken(ValidationTreeParser.TokenContext tokenCtx, int i) {
-                if (tokenCtx.EOF_KEYWORD() != null) {
-                    var eof = new CommonToken(Token.EOF, "<EOF>");
-                    eof.setTokenIndex(i);
-                    return eof;
-                }
-                String typeString;
-                String text;
-                if (tokenCtx.TOKEN() == null) {
-                    typeString = tokenCtx.STRING().getText();
-                    text = unquote(typeString);
-                } else {
-                    typeString = tokenCtx.TOKEN().getText();
-                    text = unquote(tokenCtx.STRING().getText());
-                }
-                var token = new CommonToken(Tokens.getTokenType(typeString, lexer.getVocabulary()),
-                        text);
-                token.setTokenIndex(i);
-                return token;
+            Token parsedToken = formatter.parse(input, position);
+
+            if (parsedToken == null) {
+                throw new IllegalArgumentException("Cannot parse input spec '%s' at index %d".formatted(
+                        input,
+                        position.getErrorIndex()));
             }
 
-            private String unquote(String s) {
-                if (s != null && s.length() >= 2 && s.startsWith("'") && s.endsWith("'")) {
-                    return s.substring(1, s.length() - 1);
-                }
-                return s;
+            // Safely create a new token to set the index if not set
+            if (!formatter.getFields().contains(TokenField.INDEX)) {
+                CommonToken finalToken = new CommonToken(parsedToken);
+                finalToken.setTokenIndex(index);
+                tokens.add(finalToken);
+                index++;
+            } else {
+                tokens.add(parsedToken);
             }
-        };
-        return visitor.visitTokenList(validationTreeParser.tokenList());
+        }
+        return tokens;
     }
 
     /**
@@ -183,6 +173,19 @@ public class TokenProvider {
      */
     public void setTokenFormatter(TokenFormatter tokenFormatter) {
         this.formatter = tokenFormatter.withVocabulary(lexer.getVocabulary());
+    }
+
+    /**
+     * Gets the current {@link TokenFormatter} instance used by this provider.
+     * <p>
+     * This is the formatter responsible for the behavior of the {@link #format(Token)}
+     * and {@link #fromSpec(String)} methods.
+     *
+     * @return The current token formatter.
+     * @see #setTokenFormatter(TokenFormatter)
+     */
+    public TokenFormatter getTokenFormatter() {
+        return formatter;
     }
 
 }

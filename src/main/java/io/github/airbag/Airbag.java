@@ -13,6 +13,7 @@ import org.opentest4j.AssertionFailedError;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
+import java.util.function.BiPredicate;
 
 /**
  * The Airbag class is the central component of the Airbag library.
@@ -33,16 +34,15 @@ public class Airbag {
     private Class<? extends Parser> parserClass;
 
     /**
-     * The {@link Class} object for the ANTLR lexer.
-     * This is used to create new instances of the lexer.
-     */
-    private Class<? extends Lexer> lexerClass;
-
-    /**
      * The ANTLR recognizer, which can be either a lexer or a parser.
      * This is used to get the vocabulary and other information about the grammar.
      */
     private Recognizer<?, ?> recognizer;
+
+    /**
+     * The Token provider for creating tokens from string or specification.
+     */
+    private final TokenProvider tokenProvider;
 
     /**
      * Constructs a new Airbag instance from the given parser and lexer classes.
@@ -52,9 +52,9 @@ public class Airbag {
      */
     public Airbag(Class<? extends Parser> parserClass, Class<? extends Lexer> lexerClass) {
         this.parserClass = parserClass;
-        this.lexerClass = lexerClass;
         try {
             recognizer = parserClass.getConstructor(TokenStream.class).newInstance((TokenStream) null);
+            tokenProvider = new TokenProvider(lexerClass);
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
                  NoSuchMethodException e) {
             throw new RuntimeException(e);
@@ -68,9 +68,9 @@ public class Airbag {
      * @param lexerClass The {@link Class} object for the ANTLR lexer. Must not be null.
      */
     public Airbag(Class<? extends Lexer> lexerClass) {
-        this.lexerClass = lexerClass;
         try {
             recognizer = lexerClass.getConstructor(CharStream.class).newInstance((CharStream) null);
+            tokenProvider = new TokenProvider(lexerClass);
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
                  NoSuchMethodException e) {
             throw new RuntimeException(e);
@@ -120,8 +120,8 @@ public class Airbag {
      *
      * @return A new {@link TokenProvider} instance.
      */
-    public TokenProvider getProvider() {
-        return new TokenProvider(lexerClass);
+    public TokenProvider getTokenProvider() {
+        return tokenProvider;
     }
 
     /**
@@ -144,9 +144,11 @@ public class Airbag {
      * @throws AssertionFailedError if the actual list of tokens does not match the expected list.
      */
     public void assertTokenList(List<? extends Token> expected, List<? extends Token> actual) {
-        if (!Utils.listEquals(expected, actual, Tokens::isWeakEqual)) {
-            List<String> expectedLines = expected.stream().map(t -> Tokens.format(t, recognizer.getVocabulary())).toList();
-            List<String> actualLines = actual.stream().map(t -> Tokens.format(t, recognizer.getVocabulary())).toList();
+        var formatter = tokenProvider.getTokenFormatter();
+        BiPredicate<Token, Token> equalizer = Tokens.equalizer(formatter.getFields());
+        if (!Utils.listEquals(expected, actual, equalizer)) {
+            List<String> expectedLines = expected.stream().map(formatter::format).toList();
+            List<String> actualLines = actual.stream().map(formatter::format).toList();
             throw new AssertionFailedError("Tokens lists are not equal", expectedLines, actualLines);
         }
     }

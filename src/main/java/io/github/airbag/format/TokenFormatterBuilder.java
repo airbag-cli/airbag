@@ -649,6 +649,7 @@ public class TokenFormatterBuilder {
                 return end;
             }
             context.addField(TokenField.TYPE, Token.EOF);
+            context.addField(TokenField.TEXT, "<EOF>");
             return end;
         }
 

@@ -6,6 +6,7 @@ import io.github.airbag.token.Tokens;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.Vocabulary;
 
+import java.text.ParsePosition;
 import java.util.*;
 
 import static java.util.Map.entry;
@@ -115,20 +116,6 @@ public class TokenFormatter {
             .withAlternative(SYMBOLIC);
 
     /**
-     * A formatter that represents a token as a JSON object.
-     * <p>
-     * <b>Note:</b> This formatter is not yet implemented.
-     */
-    public static final TokenFormatter JSON = null;
-
-    /**
-     * A formatter that represents a token as an XML element.
-     * <p>
-     * <b>Note:</b> This formatter is not yet implemented.
-     */
-    public static final TokenFormatter XML = null;
-
-    /**
      * The chain of parsers to attempt in order.
      */
     private final List<CompositePrinterParser> printerParsers;
@@ -189,29 +176,79 @@ public class TokenFormatter {
     }
 
     /**
-     * Parses a string into a token.
+     * Parses a string into a single token using a strict parsing strategy.
+     * <p>
+     * This method requires that the <b>entire</b> input string be consumed during the
+     * parsing process. It is best used when the input string is expected to be a
+     * complete and standalone representation of a single token.
+     * <p>
+     * For more lenient parsing of a token from the beginning of a string, or for parsing
+     * multiple tokens from a single string, use {@link #parse(String, ParsePosition)}.
      *
-     * @param input The string to parse.
+     * @param input The string to parse. Must not be null.
      * @return The parsed token.
-     * @throws TokenParseException if the string cannot be parsed.
+     * @throws TokenParseException if the string cannot be parsed or is not fully consumed.
+     * @see #parse(String, ParsePosition)
      */
     public Token parse(String input) {
-        int position = 0;
-        TokenParseContext ctx = null;
+        Objects.requireNonNull(input);
+        ParsePosition position = new ParsePosition(0);
+        Token token = parse(input, position);
+        if (token == null) {
+            throw new TokenParseException(input, position.getErrorIndex());
+        }
+        if (position.getIndex() != input.length()) {
+            String message = "Input '%s' has trailing unparsed text at position %d".formatted(input, position.getIndex());
+            throw new TokenParseException(input, position.getIndex(), message);
+        }
+        return token;
+    }
+
+    /**
+     * Parses a token from a string in a lenient, non-exception-throwing manner.
+     * <p>
+     * This method attempts to parse a token starting at the index specified by the
+     * {@link ParsePosition}. It does <b>not</b> require the entire string to be consumed.
+     * <p>
+     * On success, the parsed {@link Token} is returned, and the index of the {@code ParsePosition}
+     * is updated to point to the character immediately after the parsed text. The error index
+     * is set to -1.
+     * <p>
+     * On failure, this method returns {@code null} instead of throwing an exception. The
+     * index of the {@code ParsePosition} is left unchanged, and the error index is updated
+     * to the position where the parse failed.
+     * <p>
+     * This method is particularly useful for parsing multiple tokens sequentially from a
+     * single input string.
+     *
+     * @param input    The string from which to parse a token. Must not be null.
+     * @param position The {@link ParsePosition} object that tracks the current parsing
+     *                 position and error location. Must not be null.
+     * @return The parsed {@link Token}, or {@code null} if parsing fails.
+     * @see #parse(String)
+     */
+     public Token parse(String input, ParsePosition position) {
+        Objects.requireNonNull(position, "position");
+        Objects.requireNonNull(input, "input");
+        TokenParseContext ctx;
+        int initial = position.getIndex();
+        int lastError = -1;
+
         for (var parser : printerParsers) {
             ctx = new TokenParseContext(new HashMap<>(), parser, vocabulary);
-            position = parser.parse(ctx, input, 0);
-            if (position > 0) {
-                break;
+            int current = parser.parse(ctx, input, initial);
+            if (current > 0) {
+                position.setIndex(current);
+                position.setErrorIndex(-1); // Clear error index on success
+                return ctx.resolveFields();
+            } else {
+                lastError = current; // Record the failure position
             }
         }
-        if (position < 0) {
-            throw new TokenParseException(input, ~position);
-        }
-        if (position != input.length()) {
-            throw new TokenParseException(input, position, "Input '%s' has trailing unparsed text at position %d".formatted(input, position));
-        }
-        return Objects.requireNonNull(ctx).resolveFields();
+
+        // All parsers failed, set the error index and return null
+        position.setErrorIndex(~lastError);
+        return null;
     }
 
     /**

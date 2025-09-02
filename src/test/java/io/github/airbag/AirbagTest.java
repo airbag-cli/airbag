@@ -23,7 +23,7 @@ public class AirbagTest {
     @BeforeEach
     void setup() {
         airbag = Airbag.testGrammar("io.github.airbag.gen.Expression");
-        tokenProvider = airbag.getProvider();
+        tokenProvider = airbag.getTokenProvider();
         treeProvider = airbag.getTreeProvider();
     }
 
