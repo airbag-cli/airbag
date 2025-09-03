@@ -35,7 +35,7 @@ public class LexerTest {
     void testTokenization() {
         // 1. Initialize Airbag for your grammar
         Airbag airbag = Airbag.testGrammar("io.github.airbag.gen.Expression");
-        TokenProvider tokenProvider = airbag.getProvider();
+        TokenProvider tokenProvider = airbag.getTokenProvider();
 
         // 2. Define the expected token stream using a clear specification
         List<Token> expected = tokenProvider.fromSpec("(ID 'x') '=' (INT '5') EOF");
@@ -67,7 +67,7 @@ public class ParserTest {
     void testParseTreeStructure() {
         // 1. Initialize Airbag for your grammar
         Airbag airbag = Airbag.testGrammar("io.github.airbag.gen.Expression");
-        TokenProvider tokenProvider = airbag.getProvider();
+        TokenProvider tokenProvider = airbag.getTokenProvider();
         TreeProvider treeProvider = airbag.getTreeProvider();
 
         // 2. Define the expected tree structure using a validation tree
