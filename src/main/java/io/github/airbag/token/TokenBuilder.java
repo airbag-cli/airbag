@@ -14,35 +14,35 @@ public class TokenBuilder {
     /**
      * The type of the token.
      */
-    private int type;
+    private int type = TokenField.TYPE.getDefault();
     /**
      * The text of the token.
      */
-    private String text;
+    private String text = TokenField.TEXT.getDefault();
     /**
      * The index of the token.
      */
-    private int index = -1;
+    private int index = TokenField.INDEX.getDefault();
     /**
      * The line number of the token.
      */
-    private int line;
+    private int line = TokenField.LINE.getDefault();
     /**
      * The character position in the line of the token.
      */
-    private int charPositionInLine = -1;
+    private int charPositionInLine = TokenField.POSITION.getDefault();
     /**
      * The channel of the token.
      */
-    private int channel = Token.DEFAULT_CHANNEL;
+    private int channel = TokenField.CHANNEL.getDefault();
     /**
      * The start index of the token.
      */
-    private int startIndex = -1;
+    private int startIndex = TokenField.START.getDefault();
     /**
      * The stop index of the token.
      */
-    private int stopIndex = -1;
+    private int stopIndex = TokenField.STOP.getDefault();
 
     /**
      * Sets the type of the token.

@@ -1,4 +1,4 @@
-package io.github.airbag.format;
+package io.github.airbag.token.format;
 
 /**
  * An exception that is thrown when a token cannot be parsed.

@@ -1,4 +1,4 @@
-package io.github.airbag.format;
+package io.github.airbag.token.format;
 
 /**
  * A generic exception for token-related errors.

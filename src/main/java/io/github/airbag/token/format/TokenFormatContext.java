@@ -1,4 +1,4 @@
-package io.github.airbag.format;
+package io.github.airbag.token.format;
 
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.Vocabulary;

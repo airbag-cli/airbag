@@ -155,4 +155,15 @@ public final class TokenField<T> {
         resolver.accept(builder, value);
     }
 
+    @SuppressWarnings("unchecked")
+    public T getDefault() {
+        return switch (this.name) {
+            case "type" -> (T) Integer.valueOf(Token.INVALID_TYPE);
+            case "text" -> (T) "";
+            case "channel" -> (T) Integer.valueOf(Token.DEFAULT_CHANNEL);
+            case "index", "line", "position" , "start", "stop" -> (T) Integer.valueOf(-1);
+            default -> throw new RuntimeException("Unknown field");
+        };
+    }
+
 }

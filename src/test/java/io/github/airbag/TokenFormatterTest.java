@@ -1,9 +1,9 @@
 package io.github.airbag;
 
-import io.github.airbag.format.TokenException;
-import io.github.airbag.format.TokenFormatter;
-import io.github.airbag.format.TokenFormatterBuilder;
-import io.github.airbag.format.TokenParseException;
+import io.github.airbag.token.format.TokenException;
+import io.github.airbag.token.format.TokenFormatter;
+import io.github.airbag.token.format.TokenFormatterBuilder;
+import io.github.airbag.token.format.TokenParseException;
 import io.github.airbag.gen.ExpressionLexer;
 import io.github.airbag.token.TokenField;
 import io.github.airbag.token.Tokens;

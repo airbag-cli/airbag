@@ -1,6 +1,6 @@
-package io.github.airbag.format;
+package io.github.airbag.token.format;
 
-import io.github.airbag.format.TokenFormatterBuilder.CompositePrinterParser;
+import io.github.airbag.token.format.TokenFormatterBuilder.CompositePrinterParser;
 import io.github.airbag.token.TokenField;
 import io.github.airbag.token.Tokens;
 import org.antlr.v4.runtime.Token;

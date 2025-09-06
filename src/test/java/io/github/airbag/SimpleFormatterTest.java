@@ -1,7 +1,7 @@
 package io.github.airbag;
 
-import io.github.airbag.format.TokenFormatter;
-import io.github.airbag.format.TokenParseException;
+import io.github.airbag.token.format.TokenFormatter;
+import io.github.airbag.token.format.TokenParseException;
 import io.github.airbag.gen.ExpressionLexer;
 import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.Token;
