@@ -84,12 +84,12 @@ public class TokenFormatterBuilder {
     /**
      * The list of printer/parsers that make up the format of the token.
      */
-    private List<TokenPrinterParser> printerParsers = new ArrayList<>();
+    private final List<TokenPrinterParser> printerParsers = new ArrayList<>();
 
     /**
      * The list of token fields that are used by the printer/parsers.
      */
-    private Set<TokenField<?>> fields = new HashSet<>();
+    private final Set<TokenField<?>> fields = new HashSet<>();
 
     private int optionalStart = -1;
 
@@ -279,7 +279,7 @@ public class TokenFormatterBuilder {
      *
      * <h3>Pattern Letters</h3>
      * The following pattern letters are available:
-     * <table border="1" cellpadding="5" summary="Pattern Letters">
+     * <table border="1" cell-padding="5" summary="Pattern Letters">
      *   <tr><th>Letter(s)</th><th>Component</th><th>Description</th></tr>
      *   <tr>
      *     <td><b>I</b></td>
@@ -486,12 +486,8 @@ public class TokenFormatterBuilder {
                         }
                         literalBuf.append(pattern.charAt(i));
                     }
-                    case '[' -> {
-                        startOptional();
-                    }
-                    case ']' -> {
-                        endOptional();
-                    }
+                    case '[' -> startOptional();
+                    case ']' -> endOptional();
                     default -> literalBuf.append(c);
                 }
             }
@@ -551,8 +547,10 @@ public class TokenFormatterBuilder {
             optionalStart = -1;
             return this;
         }
-        List<TokenPrinterParser> optionalList = printerParsers.subList(optionalStart, printerParsers.size());
-        CompositePrinterParser optional = new CompositePrinterParser(new ArrayList<>(optionalList), true);
+        List<TokenPrinterParser> optionalList = printerParsers.subList(optionalStart,
+                printerParsers.size());
+        CompositePrinterParser optional = new CompositePrinterParser(new ArrayList<>(optionalList),
+                true);
         optionalList.clear();
         printerParsers.add(optional);
         optionalStart = -1;
@@ -608,6 +606,10 @@ public class TokenFormatterBuilder {
          */
         int peek(TokenParseContext context, CharSequence text, int position);
 
+        default boolean isOptional() {
+            return false;
+        }
+
     }
 
     static final class CompositePrinterParser implements TokenPrinterParser {
@@ -616,7 +618,8 @@ public class TokenFormatterBuilder {
 
         private final boolean isOptional;
 
-        private CompositePrinterParser(List<TokenPrinterParser> printerParsers, boolean isOptional) {
+        private CompositePrinterParser(List<TokenPrinterParser> printerParsers,
+                                       boolean isOptional) {
             this(printerParsers.toArray(new TokenPrinterParser[0]), isOptional);
         }
 
@@ -628,11 +631,10 @@ public class TokenFormatterBuilder {
         @Override
         public boolean format(TokenFormatContext context, StringBuilder buf) {
             int initialLength = buf.length();
-            //TODO optional
             for (TokenPrinterParser printer : printerParsers) {
                 if (!printer.format(context, buf)) {
                     buf.setLength(initialLength);
-                    return false;
+                    return isOptional;
                 }
             }
             return true;
@@ -640,7 +642,12 @@ public class TokenFormatterBuilder {
 
         @Override
         public int parse(TokenParseContext context, CharSequence text, int position) {
-            //TODO optional
+            if (isOptional) {
+                int peekPosition = peek(context, text, position);
+                if (peekPosition < 0) {
+                    return position;
+                }
+            }
             for (TokenPrinterParser parser : printerParsers) {
                 position = parser.parse(context, text, position);
                 if (position < 0) {
@@ -652,9 +659,19 @@ public class TokenFormatterBuilder {
 
         @Override
         public int peek(TokenParseContext context, CharSequence text, int position) {
-            throw new UnsupportedOperationException();
+            for (TokenPrinterParser parser : printerParsers) {
+                position = parser.peek(context, text, position);
+                if (position < 0) {
+                    return position;
+                }
+            }
+            return position;
         }
 
+        @Override
+        public boolean isOptional() {
+            return isOptional;
+        }
     }
 
     static class IntegerPrinterParser implements TokenPrinterParser {
@@ -675,11 +692,14 @@ public class TokenFormatterBuilder {
         public boolean format(TokenFormatContext context, StringBuilder buf) {
             if (isStrict) {
                 int value = integerTokenField.access(context.token());
-                return value != integerTokenField.getDefault() && buf.append(value) == buf;
+                if (value == integerTokenField.getDefault()) {
+                    return false;
+                }
+                buf.append(value);
             } else {
                 buf.append(integerTokenField.access(context.token()));
-                return true;
             }
+            return true;
         }
 
         @Override
@@ -818,16 +838,26 @@ public class TokenFormatterBuilder {
         public int peek(TokenParseContext context, CharSequence text, int position) {
             validatePosition(text, position);
             TokenPrinterParser[] parserChain = context.printerParser().printerParsers;
-            int parserIndex = findParserIndex(parserChain);
-            TokenPrinterParser next = parserIndex + 1 < parserChain.length ?
-                    parserChain[parserIndex + 1] :
-                    null;
-            if (next == null) {
+            TokenPrinterParser[] successors = getSuccessors(parserChain);
+
+            if (successors.length == 0) {
                 return text.length();
             }
+
             var unescapeMap = option.getUnescapeMap();
             var escapeChar = option.getEscapeChar();
-            while (position < text.length() && next.peek(context, text, position) < 0) {
+            while (position < text.length()) {
+                boolean match = false;
+                for (var successor : successors) {
+                    if (successor.peek(context, text, position) >= 0) {
+                        match = true;
+                        break;
+                    }
+                }
+                if (match) {
+                    break;
+                }
+
                 if (text.charAt(position) == escapeChar) {
                     if (text.length() == position + 1 ||
                         !unescapeMap.containsKey(text.charAt(position + 1))) {
@@ -848,6 +878,23 @@ public class TokenFormatterBuilder {
                 }
             }
             throw new RuntimeException("Parser is not part of the chain");
+        }
+
+        private TokenPrinterParser[] getSuccessors(TokenPrinterParser[] parserChain) {
+            int parserIndex = findParserIndex(parserChain);
+            if (parserIndex < 0 || parserIndex == parserChain.length - 1) {
+                return new TokenPrinterParser[0];
+            }
+
+            List<TokenPrinterParser> delimiters = new ArrayList<>();
+            for (int i = parserIndex + 1; i < parserChain.length; i++) {
+                TokenPrinterParser successor = parserChain[i];
+                delimiters.add(successor);
+                if (!successor.isOptional()) {
+                    break;
+                }
+            }
+            return delimiters.toArray(new TokenPrinterParser[0]);
         }
     }
 
