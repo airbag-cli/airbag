@@ -20,7 +20,7 @@ import static java.util.Map.entry;
 public class TokenFormatter {
 
     /**
-     * A formatter that mimics the default ANTLR {@link Token#toString} format.
+     * A formatter that mimics the default ANTLR {@link Object#toString} of the {@link org.antlr.v4.runtime.CommonToken} format.
      * <p>
      * This formatter provides a detailed, parsable representation of a token, including all its core attributes.
      * The format is: {@code "[@<index>,<start>:<stop>='<text>',<<type>>,<line>:<pos>]"}
@@ -68,6 +68,10 @@ public class TokenFormatter {
      * A formatter for the token's literal name (e.g., '=', '*').
      */
     private static final TokenFormatter LITERAL = new TokenFormatterBuilder().appendLiteralType()
+            .startOptional()
+            .appendLiteral(":")
+            .appendInteger(TokenField.CHANNEL, true)
+            .endOptional()
             .toFormatter();
 
     /**
@@ -80,6 +84,10 @@ public class TokenFormatter {
      */
     private static final TokenFormatter SYMBOLIC = new TokenFormatterBuilder().appendLiteral("(")
             .appendSymbolicType()
+            .startOptional()
+            .appendLiteral(":")
+            .appendInteger(TokenField.CHANNEL, true)
+            .endOptional()
             .appendLiteral(" '")
             .appendText(new TextOption().withDefaultValue("")
                     .withEscapeChar('\\')
@@ -103,18 +111,24 @@ public class TokenFormatter {
      *     <li><b>Symbolic Name and Text:</b> If the token has no literal name (e.g., an identifier or number),
      *     it is formatted as {@code "(<SymbolicName> '<text>')"}.</li>
      * </ol>
+     * For literal and symbolic formats, if the token is on a non-default channel, the channel
+     * number will be appended (e.g., {@code "'+':3"} or {@code "(ID:3 'myVar')"}).
+     * <p>
      * This is the most commonly used formatter for simple, readable output.
      * <p><b>Examples:</b>
      * <pre>{@code
      * Token eof = new CommonToken(Token.EOF);
      * Token plus = new CommonToken(MyLexer.PLUS, "+");
      * Token id = new CommonToken(MyLexer.ID, "myVar");
+     * Token hidden = new CommonToken(MyLexer.COMMENT, "//comment");
+     * hidden.setChannel(Token.HIDDEN_CHANNEL); // Assuming HIDDEN_CHANNEL = 1
      *
      * TokenFormatter formatter = TokenFormatter.SIMPLE.withVocabulary(MyLexer.VOCABULARY);
      *
      * formatter.format(eof);   // Returns "EOF"
-     * formatter.format(plus);  // Returns "'='"
+     * formatter.format(plus);  // Returns "'+'"
      * formatter.format(id);    // Returns "(ID 'myVar')"
+     * formatter.format(hidden); // Returns "(COMMENT:1 '//comment')"
      * }</pre>
      */
     public static final TokenFormatter SIMPLE = EOF.withAlternative(LITERAL)
@@ -262,7 +276,7 @@ public class TokenFormatter {
      *
      * <h3>Literals and Quoted Text</h3>
      * Any character in the pattern that is not a recognized pattern letter (and not part of an optional
-     * section marker {@code []} or an escape sequence {@code \}) is treated as a literal. 
+     * section marker {@code []} or an escape sequence {@code \}) is treated as a literal.
      * For example, in the pattern {@code s:x}, the colon is a literal.
      * <p>
      * To treat a sequence of characters as a single literal, especially if it contains characters
@@ -341,7 +355,8 @@ public class TokenFormatter {
             throw new TokenParseException(input, position.getErrorIndex());
         }
         if (position.getIndex() != input.length()) {
-            String message = "Input '%s' has trailing unparsed text at position %d".formatted(input, position.getIndex());
+            String message = "Input '%s' has trailing unparsed text at position %d".formatted(input,
+                    position.getIndex());
             throw new TokenParseException(input, position.getIndex(), message);
         }
         return token;
@@ -370,7 +385,7 @@ public class TokenFormatter {
      * @return The parsed {@link Token}, or {@code null} if parsing fails.
      * @see #parse(String)
      */
-     public Token parse(String input, ParsePosition position) {
+    public Token parse(String input, ParsePosition position) {
         Objects.requireNonNull(position, "position");
         Objects.requireNonNull(input, "input");
         TokenParseContext ctx;
@@ -393,7 +408,6 @@ public class TokenFormatter {
         position.setErrorIndex(~lastError);
         return null;
     }
-
 
 
     /**

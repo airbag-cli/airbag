@@ -8,6 +8,7 @@ import org.antlr.v4.runtime.Vocabulary;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * A context object for parsing a token.
@@ -28,7 +29,11 @@ record TokenParseContext(Map<TokenField<?>, Object> fieldMap, CompositePrinterPa
      * @param value The value of the field.
      */
     <T> void addField(TokenField<T> field, T value) {
-        fieldMap.put(field, value);
+        Optional.ofNullable(fieldMap.put(field, value)).ifPresent(former -> {
+            if (!former.equals(value)) {
+                throw new TokenParseException("Cannot set the field %s with a different value".formatted(field.name()));
+            }
+        });
     }
 
     /**
