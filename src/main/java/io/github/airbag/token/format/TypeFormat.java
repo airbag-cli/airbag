@@ -1,4 +1,4 @@
-package io.github.airbag.format;
+package io.github.airbag.token.format;
 
 /**
  * Specifies the different ways to format and parse a token.

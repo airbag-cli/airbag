@@ -1,6 +1,6 @@
 package io.github.airbag.token;
 
-import io.github.airbag.format.TokenFormatter;
+import io.github.airbag.token.format.TokenFormatter;
 import org.antlr.v4.runtime.*;
 
 import java.lang.reflect.InvocationTargetException;

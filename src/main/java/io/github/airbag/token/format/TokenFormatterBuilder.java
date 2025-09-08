@@ -1,4 +1,4 @@
-package io.github.airbag.format;
+package io.github.airbag.token.format;
 
 import io.github.airbag.token.TokenField;
 import io.github.airbag.token.Tokens;
@@ -8,23 +8,90 @@ import org.antlr.v4.runtime.Vocabulary;
 import java.util.*;
 
 /**
- * A builder for creating {@link TokenFormatter} instances.
+ * Builder for creating {@link TokenFormatter} instances.
  * <p>
- * This builder provides a fluent API for constructing a token formatter with a specific format.
- * The format is defined by appending a sequence of printer/parsers to the builder.
- * Each printer/parser is responsible for formatting and parsing a specific part of the token.
+ * This builder provides a flexible and powerful way to define custom formats for
+ * converting {@link org.antlr.v4.runtime.Token} objects to and from strings.
+ * It is the primary mechanism for constructing {@link TokenFormatter}s, which are
+ * immutable and thread-safe once created.
+ *
+ * <h3>Overview</h3>
+ * The builder uses a fluent API to assemble a sequence of "printer-parsers".
+ * Each printer-parser is a component responsible for a specific part of the
+ * format. For example, one component might handle the token's text, while another
+ * handles its symbolic type name.
+ * <p>
+ * A {@link TokenFormatter} has two main functions:
+ * <ul>
+ *   <li><b>Formatting (Printing):</b> Converting a {@code Token} object into a string.</li>
+ *   <li><b>Parsing:</b> Converting a string back into a {@code Token} object's constituent parts.</li>
+ * </ul>
+ * The sequence of appended components defines the exact format for both operations.
+ *
+ * <h3>Usage</h3>
+ * To create a formatter, you instantiate a {@code TokenFormatterBuilder} and call
+ * various {@code append...} methods to define the desired format. Once the
+ * format is defined, you call {@link #toFormatter()} to create the
+ * {@link TokenFormatter} instance.
+ *
+ * <p><b>Example: Simple Formatter</b></p>
+ * <pre>{@code
+ * // Creates a formatter that represents a token as "SYMBOLIC_NAME:'text'"
+ * TokenFormatter formatter = new TokenFormatterBuilder()
+ *     .appendSymbolicType()
+ *     .appendLiteral(":'")
+ *     .appendText()
+ *     .appendLiteral("'")
+ *     .toFormatter();
+ *
+ * // Formatting example:
+ * // Assuming a token with symbolic name "ID" and text "user",
+ * // the output of formatter.format(token, vocabulary) would be:
+ * // "ID:'user'"
+ *
+ * // The same formatter can also parse this string back into its components.
+ * }</pre>
+ *
+ * <h3>Pattern-Based Formatting</h3>
+ * For more complex or dynamic formatting needs, the {@link #appendPattern(String)}
+ * method provides a concise and powerful alternative. It allows you to define the
+ * entire format using a single pattern string, similar to date and time formatting
+ * patterns. This is often more convenient than chaining multiple {@code append...} calls.
+ *
+ * <p><b>Example: Pattern-Based Formatter</b></p>
+ * <pre>{@code
+ * // A pattern to replicate ANTLR's default Token.toString() format
+ * String pattern = "\\[@N,B:E='X',<L>,R:P\\]";
+ * TokenFormatter antlrStyleFormatter = new TokenFormatterBuilder()
+ *     .appendPattern(pattern)
+ *     .toFormatter();
+ *
+ * // Example output for a token:
+ * // "[@-1,0:3='text',<1>,1:0]"
+ * }</pre>
+ *
+ * <h3>State and Thread-Safety</h3>
+ * This builder is a stateful object and is <b>not</b> thread-safe. It should be
+ * used to create a formatter and then discarded. The resulting {@link TokenFormatter}
+ * objects, however, are immutable and safe for use in multithreaded environments.
+ *
+ * @see TokenFormatter
+ * @see TypeFormat
+ * @see TextOption
  */
 public class TokenFormatterBuilder {
 
     /**
      * The list of printer/parsers that make up the format of the token.
      */
-    List<TokenPrinterParser> printerParsers = new ArrayList<>();
+    private final List<TokenPrinterParser> printerParsers = new ArrayList<>();
 
     /**
      * The list of token fields that are used by the printer/parsers.
      */
-    Set<TokenField<?>> fields = new HashSet<>();
+    private final Set<TokenField<?>> fields = new HashSet<>();
+
+    private int optionalStart = -1;
 
     /**
      * Appends a printer/parser for an integer field to the formatter.
@@ -33,7 +100,25 @@ public class TokenFormatterBuilder {
      * @return This builder.
      */
     public TokenFormatterBuilder appendInteger(TokenField<Integer> field) {
-        printerParsers.add(new IntegerPrinterParser(field));
+        return appendInteger(field, false);
+    }
+
+    /**
+     * Appends a printer/parser for an integer field to the formatter, with optional strict formatting.
+     * <p>
+     * When strict formatting is enabled, the integer value will only be printed if it is not
+     * equal to the default value of the provided {@link TokenField}. This is useful for omitting
+     * optional fields that have not been explicitly set.
+     * <p>
+     * For example, if used with {@link TokenField#CHANNEL} and strict mode, the channel will not be
+     * printed if it is the default channel (0).
+     *
+     * @param field    The integer field to append.
+     * @param isStrict {@code true} to enable strict formatting, {@code false} otherwise.
+     * @return This builder.
+     */
+    public TokenFormatterBuilder appendInteger(TokenField<Integer> field, boolean isStrict) {
+        printerParsers.add(new IntegerPrinterParser(field, isStrict));
         fields.add(field);
         return this;
     }
@@ -183,12 +268,302 @@ public class TokenFormatterBuilder {
     }
 
     /**
+     * Appends a printer and parser to the formatter using a flexible pattern string.
+     * <p>
+     * This method allows for the creation of a formatter by defining a pattern string,
+     * which specifies the desired arrangement of token components. The pattern supports
+     * various letters, each representing a specific field of a {@link Token}.
+     * The case of the letter often determines its behavior during parsing, with lowercase
+     * letters typically representing "strict" parsing and uppercase letters representing
+     * "lenient" parsing.
+     *
+     * <h3>Pattern Letters</h3>
+     * The following pattern letters are available:
+     * <table border="1" cell-padding="5" summary="Pattern Letters">
+     *   <tr><th>Letter(s)</th><th>Component</th><th>Description</th></tr>
+     *   <tr>
+     *     <td><b>I</b></td>
+     *     <td>Token Type (Integer)</td>
+     *     <td>Always formats the token's integer type. Parses an integer and sets it as the token type.</td>
+     *   </tr>
+     *   <tr>
+     *     <td><b>s / S</b></td>
+     *     <td>Token Type (Symbolic)</td>
+     *     <td>
+     *         <b>s (Strict):</b> Formats the symbolic name of the token (e.g., "ID"). Fails if no symbolic name is available. Parses a symbolic name and resolves it to a token type.<br>
+     *         <b>S (Lenient):</b> Formats the symbolic name if available; otherwise, formats the literal name. Parses either a symbolic or literal name.
+     *     </td>
+     *   </tr>
+     *   <tr>
+     *     <td><b>l / L</b></td>
+     *     <td>Token Type (Literal)</td>
+     *     <td>
+     *         <b>l (Strict):</b> Formats the literal name of the token (e.g., "'='" ). Fails if no literal name is available. Parses a literal name and resolves it to a token type.<br>
+     *         <b>L (Lenient):</b> Formats the literal name if available; otherwise, formats the symbolic name. Parses either a literal or symbolic name.
+     *     </td>
+     *   </tr>
+     *   <tr>
+     *     <td><b>x / X</b></td>
+     *     <td>Token Text</td>
+     *     <td>
+     *         <b>x (Strict):</b> Formats the token's text without any escaping. Parses text until the next component.<br>
+     *         <b>X (Lenient):</b> Formats the token's text with escaping for special characters. Parses escaped text.
+     *     </td>
+     *   </tr>
+     *   <tr>
+     *     <td><b>n / N</b></td>
+     *     <td>Token Index</td>
+     *     <td>
+     *         <b>n (Strict):</b> Formats the token's index. Fails if the index is the default value (-1). Parses an integer for the token index.<br>
+     *         <b>N (Lenient):</b> Always formats the token's index. Parses an integer for the token index.
+     *     </td>
+     *   </tr>
+     *   <tr>
+     *     <td><b>b / B</b></td>
+     *     <td>Start Index</td>
+     *     <td>
+     *         <b>b (Strict):</b> Formats the start index. Fails if the index is the default value (-1). Parses an integer for the start index.<br>
+     *         <b>B (Lenient):</b> Always formats the start index. Parses an integer for the start index.
+     *     </td>
+     *   </tr>
+     *   <tr>
+     *     <td><b>e / E</b></td>
+     *     <td>Stop Index</td>
+     *     <td>
+     *         <b>e (Strict):</b> Formats the stop index. Fails if the index is the default value (-1). Parses an integer for the stop index.<br>
+     *         <b>E (Lenient):</b> Always formats the stop index. Parses an integer for the stop index.
+     *     </td>
+     *   </tr>
+     *   <tr>
+     *     <td><b>c / C</b></td>
+     *     <td>Channel</td>
+     *     <td>
+     *         <b>c (Strict):</b> Formats the channel number. Fails if the channel is the default channel (0). Parses a non-zero integer for the channel.<br>
+     *         <b>C (Lenient):</b> Always formats the channel number, including the default channel. Parses any integer for the channel.
+     *     </td>
+     *   </tr>
+     *   <tr>
+     *     <td><b>p / P</b></td>
+     *     <td>Char Position in Line</td>
+     *     <td>
+     *         <b>p (Strict):</b> Formats the character position in line. Fails if the position is the default value (-1). Parses an integer for the position.<br>
+     *         <b>P (Lenient):</b> Always formats the character position in line. Parses an integer for the position.
+     *     </td>
+     *   </tr>
+     *   <tr>
+     *     <td><b>r / R</b></td>
+     *     <td>Line Number</td>
+     *     <td>
+     *         <b>r (Strict):</b> Formats the line number. Fails if the line number is the default value (-1). Parses an integer for the line number.<br>
+     *         <b>R (Lenient):</b> Always formats the line number. Parses an integer for the line number.
+     *     </td>
+     *   </tr>
+     * </table>
+     *
+     * <h3>Literals and Quoted Text</h3>
+     * Any character in the pattern that is not a recognized pattern letter (and not part of an optional
+     * section marker {@code []} or an escape sequence {@code \}) is treated as a literal.
+     * For example, in the pattern {@code s:x}, the colon is a literal.
+     * <p>
+     * To treat a sequence of characters as a single literal, especially if it contains characters
+     * that could be interpreted as pattern modifiers, you can enclose the sequence in {@code %} characters.
+     * Everything between the opening and closing {@code %} is treated as one literal block.
+     * For example, {@code %s%} would result in the literal "s" being printed, not the symbolic name.
+     * This is useful for ensuring that text is treated as a literal, regardless of its content.
+     *
+     * <h3>Optional Sections</h3>
+     * Square brackets {@code []} can be used to create an optional section in the pattern.
+     * During formatting, if all components within the optional section can be printed, they are.
+     * Otherwise, the entire section is skipped. During parsing, the parser will attempt to
+     * match the components in the optional section, but if it fails, it will skip the section
+     * and continue with the rest of the pattern.
+     *
+     * <h3>Escaping</h3>
+     * The backslash character {@code \} is used as an escape character. It allows individual pattern
+     * letters to be treated as literals outside a quoted block. For example, a pattern of {@code \s}
+     * will format or parse the literal character 's'. To include a literal backslash, use a double
+     * backslash {@code \\}. To include a literal percent sign, use {@code \%}.
+     *
+     * <h3>Examples</h3>
+     * <pre>{@code
+     *   // Format a token as "SYMBOLIC_NAME:'text'"
+     *   // For a token with symbolic name "ID" and text "user", the output would be "ID:'user'"
+     *   String pattern1 = "s:'x'";
+     *
+     *   // Replicate ANTLR's default Token.toString() format
+     *   // Example output: [@-1,0:3='text',<0>,1:0]
+     *   // Using quoted blocks for all literal parts to avoid ambiguity.
+     *   String antlrPattern = "\\[@N,B:E='X',<L>,[%channel%=c],R:P\\]";
+     *
+     *   // Format a token with an optional channel display
+     *   // If the channel is not the default, it will be included (e.g., "ID[channel=1]")
+     *   // Otherwise, it will be omitted (e.g., "ID")
+     *   String optionalChannelPattern = "s[\\[%channel%=c\\]]";
+     * }</pre>
+     *
+     * @param pattern the pattern string to define the formatter.
+     * @return this builder.
+     * @throws IllegalArgumentException if the pattern is invalid.
+     */
+    public TokenFormatterBuilder appendPattern(String pattern) {
+        Objects.requireNonNull(pattern, "pattern");
+        parsePattern(pattern);
+        return this;
+    }
+
+    private static final Set<Character> PATTERN_LETTERS = Set.of(
+            'I',
+            'S',
+            's',
+            'L',
+            'l',
+            'x',
+            'X',
+            'N',
+            'n',
+            'B',
+            'b',
+            'E',
+            'e',
+            'C',
+            'c',
+            'P',
+            'p',
+            'R',
+            'r'
+    );
+
+    private void parsePattern(String pattern) {
+        StringBuilder literalBuf = new StringBuilder();
+        for (int i = 0; i < pattern.length(); i++) {
+            char c = pattern.charAt(i);
+            if (PATTERN_LETTERS.contains(c)) {
+                flushLiteralBuf(literalBuf);
+                switch (c) {
+                    case 'I' -> appendInteger(TokenField.TYPE);
+                    case 'S' -> appendType(TypeFormat.SYMBOLIC_FIRST);
+                    case 's' -> appendSymbolicType();
+                    case 'L' -> appendType(TypeFormat.LITERAL_FIRST);
+                    case 'l' -> appendLiteralType();
+                    case 'x' -> appendText();
+                    case 'X' -> appendText(TextOption.ESCAPED);
+                    case 'N' -> appendInteger(TokenField.INDEX);
+                    case 'n' -> appendInteger(TokenField.INDEX, true);
+                    case 'B' -> appendInteger(TokenField.START);
+                    case 'b' -> appendInteger(TokenField.START, true);
+                    case 'E' -> appendInteger(TokenField.STOP);
+                    case 'e' -> appendInteger(TokenField.STOP, true);
+                    case 'C' -> appendInteger(TokenField.CHANNEL);
+                    case 'c' -> appendInteger(TokenField.CHANNEL, true);
+                    case 'P' -> appendInteger(TokenField.POSITION);
+                    case 'p' -> appendInteger(TokenField.POSITION, true);
+                    case 'R' -> appendInteger(TokenField.LINE);
+                    case 'r' -> appendInteger(TokenField.LINE, true);
+                }
+            } else {
+                switch (c) {
+                    case '%' -> {
+                        flushLiteralBuf(literalBuf);
+                        i++; // Skip opening '%'
+                        int contentStart = i;
+                        while (i < pattern.length() && pattern.charAt(i) != '%') {
+                            i++;
+                        }
+                        if (i >= pattern.length()) {
+                            throw new TokenException("Unclosed quoted literal in pattern: " +
+                                                     pattern);
+                        }
+                        String literal = pattern.substring(contentStart, i);
+                        if (!literal.isEmpty()) {
+                            appendLiteral(literal);
+                        }
+                    }
+                    case '\\' -> {
+                        i++;
+                        if (i >= pattern.length()) {
+                            throw new TokenException("Invalid escape sequence at end of pattern: " +
+                                                     pattern);
+                        }
+                        literalBuf.append(pattern.charAt(i));
+                    }
+                    case '[' -> startOptional();
+                    case ']' -> endOptional();
+                    default -> literalBuf.append(c);
+                }
+            }
+        }
+        flushLiteralBuf(literalBuf);
+    }
+
+    private void flushLiteralBuf(StringBuilder buf) {
+        if (!buf.isEmpty()) {
+            appendLiteral(buf.toString());
+            buf.setLength(0);
+        }
+    }
+
+    /**
+     * Marks the beginning of an optional section in the formatter.
+     * <p>
+     * All formatter components appended after this call and before a corresponding
+     * call to {@link #endOptional()} will be part of an optional group.
+     * <p>
+     * During formatting, if any component within this optional group fails to print
+     * (e.g., a strict field with a default value), the entire group will be skipped
+     * without generating any output.
+     * <p>
+     * During parsing, the entire group will be attempted. If parsing fails at any
+     * point within the group, the parser will backtrack to the state before the
+     * optional section and continue, as if the optional section was not present.
+     * <p>
+     * Note: Optional sections cannot be nested.
+     *
+     * @return this builder.
+     * @throws IllegalStateException if an optional section is already open.
+     */
+    public TokenFormatterBuilder startOptional() {
+        if (optionalStart != -1) {
+            throw new IllegalStateException("Optionals cannot be nested");
+        }
+        optionalStart = printerParsers.size();
+        return this;
+    }
+
+    /**
+     * Marks the end of an optional section.
+     * <p>
+     * This method must be called after a corresponding {@link #startOptional()}. It
+     * takes all the printer-parsers that were added since {@code startOptional()}
+     * was called and combines them into a single, optional unit.
+     *
+     * @return this builder.
+     * @throws IllegalStateException if there is no open optional section to end.
+     */
+    public TokenFormatterBuilder endOptional() {
+        if (optionalStart == -1) {
+            throw new IllegalStateException("Cannot end optional without starting one");
+        }
+        if (optionalStart == printerParsers.size()) {
+            optionalStart = -1;
+            return this;
+        }
+        List<TokenPrinterParser> optionalList = printerParsers.subList(optionalStart,
+                printerParsers.size());
+        CompositePrinterParser optional = new CompositePrinterParser(new ArrayList<>(optionalList),
+                true);
+        optionalList.clear();
+        printerParsers.add(optional);
+        optionalStart = -1;
+        return this;
+    }
+
+    /**
      * Builds the token formatter.
      *
      * @return The built token formatter.
      */
     public TokenFormatter toFormatter() {
-        return new TokenFormatter(new CompositePrinterParser(printerParsers), fields, null);
+        return new TokenFormatter(new CompositePrinterParser(printerParsers, false), fields, null);
     }
 
     /**
@@ -231,18 +606,26 @@ public class TokenFormatterBuilder {
          */
         int peek(TokenParseContext context, CharSequence text, int position);
 
+        default boolean isOptional() {
+            return false;
+        }
+
     }
 
     static final class CompositePrinterParser implements TokenPrinterParser {
 
         private final TokenPrinterParser[] printerParsers;
 
-        private CompositePrinterParser(List<TokenPrinterParser> printerParsers) {
-            this(printerParsers.toArray(new TokenPrinterParser[0]));
+        private final boolean isOptional;
+
+        private CompositePrinterParser(List<TokenPrinterParser> printerParsers,
+                                       boolean isOptional) {
+            this(printerParsers.toArray(new TokenPrinterParser[0]), isOptional);
         }
 
-        private CompositePrinterParser(TokenPrinterParser[] printerParsers) {
+        private CompositePrinterParser(TokenPrinterParser[] printerParsers, boolean isOptional) {
             this.printerParsers = printerParsers;
+            this.isOptional = isOptional;
         }
 
         @Override
@@ -251,7 +634,7 @@ public class TokenFormatterBuilder {
             for (TokenPrinterParser printer : printerParsers) {
                 if (!printer.format(context, buf)) {
                     buf.setLength(initialLength);
-                    return false;
+                    return isOptional;
                 }
             }
             return true;
@@ -259,6 +642,12 @@ public class TokenFormatterBuilder {
 
         @Override
         public int parse(TokenParseContext context, CharSequence text, int position) {
+            if (isOptional) {
+                int peekPosition = peek(context, text, position);
+                if (peekPosition < 0) {
+                    return position;
+                }
+            }
             for (TokenPrinterParser parser : printerParsers) {
                 position = parser.parse(context, text, position);
                 if (position < 0) {
@@ -270,22 +659,46 @@ public class TokenFormatterBuilder {
 
         @Override
         public int peek(TokenParseContext context, CharSequence text, int position) {
-            throw new UnsupportedOperationException();
+            for (TokenPrinterParser parser : printerParsers) {
+                position = parser.peek(context, text, position);
+                if (position < 0) {
+                    return position;
+                }
+            }
+            return position;
         }
 
+        @Override
+        public boolean isOptional() {
+            return isOptional;
+        }
     }
 
     static class IntegerPrinterParser implements TokenPrinterParser {
 
         private final TokenField<Integer> integerTokenField;
+        private final boolean isStrict;
+
+        IntegerPrinterParser(TokenField<Integer> integerTokenField, boolean isStrict) {
+            this.isStrict = isStrict;
+            this.integerTokenField = integerTokenField;
+        }
 
         IntegerPrinterParser(TokenField<Integer> integerTokenField) {
-            this.integerTokenField = integerTokenField;
+            this(integerTokenField, false);
         }
 
         @Override
         public boolean format(TokenFormatContext context, StringBuilder buf) {
-            buf.append(integerTokenField.access(context.token()));
+            if (isStrict) {
+                int value = integerTokenField.access(context.token());
+                if (value == integerTokenField.getDefault()) {
+                    return false;
+                }
+                buf.append(value);
+            } else {
+                buf.append(integerTokenField.access(context.token()));
+            }
             return true;
         }
 
@@ -425,16 +838,26 @@ public class TokenFormatterBuilder {
         public int peek(TokenParseContext context, CharSequence text, int position) {
             validatePosition(text, position);
             TokenPrinterParser[] parserChain = context.printerParser().printerParsers;
-            int parserIndex = findParserIndex(parserChain);
-            TokenPrinterParser next = parserIndex + 1 < parserChain.length ?
-                    parserChain[parserIndex + 1] :
-                    null;
-            if (next == null) {
+            TokenPrinterParser[] successors = getSuccessors(parserChain);
+
+            if (successors.length == 0) {
                 return text.length();
             }
+
             var unescapeMap = option.getUnescapeMap();
             var escapeChar = option.getEscapeChar();
-            while (position < text.length() && next.peek(context, text, position) < 0) {
+            while (position < text.length()) {
+                boolean match = false;
+                for (var successor : successors) {
+                    if (successor.peek(context, text, position) >= 0) {
+                        match = true;
+                        break;
+                    }
+                }
+                if (match) {
+                    break;
+                }
+
                 if (text.charAt(position) == escapeChar) {
                     if (text.length() == position + 1 ||
                         !unescapeMap.containsKey(text.charAt(position + 1))) {
@@ -455,6 +878,23 @@ public class TokenFormatterBuilder {
                 }
             }
             throw new RuntimeException("Parser is not part of the chain");
+        }
+
+        private TokenPrinterParser[] getSuccessors(TokenPrinterParser[] parserChain) {
+            int parserIndex = findParserIndex(parserChain);
+            if (parserIndex < 0 || parserIndex == parserChain.length - 1) {
+                return new TokenPrinterParser[0];
+            }
+
+            List<TokenPrinterParser> delimiters = new ArrayList<>();
+            for (int i = parserIndex + 1; i < parserChain.length; i++) {
+                TokenPrinterParser successor = parserChain[i];
+                delimiters.add(successor);
+                if (!successor.isOptional()) {
+                    break;
+                }
+            }
+            return delimiters.toArray(new TokenPrinterParser[0]);
         }
     }
 

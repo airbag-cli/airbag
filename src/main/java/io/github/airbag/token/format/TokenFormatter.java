@@ -1,6 +1,6 @@
-package io.github.airbag.format;
+package io.github.airbag.token.format;
 
-import io.github.airbag.format.TokenFormatterBuilder.CompositePrinterParser;
+import io.github.airbag.token.format.TokenFormatterBuilder.CompositePrinterParser;
 import io.github.airbag.token.TokenField;
 import io.github.airbag.token.Tokens;
 import org.antlr.v4.runtime.Token;
@@ -20,7 +20,7 @@ import static java.util.Map.entry;
 public class TokenFormatter {
 
     /**
-     * A formatter that mimics the default ANTLR {@link Token#toString} format.
+     * A formatter that mimics the default ANTLR {@link Object#toString} of the {@link org.antlr.v4.runtime.CommonToken} format.
      * <p>
      * This formatter provides a detailed, parsable representation of a token, including all its core attributes.
      * The format is: {@code "[@<index>,<start>:<stop>='<text>',<<type>>,<line>:<pos>]"}
@@ -52,7 +52,12 @@ public class TokenFormatter {
             .appendText(TextOption.ESCAPED)
             .appendLiteral("',<")
             .appendType(TypeFormat.LITERAL_FIRST)
-            .appendLiteral(">,")
+            .appendLiteral(">")
+            .startOptional()
+            .appendLiteral(",channel=")
+            .appendInteger(TokenField.CHANNEL, true)
+            .endOptional()
+            .appendLiteral(",")
             .appendInteger(TokenField.LINE)
             .appendLiteral(":")
             .appendInteger(TokenField.POSITION)
@@ -63,6 +68,10 @@ public class TokenFormatter {
      * A formatter for the token's literal name (e.g., '=', '*').
      */
     private static final TokenFormatter LITERAL = new TokenFormatterBuilder().appendLiteralType()
+            .startOptional()
+            .appendLiteral(":")
+            .appendInteger(TokenField.CHANNEL, true)
+            .endOptional()
             .toFormatter();
 
     /**
@@ -75,6 +84,10 @@ public class TokenFormatter {
      */
     private static final TokenFormatter SYMBOLIC = new TokenFormatterBuilder().appendLiteral("(")
             .appendSymbolicType()
+            .startOptional()
+            .appendLiteral(":")
+            .appendInteger(TokenField.CHANNEL, true)
+            .endOptional()
             .appendLiteral(" '")
             .appendText(new TextOption().withDefaultValue("")
                     .withEscapeChar('\\')
@@ -98,18 +111,24 @@ public class TokenFormatter {
      *     <li><b>Symbolic Name and Text:</b> If the token has no literal name (e.g., an identifier or number),
      *     it is formatted as {@code "(<SymbolicName> '<text>')"}.</li>
      * </ol>
+     * For literal and symbolic formats, if the token is on a non-default channel, the channel
+     * number will be appended (e.g., {@code "'+':3"} or {@code "(ID:3 'myVar')"}).
+     * <p>
      * This is the most commonly used formatter for simple, readable output.
      * <p><b>Examples:</b>
      * <pre>{@code
      * Token eof = new CommonToken(Token.EOF);
      * Token plus = new CommonToken(MyLexer.PLUS, "+");
      * Token id = new CommonToken(MyLexer.ID, "myVar");
+     * Token hidden = new CommonToken(MyLexer.COMMENT, "//comment");
+     * hidden.setChannel(Token.HIDDEN_CHANNEL); // Assuming HIDDEN_CHANNEL = 1
      *
      * TokenFormatter formatter = TokenFormatter.SIMPLE.withVocabulary(MyLexer.VOCABULARY);
      *
      * formatter.format(eof);   // Returns "EOF"
-     * formatter.format(plus);  // Returns "'='"
+     * formatter.format(plus);  // Returns "'+'"
      * formatter.format(id);    // Returns "(ID 'myVar')"
+     * formatter.format(hidden); // Returns "(COMMENT:1 '//comment')"
      * }</pre>
      */
     public static final TokenFormatter SIMPLE = EOF.withAlternative(LITERAL)
@@ -148,6 +167,144 @@ public class TokenFormatter {
         this.printerParsers = printerParsers;
         this.fields = Set.copyOf(fields);
         this.vocabulary = vocabulary;
+    }
+
+    /**
+     * Creates a {@link TokenFormatter} from a pattern string.
+     * <p>
+     * This factory method provides a convenient way to define a token format using a
+     * single pattern string, similar to date and time formatting patterns. It is a
+     * concise alternative to programmatically chaining individual components with a
+     * {@link TokenFormatterBuilder}.
+     *
+     * <p><b>Example:</b></p>
+     * <pre>{@code
+     * // Creates a formatter that represents a token as "SYMBOLIC_NAME:'text'"
+     * TokenFormatter formatter = TokenFormatter.ofPattern("s:'x'");
+     *
+     * // Example formatting:
+     * // Given a token with symbolic name "ID" and text "user",
+     * // the output would be: "ID:'user'"
+     * }</pre>
+     *
+     * <h3>Pattern Syntax</h3>
+     * The pattern allows you to specify which token fields to include, along with any
+     * literal text, in the desired order.
+     *
+     * <h3>Pattern Letters</h3>
+     * The following pattern letters are available:
+     * <table border="1" cellpadding="5" summary="Pattern Letters">
+     *   <tr><th>Letter(s)</th><th>Component</th><th>Description</th></tr>
+     *   <tr>
+     *     <td><b>I</b></td>
+     *     <td>Token Type (Integer)</td>
+     *     <td>Always formats the token's integer type. Parses an integer and sets it as the token type.</td>
+     *   </tr>
+     *   <tr>
+     *     <td><b>s / S</b></td>
+     *     <td>Token Type (Symbolic)</td>
+     *     <td>
+     *         <b>s (Strict):</b> Formats the symbolic name of the token (e.g., "ID"). Fails if no symbolic name is available. Parses a symbolic name and resolves it to a token type.<br>
+     *         <b>S (Lenient):</b> Formats the symbolic name if available; otherwise, formats the literal name. Parses either a symbolic or literal name.
+     *     </td>
+     *   </tr>
+     *   <tr>
+     *     <td><b>l / L</b></td>
+     *     <td>Token Type (Literal)</td>
+     *     <td>
+     *         <b>l (Strict):</b> Formats the literal name of the token (e.g., "'='" ). Fails if no literal name is available. Parses a literal name and resolves it to a token type.<br>
+     *         <b>L (Lenient):</b> Formats the literal name if available; otherwise, formats the symbolic name. Parses either a literal or symbolic name.
+     *     </td>
+     *   </tr>
+     *   <tr>
+     *     <td><b>x / X</b></td>
+     *     <td>Token Text</td>
+     *     <td>
+     *         <b>x (Strict):</b> Formats the token's text without any escaping. Parses text until the next component.<br>
+     *         <b>X (Lenient):</b> Formats the token's text with escaping for special characters. Parses escaped text.
+     *     </td>
+     *   </tr>
+     *   <tr>
+     *     <td><b>n / N</b></td>
+     *     <td>Token Index</td>
+     *     <td>
+     *         <b>n (Strict):</b> Formats the token's index. Fails if the index is the default value (-1). Parses an integer for the token index.<br>
+     *         <b>N (Lenient):</b> Always formats the token's index. Parses an integer for the token index.
+     *     </td>
+     *   </tr>
+     *   <tr>
+     *     <td><b>b / B</b></td>
+     *     <td>Start Index</td>
+     *     <td>
+     *         <b>b (Strict):</b> Formats the start index. Fails if the index is the default value (-1). Parses an integer for the start index.<br>
+     *         <b>B (Lenient):</b> Always formats the start index. Parses an integer for the start index.
+     *     </td>
+     *   </tr>
+     *   <tr>
+     *     <td><b>e / E</b></td>
+     *     <td>Stop Index</td>
+     *     <td>
+     *         <b>e (Strict):</b> Formats the stop index. Fails if the index is the default value (-1). Parses an integer for the stop index.<br>
+     *         <b>E (Lenient):</b> Always formats the stop index. Parses an integer for the stop index.
+     *     </td>
+     *   </tr>
+     *   <tr>
+     *     <td><b>c / C</b></td>
+     *     <td>Channel</td>
+     *     <td>
+     *         <b>c (Strict):</b> Formats the channel number. Fails if the channel is the default channel (0). Parses a non-zero integer for the channel.<br>
+     *         <b>C (Lenient):</b> Always formats the channel number, including the default channel. Parses any integer for the channel.
+     *     </td>
+     *   </tr>
+     *   <tr>
+     *     <td><b>p / P</b></td>
+     *     <td>Char Position in Line</td>
+     *     <td>
+     *         <b>p (Strict):</b> Formats the character position in line. Fails if the position is the default value (-1). Parses an integer for the position.<br>
+     *         <b>P (Lenient):</b> Always formats the character position in line. Parses an integer for the position.
+     *     </td>
+     *   </tr>
+     *   <tr>
+     *     <td><b>r / R</b></td>
+     *     <td>Line Number</td>
+     *     <td>
+     *         <b>r (Strict):</b> Formats the line number. Fails if the line number is the default value (-1). Parses an integer for the line number.<br>
+     *         <b>R (Lenient):</b> Always formats the line number. Parses an integer for the line number.
+     *     </td>
+     *   </tr>
+     * </table>
+     *
+     * <h3>Literals and Quoted Text</h3>
+     * Any character in the pattern that is not a recognized pattern letter (and not part of an optional
+     * section marker {@code []} or an escape sequence {@code \}) is treated as a literal.
+     * For example, in the pattern {@code s:x}, the colon is a literal.
+     * <p>
+     * To treat a sequence of characters as a single literal, especially if it contains characters
+     * that could be interpreted as pattern modifiers, you can enclose the sequence in {@code %} characters.
+     * Everything between the opening and closing {@code %} is treated as one literal block.
+     * For example, {@code %s%} would result in the literal "s" being printed, not the symbolic name.
+     * This is useful for ensuring that text is treated as a literal, regardless of its content.
+     *
+     * <h3>Optional Sections</h3>
+     * Square brackets {@code []} can be used to create an optional section in the pattern.
+     * During formatting, if all components within the optional section can be printed, they are.
+     * Otherwise, the entire section is skipped. During parsing, the parser will attempt to
+     * match the components in the optional section, but if it fails, it will skip the section
+     * and continue with the rest of the pattern.
+     *
+     * <h3>Escaping</h3>
+     * The backslash character {@code \} is used as an escape character. It allows individual pattern
+     * letters to be treated as literals outside a quoted block. For example, a pattern of {@code \s}
+     * will format or parse the literal character 's'. To include a literal backslash, use a double
+     * backslash {@code \\}. To include a literal percent sign, use {@code \%}.
+     *
+     * @param pattern the pattern string that defines the format.
+     * @return a new {@link TokenFormatter} instance based on the provided pattern.
+     * @throws IllegalArgumentException if the pattern string is invalid.
+     * @see TokenFormatterBuilder#appendPattern(String)
+     */
+    public static TokenFormatter ofPattern(String pattern) {
+        return new TokenFormatterBuilder().appendPattern(pattern).toFormatter();
     }
 
     /**
@@ -198,7 +355,8 @@ public class TokenFormatter {
             throw new TokenParseException(input, position.getErrorIndex());
         }
         if (position.getIndex() != input.length()) {
-            String message = "Input '%s' has trailing unparsed text at position %d".formatted(input, position.getIndex());
+            String message = "Input '%s' has trailing unparsed text at position %d".formatted(input,
+                    position.getIndex());
             throw new TokenParseException(input, position.getIndex(), message);
         }
         return token;
@@ -227,7 +385,7 @@ public class TokenFormatter {
      * @return The parsed {@link Token}, or {@code null} if parsing fails.
      * @see #parse(String)
      */
-     public Token parse(String input, ParsePosition position) {
+    public Token parse(String input, ParsePosition position) {
         Objects.requireNonNull(position, "position");
         Objects.requireNonNull(input, "input");
         TokenParseContext ctx;
@@ -250,6 +408,7 @@ public class TokenFormatter {
         position.setErrorIndex(~lastError);
         return null;
     }
+
 
     /**
      * Returns a new {@link TokenFormatter} instance with the specified ANTLR vocabulary.
