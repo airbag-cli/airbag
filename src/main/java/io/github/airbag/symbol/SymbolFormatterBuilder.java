@@ -1,43 +1,40 @@
-package io.github.airbag.token.format;
+package io.github.airbag.symbol;
 
-import io.github.airbag.token.TokenField;
-import io.github.airbag.token.Tokens;
-import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.Vocabulary;
 
 import java.util.*;
 
 /**
- * Builder for creating {@link TokenFormatter} instances.
+ * Builder for creating {@link SymbolFormatter} instances.
  * <p>
  * This builder provides a flexible and powerful way to define custom formats for
- * converting {@link org.antlr.v4.runtime.Token} objects to and from strings.
- * It is the primary mechanism for constructing {@link TokenFormatter}s, which are
+ * converting {@link Symbol} objects to and from strings.
+ * It is the primary mechanism for constructing {@link SymbolFormatter}s, which are
  * immutable and thread-safe once created.
  *
  * <h3>Overview</h3>
  * The builder uses a fluent API to assemble a sequence of "printer-parsers".
  * Each printer-parser is a component responsible for a specific part of the
- * format. For example, one component might handle the token's text, while another
+ * format. For example, one component might handle the symbol's text, while another
  * handles its symbolic type name.
  * <p>
- * A {@link TokenFormatter} has two main functions:
+ * A {@link SymbolFormatter} has two main functions:
  * <ul>
- *   <li><b>Formatting (Printing):</b> Converting a {@code Token} object into a string.</li>
- *   <li><b>Parsing:</b> Converting a string back into a {@code Token} object's constituent parts.</li>
+ *   <li><b>Formatting (Printing):</b> Converting a {@code Symbol} object into a string.</li>
+ *   <li><b>Parsing:</b> Converting a string back into a {@code Symbol} object's constituent parts.</li>
  * </ul>
  * The sequence of appended components defines the exact format for both operations.
  *
  * <h3>Usage</h3>
- * To create a formatter, you instantiate a {@code TokenFormatterBuilder} and call
+ * To create a formatter, you instantiate a {@code SymbolFormatterBuilder} and call
  * various {@code append...} methods to define the desired format. Once the
  * format is defined, you call {@link #toFormatter()} to create the
- * {@link TokenFormatter} instance.
+ * {@link SymbolFormatter} instance.
  *
  * <p><b>Example: Simple Formatter</b></p>
  * <pre>{@code
- * // Creates a formatter that represents a token as "SYMBOLIC_NAME:'text'"
- * TokenFormatter formatter = new TokenFormatterBuilder()
+ * // Creates a formatter that represents a symbol as "SYMBOLIC_NAME:'text'"
+ * SymbolFormatter formatter = new SymbolFormatterBuilder()
  *     .appendSymbolicType()
  *     .appendLiteral(":'")
  *     .appendText()
@@ -45,8 +42,8 @@ import java.util.*;
  *     .toFormatter();
  *
  * // Formatting example:
- * // Assuming a token with symbolic name "ID" and text "user",
- * // the output of formatter.format(token, vocabulary) would be:
+ * // Assuming a symbol with symbolic name "ID" and text "user",
+ * // the output of formatter.format(symbol, vocabulary) would be:
  * // "ID:'user'"
  *
  * // The same formatter can also parse this string back into its components.
@@ -62,34 +59,34 @@ import java.util.*;
  * <pre>{@code
  * // A pattern to replicate ANTLR's default Token.toString() format
  * String pattern = "\\[@N,B:E='X',<L>,R:P\\]";
- * TokenFormatter antlrStyleFormatter = new TokenFormatterBuilder()
+ * SymbolFormatter antlrStyleFormatter = new SymbolFormatterBuilder()
  *     .appendPattern(pattern)
  *     .toFormatter();
  *
- * // Example output for a token:
+ * // Example output for a symbol:
  * // "[@-1,0:3='text',<1>,1:0]"
  * }</pre>
  *
  * <h3>State and Thread-Safety</h3>
  * This builder is a stateful object and is <b>not</b> thread-safe. It should be
- * used to create a formatter and then discarded. The resulting {@link TokenFormatter}
+ * used to create a formatter and then discarded. The resulting {@link SymbolFormatter}
  * objects, however, are immutable and safe for use in multithreaded environments.
  *
- * @see TokenFormatter
+ * @see SymbolFormatter
  * @see TypeFormat
  * @see TextOption
  */
-public class TokenFormatterBuilder {
+public class SymbolFormatterBuilder {
 
     /**
-     * The list of printer/parsers that make up the format of the token.
+     * The list of printer/parsers that make up the format of the symbol.
      */
-    private final List<TokenPrinterParser> printerParsers = new ArrayList<>();
+    private final List<SymbolPrinterParser> printerParsers = new ArrayList<>();
 
     /**
-     * The list of token fields that are used by the printer/parsers.
+     * The list of symbol fields that are used by the printer/parsers.
      */
-    private final Set<TokenField<?>> fields = new HashSet<>();
+    private final Set<SymbolField<?>> fields = new HashSet<>();
 
     private int optionalStart = -1;
 
@@ -99,7 +96,7 @@ public class TokenFormatterBuilder {
      * @param field The integer field to append.
      * @return This builder.
      */
-    public TokenFormatterBuilder appendInteger(TokenField<Integer> field) {
+    public SymbolFormatterBuilder appendInteger(SymbolField<Integer> field) {
         return appendInteger(field, false);
     }
 
@@ -107,17 +104,17 @@ public class TokenFormatterBuilder {
      * Appends a printer/parser for an integer field to the formatter, with optional strict formatting.
      * <p>
      * When strict formatting is enabled, the integer value will only be printed if it is not
-     * equal to the default value of the provided {@link TokenField}. This is useful for omitting
+     * equal to the default value of the provided {@link SymbolField}. This is useful for omitting
      * optional fields that have not been explicitly set.
      * <p>
-     * For example, if used with {@link TokenField#CHANNEL} and strict mode, the channel will not be
+     * For example, if used with {@link SymbolField#CHANNEL} and strict mode, the channel will not be
      * printed if it is the default channel (0).
      *
      * @param field    The integer field to append.
      * @param isStrict {@code true} to enable strict formatting, {@code false} otherwise.
      * @return This builder.
      */
-    public TokenFormatterBuilder appendInteger(TokenField<Integer> field, boolean isStrict) {
+    public SymbolFormatterBuilder appendInteger(SymbolField<Integer> field, boolean isStrict) {
         printerParsers.add(new IntegerPrinterParser(field, isStrict));
         fields.add(field);
         return this;
@@ -129,13 +126,13 @@ public class TokenFormatterBuilder {
      * @param literal The literal string to append.
      * @return This builder.
      */
-    public TokenFormatterBuilder appendLiteral(String literal) {
+    public SymbolFormatterBuilder appendLiteral(String literal) {
         printerParsers.add(new LiteralPrinterParser(literal));
         return this;
     }
 
     /**
-     * Appends a printer/parser for the token's text.
+     * Appends a printer/parser for the symbol's text.
      * <p>
      * This component is non-greedy; it consumes characters only up to the point
      * where the next component in the formatter is able to match. If this is the
@@ -149,14 +146,14 @@ public class TokenFormatterBuilder {
      *
      * @return This builder.
      */
-    public TokenFormatterBuilder appendText() {
+    public SymbolFormatterBuilder appendText() {
         printerParsers.add(new TextPrinterParser());
-        fields.add(TokenField.TEXT);
+        fields.add(SymbolField.TEXT);
         return this;
     }
 
     /**
-     * Appends a printer/parser for the token's text, with custom escaping and default value behavior.
+     * Appends a printer/parser for the symbol's text, with custom escaping and default value behavior.
      * <p>
      * This component is non-greedy; it consumes characters only up to the point
      * where the next component in the formatter is able to match. If this is the
@@ -166,67 +163,67 @@ public class TokenFormatterBuilder {
      * @return This builder.
      * @see TextOption
      */
-    public TokenFormatterBuilder appendText(TextOption option) {
+    public SymbolFormatterBuilder appendText(TextOption option) {
         printerParsers.add(new TextPrinterParser(option));
-        fields.add(TokenField.TEXT);
+        fields.add(SymbolField.TEXT);
         return this;
     }
 
     /**
-     * Appends a printer/parser for the token's symbolic type name (e.g., "ID", "INT").
+     * Appends a printer/parser for the symbol's symbolic type name (e.g., "ID", "INT").
      * <p>
-     * This component provides a strict mapping between a token's type and its symbolic name
+     * This component provides a strict mapping between a symbol's type and its symbolic name
      * as defined in the ANTLR {@link Vocabulary}.
      * <p>
-     * <b>Formatting:</b> It will throw a {@link TokenException} if the vocabulary is missing or
-     * if the token's type does not have a symbolic name. This is often the case for tokens
+     * <b>Formatting:</b> It will throw a {@link SymbolException} if the vocabulary is missing or
+     * if the symbol's type does not have a symbolic name. This is often the case for tokens
      * representing literals (e.g., keywords, operators like {@code '='}), which have a literal
      * name but not a symbolic one.
      * <p>
      * <b>Parsing:</b> It reads a symbolic name from the input and resolves it back to the
-     * corresponding token type.
+     * corresponding symbol type.
      *
      * @return This builder.
      */
-    public TokenFormatterBuilder appendSymbolicType() {
+    public SymbolFormatterBuilder appendSymbolicType() {
         printerParsers.add(new SymbolicTypePrinterParser());
-        fields.add(TokenField.TYPE);
+        fields.add(SymbolField.TYPE);
         return this;
     }
 
     /**
-     * Appends a printer/parser for the token's literal type name (e.g., {@code '='}, {@code '*'}).
+     * Appends a printer/parser for the symbol's literal type name (e.g., {@code '='}, {@code '*'}).
      * <p>
-     * This component maps a token's type to its literal name as defined in the ANTLR
+     * This component maps a symbol's type to its literal name as defined in the ANTLR
      * {@link Vocabulary}. Literal names are the exact strings defined in the grammar,
      * typically enclosed in single quotes (e.g., {@code '='}).
      * <p>
      * <b>Formatting:</b> The literal name from the vocabulary (including the single quotes)
-     * is appended to the output. It will throw a {@link TokenException} if the vocabulary
-     * is missing or if the token's type does not have a literal name. This is often the
+     * is appended to the output. It will throw a {@link SymbolException} if the vocabulary
+     * is missing or if the symbol's type does not have a literal name. This is often the
      * case for tokens with symbolic names like {@code ID} or {@code INT}.
      * <p>
      * <b>Parsing:</b> The parser expects the input to contain the literal name, including
      * the single quotes. It finds the longest possible literal in the vocabulary that
-     * matches the input string and resolves it to the corresponding token type.
+     * matches the input string and resolves it to the corresponding symbol type.
      *
      * @return This builder.
      */
-    public TokenFormatterBuilder appendLiteralType() {
+    public SymbolFormatterBuilder appendLiteralType() {
         printerParsers.add(new LiteralTypePrinterParser());
-        fields.add(TokenField.TYPE);
+        fields.add(SymbolField.TYPE);
         return this;
     }
 
     /**
-     * Appends a printer/parser for the token's type, with a configurable format.
+     * Appends a printer/parser for the symbol's type, with a configurable format.
      * <p>
-     * This method provides a flexible way to format and parse a token's type by specifying
+     * This method provides a flexible way to format and parse a symbol's type by specifying
      * a {@link TypeFormat}. The format determines which representations of the type are
      * used and in what order. For example, a type can be represented by its symbolic name
      * (e.g., "ID"), its literal name (e.g., "'='"), or its raw integer value.
      * <p>
-     * <b>Formatting:</b> The formatter will attempt to represent the token's type using the
+     * <b>Formatting:</b> The formatter will attempt to represent the symbol's type using the
      * strategies defined by the {@link TypeFormat}, in order. The first successful
      * representation will be appended to the output. If no representation is successful
      * (e.g., a symbolic name is requested but not available), the formatting for this
@@ -240,30 +237,30 @@ public class TokenFormatterBuilder {
      * {@link #appendLiteralType()}, which correspond to {@link TypeFormat#SYMBOLIC_ONLY}
      * and {@link TypeFormat#LITERAL_ONLY} respectively.
      *
-     * @param format The format to use for the token's type.
+     * @param format The format to use for the symbol's type.
      * @return This builder.
      * @see TypeFormat
      */
-    public TokenFormatterBuilder appendType(TypeFormat format) {
+    public SymbolFormatterBuilder appendType(TypeFormat format) {
         printerParsers.add(new TypePrinterParser(format));
-        fields.add(TokenField.TYPE);
+        fields.add(SymbolField.TYPE);
         return this;
     }
 
     /**
-     * Appends a printer/parser for the end-of-file (EOF) token.
+     * Appends a printer/parser for the end-of-file (EOF) symbol.
      * <p>
-     * <b>Formatting:</b> If the token's type is {@link Token#EOF}, this component
-     * appends the string "EOF". For any other token type, it fails.
+     * <b>Formatting:</b> If the symbol's type is {@link Symbol#EOF}, this component
+     * appends the string "EOF". For any other symbol type, it fails.
      * <p>
      * <b>Parsing:</b> It matches the literal string "EOF" and resolves it to a
-     * token of type {@link Token#EOF}.
+     * symbol of type {@link Symbol#EOF}.
      *
      * @return This builder.
      */
-    public TokenFormatterBuilder appendEOF() {
+    public SymbolFormatterBuilder appendEOF() {
         printerParsers.add(new EOFPrinterParser());
-        fields.add(TokenField.TYPE);
+        fields.add(SymbolField.TYPE);
         return this;
     }
 
@@ -271,8 +268,8 @@ public class TokenFormatterBuilder {
      * Appends a printer and parser to the formatter using a flexible pattern string.
      * <p>
      * This method allows for the creation of a formatter by defining a pattern string,
-     * which specifies the desired arrangement of token components. The pattern supports
-     * various letters, each representing a specific field of a {@link Token}.
+     * which specifies the desired arrangement of symbol components. The pattern supports
+     * various letters, each representing a specific field of a {@link Symbol}.
      * The case of the letter often determines its behavior during parsing, with lowercase
      * letters typically representing "strict" parsing and uppercase letters representing
      * "lenient" parsing.
@@ -283,39 +280,39 @@ public class TokenFormatterBuilder {
      *   <tr><th>Letter(s)</th><th>Component</th><th>Description</th></tr>
      *   <tr>
      *     <td><b>I</b></td>
-     *     <td>Token Type (Integer)</td>
-     *     <td>Always formats the token's integer type. Parses an integer and sets it as the token type.</td>
+     *     <td>Symbol Type (Integer)</td>
+     *     <td>Always formats the symbol's integer type. Parses an integer and sets it as the symbol type.</td>
      *   </tr>
      *   <tr>
      *     <td><b>s / S</b></td>
-     *     <td>Token Type (Symbolic)</td>
+     *     <td>Symbol Type (Symbolic)</td>
      *     <td>
-     *         <b>s (Strict):</b> Formats the symbolic name of the token (e.g., "ID"). Fails if no symbolic name is available. Parses a symbolic name and resolves it to a token type.<br>
+     *         <b>s (Strict):</b> Formats the symbolic name of the symbol (e.g., "ID"). Fails if no symbolic name is available. Parses a symbolic name and resolves it to a symbol type.<br>
      *         <b>S (Lenient):</b> Formats the symbolic name if available; otherwise, formats the literal name. Parses either a symbolic or literal name.
      *     </td>
      *   </tr>
      *   <tr>
      *     <td><b>l / L</b></td>
-     *     <td>Token Type (Literal)</td>
+     *     <td>Symbol Type (Literal)</td>
      *     <td>
-     *         <b>l (Strict):</b> Formats the literal name of the token (e.g., "'='" ). Fails if no literal name is available. Parses a literal name and resolves it to a token type.<br>
+     *         <b>l (Strict):</b> Formats the literal name of the symbol (e.g., "'='" ). Fails if no literal name is available. Parses a literal name and resolves it to a symbol type.<br>
      *         <b>L (Lenient):</b> Formats the literal name if available; otherwise, formats the symbolic name. Parses either a literal or symbolic name.
      *     </td>
      *   </tr>
      *   <tr>
      *     <td><b>x / X</b></td>
-     *     <td>Token Text</td>
+     *     <td>Symbol Text</td>
      *     <td>
-     *         <b>x (Strict):</b> Formats the token's text without any escaping. Parses text until the next component.<br>
-     *         <b>X (Lenient):</b> Formats the token's text with escaping for special characters. Parses escaped text.
+     *         <b>x (Strict):</b> Formats the symbol's text without any escaping. Parses text until the next component.<br>
+     *         <b>X (Lenient):</b> Formats the symbol's text with escaping for special characters. Parses escaped text.
      *     </td>
      *   </tr>
      *   <tr>
      *     <td><b>n / N</b></td>
-     *     <td>Token Index</td>
+     *     <td>Symbol Index</td>
      *     <td>
-     *         <b>n (Strict):</b> Formats the token's index. Fails if the index is the default value (-1). Parses an integer for the token index.<br>
-     *         <b>N (Lenient):</b> Always formats the token's index. Parses an integer for the token index.
+     *         <b>n (Strict):</b> Formats the symbol's index. Fails if the index is the default value (-1). Parses an integer for the symbol index.<br>
+     *         <b>N (Lenient):</b> Always formats the symbol's index. Parses an integer for the symbol index.
      *     </td>
      *   </tr>
      *   <tr>
@@ -386,16 +383,16 @@ public class TokenFormatterBuilder {
      *
      * <h3>Examples</h3>
      * <pre>{@code
-     *   // Format a token as "SYMBOLIC_NAME:'text'"
-     *   // For a token with symbolic name "ID" and text "user", the output would be "ID:'user'"
+     *   // Format a symbol as "SYMBOLIC_NAME:'text'"
+     *   // For a symbol with symbolic name "ID" and text "user", the output would be "ID:'user'"
      *   String pattern1 = "s:'x'";
      *
-     *   // Replicate ANTLR's default Token.toString() format
+     *   // Replicate ANTLR's default Symbol.toString() format
      *   // Example output: [@-1,0:3='text',<0>,1:0]
      *   // Using quoted blocks for all literal parts to avoid ambiguity.
      *   String antlrPattern = "\\[@N,B:E='X',<L>,[%channel%=c],R:P\\]";
      *
-     *   // Format a token with an optional channel display
+     *   // Format a symbol with an optional channel display
      *   // If the channel is not the default, it will be included (e.g., "ID[channel=1]")
      *   // Otherwise, it will be omitted (e.g., "ID")
      *   String optionalChannelPattern = "s[\\[%channel%=c\\]]";
@@ -405,7 +402,7 @@ public class TokenFormatterBuilder {
      * @return this builder.
      * @throws IllegalArgumentException if the pattern is invalid.
      */
-    public TokenFormatterBuilder appendPattern(String pattern) {
+    public SymbolFormatterBuilder appendPattern(String pattern) {
         Objects.requireNonNull(pattern, "pattern");
         parsePattern(pattern);
         return this;
@@ -440,25 +437,25 @@ public class TokenFormatterBuilder {
             if (PATTERN_LETTERS.contains(c)) {
                 flushLiteralBuf(literalBuf);
                 switch (c) {
-                    case 'I' -> appendInteger(TokenField.TYPE);
+                    case 'I' -> appendInteger(SymbolField.TYPE);
                     case 'S' -> appendType(TypeFormat.SYMBOLIC_FIRST);
                     case 's' -> appendSymbolicType();
                     case 'L' -> appendType(TypeFormat.LITERAL_FIRST);
                     case 'l' -> appendLiteralType();
                     case 'x' -> appendText();
                     case 'X' -> appendText(TextOption.ESCAPED);
-                    case 'N' -> appendInteger(TokenField.INDEX);
-                    case 'n' -> appendInteger(TokenField.INDEX, true);
-                    case 'B' -> appendInteger(TokenField.START);
-                    case 'b' -> appendInteger(TokenField.START, true);
-                    case 'E' -> appendInteger(TokenField.STOP);
-                    case 'e' -> appendInteger(TokenField.STOP, true);
-                    case 'C' -> appendInteger(TokenField.CHANNEL);
-                    case 'c' -> appendInteger(TokenField.CHANNEL, true);
-                    case 'P' -> appendInteger(TokenField.POSITION);
-                    case 'p' -> appendInteger(TokenField.POSITION, true);
-                    case 'R' -> appendInteger(TokenField.LINE);
-                    case 'r' -> appendInteger(TokenField.LINE, true);
+                    case 'N' -> appendInteger(SymbolField.INDEX);
+                    case 'n' -> appendInteger(SymbolField.INDEX, true);
+                    case 'B' -> appendInteger(SymbolField.START);
+                    case 'b' -> appendInteger(SymbolField.START, true);
+                    case 'E' -> appendInteger(SymbolField.STOP);
+                    case 'e' -> appendInteger(SymbolField.STOP, true);
+                    case 'C' -> appendInteger(SymbolField.CHANNEL);
+                    case 'c' -> appendInteger(SymbolField.CHANNEL, true);
+                    case 'P' -> appendInteger(SymbolField.POSITION);
+                    case 'p' -> appendInteger(SymbolField.POSITION, true);
+                    case 'R' -> appendInteger(SymbolField.LINE);
+                    case 'r' -> appendInteger(SymbolField.LINE, true);
                 }
             } else {
                 switch (c) {
@@ -470,8 +467,8 @@ public class TokenFormatterBuilder {
                             i++;
                         }
                         if (i >= pattern.length()) {
-                            throw new TokenException("Unclosed quoted literal in pattern: " +
-                                                     pattern);
+                            throw new SymbolException("Unclosed quoted literal in pattern: " +
+                                                      pattern);
                         }
                         String literal = pattern.substring(contentStart, i);
                         if (!literal.isEmpty()) {
@@ -481,8 +478,8 @@ public class TokenFormatterBuilder {
                     case '\\' -> {
                         i++;
                         if (i >= pattern.length()) {
-                            throw new TokenException("Invalid escape sequence at end of pattern: " +
-                                                     pattern);
+                            throw new SymbolException("Invalid escape sequence at end of pattern: " +
+                                                      pattern);
                         }
                         literalBuf.append(pattern.charAt(i));
                     }
@@ -521,7 +518,7 @@ public class TokenFormatterBuilder {
      * @return this builder.
      * @throws IllegalStateException if an optional section is already open.
      */
-    public TokenFormatterBuilder startOptional() {
+    public SymbolFormatterBuilder startOptional() {
         if (optionalStart != -1) {
             throw new IllegalStateException("Optionals cannot be nested");
         }
@@ -539,7 +536,7 @@ public class TokenFormatterBuilder {
      * @return this builder.
      * @throws IllegalStateException if there is no open optional section to end.
      */
-    public TokenFormatterBuilder endOptional() {
+    public SymbolFormatterBuilder endOptional() {
         if (optionalStart == -1) {
             throw new IllegalStateException("Cannot end optional without starting one");
         }
@@ -547,7 +544,7 @@ public class TokenFormatterBuilder {
             optionalStart = -1;
             return this;
         }
-        List<TokenPrinterParser> optionalList = printerParsers.subList(optionalStart,
+        List<SymbolPrinterParser> optionalList = printerParsers.subList(optionalStart,
                 printerParsers.size());
         CompositePrinterParser optional = new CompositePrinterParser(new ArrayList<>(optionalList),
                 true);
@@ -558,21 +555,21 @@ public class TokenFormatterBuilder {
     }
 
     /**
-     * Builds the token formatter.
+     * Builds the symbol formatter.
      *
-     * @return The built token formatter.
+     * @return The built symbol formatter.
      */
-    public TokenFormatter toFormatter() {
-        return new TokenFormatter(new CompositePrinterParser(printerParsers, false), fields, null);
+    public SymbolFormatter toFormatter() {
+        return new SymbolFormatter(new CompositePrinterParser(printerParsers, false), fields, null);
     }
 
     /**
      * The internal interface for parsing and formatting.
-     * This interface is the building block for the composite {@link TokenFormatter}.
-     * It defines the dual functionality of formatting (printing) a token stream
+     * This interface is the building block for the composite {@link SymbolFormatter}.
+     * It defines the dual functionality of formatting (printing) a symbol stream
      * and parsing an input character sequence.
      */
-    interface TokenPrinterParser {
+    interface SymbolPrinterParser {
 
         /**
          * Formats a value from a context into a string buffer.
@@ -581,7 +578,7 @@ public class TokenFormatterBuilder {
          * @param buf     the buffer to append the formatted text to.
          * @return true if the formatting was successful, false otherwise.
          */
-        boolean format(TokenFormatContext context, StringBuilder buf);
+        boolean format(SymbolFormatContext context, StringBuilder buf);
 
         /**
          * Parses a text string, consuming characters and updating the context.
@@ -593,7 +590,7 @@ public class TokenFormatterBuilder {
          * @throws NullPointerException      if the context or text is null
          * @throws IndexOutOfBoundsException if the position is invalid
          */
-        int parse(TokenParseContext context, CharSequence text, int position);
+        int parse(SymbolParseContext context, CharSequence text, int position);
 
         /**
          * Peeks ahead in the text to see if the next characters match this parser's rule,
@@ -604,7 +601,7 @@ public class TokenFormatterBuilder {
          * @param position the position to start peeking from.
          * @return the position of the potential match if successful, or a negative value if it does not match.
          */
-        int peek(TokenParseContext context, CharSequence text, int position);
+        int peek(SymbolParseContext context, CharSequence text, int position);
 
         default boolean isOptional() {
             return false;
@@ -612,26 +609,26 @@ public class TokenFormatterBuilder {
 
     }
 
-    static final class CompositePrinterParser implements TokenPrinterParser {
+    static final class CompositePrinterParser implements SymbolPrinterParser {
 
-        private final TokenPrinterParser[] printerParsers;
+        private final SymbolPrinterParser[] printerParsers;
 
         private final boolean isOptional;
 
-        private CompositePrinterParser(List<TokenPrinterParser> printerParsers,
+        private CompositePrinterParser(List<SymbolPrinterParser> printerParsers,
                                        boolean isOptional) {
-            this(printerParsers.toArray(new TokenPrinterParser[0]), isOptional);
+            this(printerParsers.toArray(new SymbolPrinterParser[0]), isOptional);
         }
 
-        private CompositePrinterParser(TokenPrinterParser[] printerParsers, boolean isOptional) {
+        private CompositePrinterParser(SymbolPrinterParser[] printerParsers, boolean isOptional) {
             this.printerParsers = printerParsers;
             this.isOptional = isOptional;
         }
 
         @Override
-        public boolean format(TokenFormatContext context, StringBuilder buf) {
+        public boolean format(SymbolFormatContext context, StringBuilder buf) {
             int initialLength = buf.length();
-            for (TokenPrinterParser printer : printerParsers) {
+            for (SymbolPrinterParser printer : printerParsers) {
                 if (!printer.format(context, buf)) {
                     buf.setLength(initialLength);
                     return isOptional;
@@ -641,14 +638,14 @@ public class TokenFormatterBuilder {
         }
 
         @Override
-        public int parse(TokenParseContext context, CharSequence text, int position) {
+        public int parse(SymbolParseContext context, CharSequence text, int position) {
             if (isOptional) {
                 int peekPosition = peek(context, text, position);
                 if (peekPosition < 0) {
                     return position;
                 }
             }
-            for (TokenPrinterParser parser : printerParsers) {
+            for (SymbolPrinterParser parser : printerParsers) {
                 position = parser.parse(context, text, position);
                 if (position < 0) {
                     return position;
@@ -658,8 +655,8 @@ public class TokenFormatterBuilder {
         }
 
         @Override
-        public int peek(TokenParseContext context, CharSequence text, int position) {
-            for (TokenPrinterParser parser : printerParsers) {
+        public int peek(SymbolParseContext context, CharSequence text, int position) {
+            for (SymbolPrinterParser parser : printerParsers) {
                 position = parser.peek(context, text, position);
                 if (position < 0) {
                     return position;
@@ -674,47 +671,47 @@ public class TokenFormatterBuilder {
         }
     }
 
-    static class IntegerPrinterParser implements TokenPrinterParser {
+    static class IntegerPrinterParser implements SymbolPrinterParser {
 
-        private final TokenField<Integer> integerTokenField;
+        private final SymbolField<Integer> integerSymbolField;
         private final boolean isStrict;
 
-        IntegerPrinterParser(TokenField<Integer> integerTokenField, boolean isStrict) {
+        IntegerPrinterParser(SymbolField<Integer> integerSymbolField, boolean isStrict) {
             this.isStrict = isStrict;
-            this.integerTokenField = integerTokenField;
+            this.integerSymbolField = integerSymbolField;
         }
 
-        IntegerPrinterParser(TokenField<Integer> integerTokenField) {
-            this(integerTokenField, false);
+        IntegerPrinterParser(SymbolField<Integer> integerSymbolField) {
+            this(integerSymbolField, false);
         }
 
         @Override
-        public boolean format(TokenFormatContext context, StringBuilder buf) {
+        public boolean format(SymbolFormatContext context, StringBuilder buf) {
             if (isStrict) {
-                int value = integerTokenField.access(context.token());
-                if (value == integerTokenField.getDefault()) {
+                int value = integerSymbolField.access(context.symbol());
+                if (value == integerSymbolField.getDefault()) {
                     return false;
                 }
                 buf.append(value);
             } else {
-                buf.append(integerTokenField.access(context.token()));
+                buf.append(integerSymbolField.access(context.symbol()));
             }
             return true;
         }
 
         @Override
-        public int parse(TokenParseContext context, CharSequence text, int position) {
+        public int parse(SymbolParseContext context, CharSequence text, int position) {
             int numberEnd = peek(context, text, position);
             if (numberEnd < 0) {
                 return numberEnd;
             }
-            context.addField(integerTokenField,
+            context.addField(integerSymbolField,
                     Integer.valueOf(text.subSequence(position, numberEnd).toString()));
             return numberEnd;
         }
 
         @Override
-        public int peek(TokenParseContext context, CharSequence text, int position) {
+        public int peek(SymbolParseContext context, CharSequence text, int position) {
             validatePosition(text, position);
             return text.charAt(position) == '-' ?
                     findNumberEnd(text, position + 1) :
@@ -740,7 +737,7 @@ public class TokenFormatterBuilder {
         return position;
     }
 
-    static class LiteralPrinterParser implements TokenPrinterParser {
+    static class LiteralPrinterParser implements SymbolPrinterParser {
 
         private final String literal;
 
@@ -749,18 +746,18 @@ public class TokenFormatterBuilder {
         }
 
         @Override
-        public boolean format(TokenFormatContext context, StringBuilder buf) {
+        public boolean format(SymbolFormatContext context, StringBuilder buf) {
             buf.append(literal);
             return true;
         }
 
         @Override
-        public int parse(TokenParseContext context, CharSequence text, int position) {
+        public int parse(SymbolParseContext context, CharSequence text, int position) {
             return peek(context, text, position);
         }
 
         @Override
-        public int peek(TokenParseContext context, CharSequence text, int position) {
+        public int peek(SymbolParseContext context, CharSequence text, int position) {
             validatePosition(text, position);
             int positionEnd = position + literal.length();
             if (positionEnd > text.length() ||
@@ -772,7 +769,7 @@ public class TokenFormatterBuilder {
 
     }
 
-    static class TextPrinterParser implements TokenPrinterParser {
+    static class TextPrinterParser implements SymbolPrinterParser {
 
         private final TextOption option;
 
@@ -785,8 +782,8 @@ public class TokenFormatterBuilder {
         }
 
         @Override
-        public boolean format(TokenFormatContext context, StringBuilder buf) {
-            String text = context.token().getText();
+        public boolean format(SymbolFormatContext context, StringBuilder buf) {
+            String text = context.symbol().text();
             var escapeMap = option.getEscapeMap();
             for (int i = 0; i < text.length(); i++) {
                 char c = text.charAt(i);
@@ -803,7 +800,7 @@ public class TokenFormatterBuilder {
         }
 
         @Override
-        public int parse(TokenParseContext context, CharSequence text, int position) {
+        public int parse(SymbolParseContext context, CharSequence text, int position) {
             int endPosition = peek(context, text, position);
             if (endPosition < 0) {
                 return endPosition;
@@ -813,7 +810,7 @@ public class TokenFormatterBuilder {
             if (tokenText.equals(option.getDefaultValue())) {
                 tokenText = "";
             }
-            context.addField(TokenField.TEXT, tokenText);
+            context.addField(SymbolField.TEXT, tokenText);
             return endPosition;
         }
 
@@ -835,10 +832,10 @@ public class TokenFormatterBuilder {
         }
 
         @Override
-        public int peek(TokenParseContext context, CharSequence text, int position) {
+        public int peek(SymbolParseContext context, CharSequence text, int position) {
             validatePosition(text, position);
-            TokenPrinterParser[] parserChain = context.printerParser().printerParsers;
-            TokenPrinterParser[] successors = getSuccessors(parserChain);
+            SymbolPrinterParser[] parserChain = context.printerParser().printerParsers;
+            SymbolPrinterParser[] successors = getSuccessors(parserChain);
 
             if (successors.length == 0) {
                 return text.length();
@@ -871,7 +868,7 @@ public class TokenFormatterBuilder {
             return position;
         }
 
-        private int findParserIndex(TokenPrinterParser[] parserChain) {
+        private int findParserIndex(SymbolPrinterParser[] parserChain) {
             for (int i = 0; i < parserChain.length; i++) {
                 if (parserChain[i] == this) {
                     return i;
@@ -880,33 +877,33 @@ public class TokenFormatterBuilder {
             throw new RuntimeException("Parser is not part of the chain");
         }
 
-        private TokenPrinterParser[] getSuccessors(TokenPrinterParser[] parserChain) {
+        private SymbolPrinterParser[] getSuccessors(SymbolPrinterParser[] parserChain) {
             int parserIndex = findParserIndex(parserChain);
             if (parserIndex < 0 || parserIndex == parserChain.length - 1) {
-                return new TokenPrinterParser[0];
+                return new SymbolPrinterParser[0];
             }
 
-            List<TokenPrinterParser> delimiters = new ArrayList<>();
+            List<SymbolPrinterParser> delimiters = new ArrayList<>();
             for (int i = parserIndex + 1; i < parserChain.length; i++) {
-                TokenPrinterParser successor = parserChain[i];
+                SymbolPrinterParser successor = parserChain[i];
                 delimiters.add(successor);
                 if (!successor.isOptional()) {
                     break;
                 }
             }
-            return delimiters.toArray(new TokenPrinterParser[0]);
+            return delimiters.toArray(new SymbolPrinterParser[0]);
         }
     }
 
-    static class SymbolicTypePrinterParser implements TokenPrinterParser {
+    static class SymbolicTypePrinterParser implements SymbolPrinterParser {
 
         @Override
-        public boolean format(TokenFormatContext context, StringBuilder buf) {
+        public boolean format(SymbolFormatContext context, StringBuilder buf) {
             Vocabulary vocabulary = context.vocabulary();
             if (vocabulary == null) {
                 return false;
             }
-            String symbolicName = vocabulary.getSymbolicName(context.token().getType());
+            String symbolicName = vocabulary.getSymbolicName(context.symbol().type());
             if (symbolicName == null) {
                 return false;
             }
@@ -915,19 +912,30 @@ public class TokenFormatterBuilder {
         }
 
         @Override
-        public int parse(TokenParseContext context, CharSequence text, int position) {
+        public int parse(SymbolParseContext context, CharSequence text, int position) {
             int endPosition = peek(context, text, position);
             if (endPosition < 0) {
                 return endPosition;
             }
             String symbolicName = text.subSequence(position, endPosition).toString();
-            int type = Tokens.getTokenType(symbolicName, context.vocabulary());
-            context.addField(TokenField.TYPE, type);
+            Vocabulary vocabulary = context.vocabulary();
+
+            int type = getType(symbolicName, context.vocabulary());
+            context.addField(SymbolField.TYPE, type);
             return endPosition;
         }
 
+        private int getType(String symbolicName, Vocabulary vocabulary) {
+            for (int i = -1; i < vocabulary.getMaxTokenType() + 1; i++) {
+                if (Objects.equals(symbolicName, vocabulary.getSymbolicName(i))) {
+                    return i;
+                }
+            }
+            throw new RuntimeException("No symbolic type found");
+        }
+
         @Override
-        public int peek(TokenParseContext context, CharSequence text, int position) {
+        public int peek(SymbolParseContext context, CharSequence text, int position) {
             validatePosition(text, position);
             Vocabulary vocabulary = context.vocabulary();
             if (vocabulary == null) {
@@ -951,15 +959,15 @@ public class TokenFormatterBuilder {
         }
     }
 
-    static class LiteralTypePrinterParser implements TokenPrinterParser {
+    static class LiteralTypePrinterParser implements SymbolPrinterParser {
 
         @Override
-        public boolean format(TokenFormatContext context, StringBuilder buf) {
+        public boolean format(SymbolFormatContext context, StringBuilder buf) {
             Vocabulary vocabulary = context.vocabulary();
             if (vocabulary == null) {
                 return false;
             }
-            String literalName = vocabulary.getLiteralName(context.token().getType());
+            String literalName = vocabulary.getLiteralName(context.symbol().type());
             if (literalName == null) {
                 return false;
             }
@@ -968,15 +976,15 @@ public class TokenFormatterBuilder {
         }
 
         @Override
-        public int parse(TokenParseContext context, CharSequence text, int position) {
+        public int parse(SymbolParseContext context, CharSequence text, int position) {
             int endPosition = peek(context, text, position);
             if (endPosition < 0) {
                 return endPosition;
             }
             String literalName = text.subSequence(position, endPosition).toString();
             int type = findLiteralType(literalName, context.vocabulary());
-            context.addField(TokenField.TYPE, type);
-            context.addField(TokenField.TEXT, literalName.substring(1, literalName.length() - 1));
+            context.addField(SymbolField.TYPE, type);
+            context.addField(SymbolField.TEXT, literalName.substring(1, literalName.length() - 1));
             return endPosition;
         }
 
@@ -990,7 +998,7 @@ public class TokenFormatterBuilder {
         }
 
         @Override
-        public int peek(TokenParseContext context, CharSequence text, int position) {
+        public int peek(SymbolParseContext context, CharSequence text, int position) {
             validatePosition(text, position);
             Vocabulary vocabulary = context.vocabulary();
             if (vocabulary == null) {
@@ -1014,33 +1022,33 @@ public class TokenFormatterBuilder {
         }
     }
 
-    static class TypePrinterParser implements TokenPrinterParser {
+    static class TypePrinterParser implements SymbolPrinterParser {
 
-        private TokenPrinterParser[] printerParsers;
+        private SymbolPrinterParser[] printerParsers;
 
         TypePrinterParser(TypeFormat format) {
             switch (format) {
                 case INTEGER_ONLY ->
-                        printerParsers = new TokenPrinterParser[]{new IntegerPrinterParser(
-                                TokenField.TYPE)};
+                        printerParsers = new SymbolPrinterParser[]{new IntegerPrinterParser(
+                                SymbolField.TYPE)};
                 case SYMBOLIC_FIRST ->
-                        printerParsers = new TokenPrinterParser[]{new SymbolicTypePrinterParser(),
+                        printerParsers = new SymbolPrinterParser[]{new SymbolicTypePrinterParser(),
                                 new LiteralTypePrinterParser(),
-                                new IntegerPrinterParser(TokenField.TYPE)};
+                                new IntegerPrinterParser(SymbolField.TYPE)};
                 case LITERAL_FIRST ->
-                        printerParsers = new TokenPrinterParser[]{new LiteralTypePrinterParser(),
+                        printerParsers = new SymbolPrinterParser[]{new LiteralTypePrinterParser(),
                                 new SymbolicTypePrinterParser(),
-                                new IntegerPrinterParser(TokenField.TYPE)};
+                                new IntegerPrinterParser(SymbolField.TYPE)};
                 case SYMBOLIC_ONLY ->
-                        printerParsers = new TokenPrinterParser[]{new SymbolicTypePrinterParser()};
+                        printerParsers = new SymbolPrinterParser[]{new SymbolicTypePrinterParser()};
                 case LITERAL_ONLY ->
-                        printerParsers = new TokenPrinterParser[]{new LiteralTypePrinterParser()};
+                        printerParsers = new SymbolPrinterParser[]{new LiteralTypePrinterParser()};
             }
         }
 
         @Override
-        public boolean format(TokenFormatContext context, StringBuilder buf) {
-            for (TokenPrinterParser printer : printerParsers) {
+        public boolean format(SymbolFormatContext context, StringBuilder buf) {
+            for (SymbolPrinterParser printer : printerParsers) {
                 if (printer.format(context, buf)) {
                     return true;
                 }
@@ -1049,8 +1057,8 @@ public class TokenFormatterBuilder {
         }
 
         @Override
-        public int parse(TokenParseContext context, CharSequence text, int position) {
-            for (TokenPrinterParser parser : printerParsers) {
+        public int parse(SymbolParseContext context, CharSequence text, int position) {
+            for (SymbolPrinterParser parser : printerParsers) {
                 if (parser.peek(context, text, position) > 0) {
                     return parser.parse(context, text, position);
                 }
@@ -1059,8 +1067,8 @@ public class TokenFormatterBuilder {
         }
 
         @Override
-        public int peek(TokenParseContext context, CharSequence text, int position) {
-            for (TokenPrinterParser parser : printerParsers) {
+        public int peek(SymbolParseContext context, CharSequence text, int position) {
+            for (SymbolPrinterParser parser : printerParsers) {
                 int peeked = parser.peek(context, text, position);
                 if (peeked > 0) {
                     return peeked;
@@ -1070,12 +1078,12 @@ public class TokenFormatterBuilder {
         }
     }
 
-    static class EOFPrinterParser implements TokenPrinterParser {
+    static class EOFPrinterParser implements SymbolPrinterParser {
 
         @Override
-        public boolean format(TokenFormatContext context, StringBuilder buf) {
-            Token token = context.token();
-            if (token.getType() == Token.EOF) {
+        public boolean format(SymbolFormatContext context, StringBuilder buf) {
+            Symbol symbol = context.symbol();
+            if (symbol.type() == Symbol.EOF) {
                 buf.append("EOF");
                 return true;
             }
@@ -1083,18 +1091,18 @@ public class TokenFormatterBuilder {
         }
 
         @Override
-        public int parse(TokenParseContext context, CharSequence text, int position) {
+        public int parse(SymbolParseContext context, CharSequence text, int position) {
             int end = peek(context, text, position);
             if (end < 0) {
                 return end;
             }
-            context.addField(TokenField.TYPE, Token.EOF);
-            context.addField(TokenField.TEXT, "<EOF>");
+            context.addField(SymbolField.TYPE, Symbol.EOF);
+            context.addField(SymbolField.TEXT, "<EOF>");
             return end;
         }
 
         @Override
-        public int peek(TokenParseContext context, CharSequence text, int position) {
+        public int peek(SymbolParseContext context, CharSequence text, int position) {
             validatePosition(text, position);
             if (position + 3 > text.length()) {
                 return ~position;

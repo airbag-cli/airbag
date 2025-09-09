@@ -1,4 +1,4 @@
-package io.github.airbag.token.format;
+package io.github.airbag.symbol;
 
 import java.util.Collections;
 import java.util.Map;

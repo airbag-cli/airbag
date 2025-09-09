@@ -1,7 +1,7 @@
-package io.github.airbag.token.format;
+package io.github.airbag.symbol;
 
 /**
- * Specifies the different ways to format and parse a token.
+ * Specifies the different ways to format and parse a symbol.
  */
 public enum TypeFormat {
 

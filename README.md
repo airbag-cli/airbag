@@ -23,7 +23,7 @@ You can easily verify that your lexer correctly tokenizes an input string by com
 
 ```java
 import io.github.airbag.Airbag;
-import io.github.airbag.token.TokenProvider;
+import io.github.airbag.symbol.SymbolProvider;
 import org.antlr.v4.runtime.Token;
 import org.junit.jupiter.api.Test;
 
@@ -35,7 +35,7 @@ public class LexerTest {
     void testTokenization() {
         // 1. Initialize Airbag for your grammar
         Airbag airbag = Airbag.testGrammar("io.github.airbag.gen.Expression");
-        TokenProvider tokenProvider = airbag.getTokenProvider();
+        SymbolProvider tokenProvider = airbag.getSymbolProvider();
 
         // 2. Define the expected token stream using a clear specification
         List<Token> expected = tokenProvider.fromSpec("(ID 'x') '=' (INT '5') EOF");
@@ -44,7 +44,7 @@ public class LexerTest {
         List<Token> actual = tokenProvider.fromInput("x = 5");
 
         // 4. Assert that the actual tokens match the expected specification
-        airbag.assertTokenList(expected, actual);
+        airbag.assertSymbolList(expected, actual);
     }
 }
 ```
@@ -55,7 +55,7 @@ Airbag allows you to validate the structure of the generated parse tree against 
 
 ```java
 import io.github.airbag.Airbag;
-import io.github.airbag.token.TokenProvider;
+import io.github.airbag.symbol.SymbolProvider;
 import io.github.airbag.tree.TreeProvider;
 import io.github.airbag.tree.ValidationTree;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -67,7 +67,7 @@ public class ParserTest {
     void testParseTreeStructure() {
         // 1. Initialize Airbag for your grammar
         Airbag airbag = Airbag.testGrammar("io.github.airbag.gen.Expression");
-        TokenProvider tokenProvider = airbag.getTokenProvider();
+        SymbolProvider tokenProvider = airbag.getSymbolProvider();
         TreeProvider treeProvider = airbag.getTreeProvider();
 
         // 2. Define the expected tree structure using a validation tree

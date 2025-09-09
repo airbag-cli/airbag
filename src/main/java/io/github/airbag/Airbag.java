@@ -1,14 +1,8 @@
 package io.github.airbag;
 
-import io.github.airbag.token.TokenProvider;
-import io.github.airbag.token.Tokens;
-import io.github.airbag.tree.TreeProvider;
-import io.github.airbag.tree.Trees;
-import io.github.airbag.tree.ValidationTree;
-import io.github.airbag.tree.Validator;
+import io.github.airbag.symbol.*;
 import io.github.airbag.util.Utils;
 import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.opentest4j.AssertionFailedError;
 
 import java.lang.reflect.InvocationTargetException;
@@ -17,7 +11,7 @@ import java.util.function.BiPredicate;
 
 /**
  * The Airbag class is the central component of the Airbag library.
- * It serves as a factory for creating {@link TokenProvider} and {@link TreeProvider} instances, which are essential for creating token streams and parse trees from ANTLR grammars.
+ * It serves as a factory for creating {@link SymbolProvider} and {@link TreeProvider} instances, which are essential for creating token streams and parse trees from ANTLR grammars.
  * <p>
  * This class simplifies the process of working with ANTLR grammars by providing a unified interface for creating and managing lexer and parser instances.
  * It supports creating Airbag instances from either the lexer and parser classes directly, or by providing the fully qualified name of the grammar, in which case it will load the classes using the thread's context class loader.
@@ -42,7 +36,7 @@ public class Airbag {
     /**
      * The Token provider for creating tokens from string or specification.
      */
-    private final TokenProvider tokenProvider;
+    private final SymbolProvider symbolProvider;
 
     /**
      * Constructs a new Airbag instance from the given parser and lexer classes.
@@ -54,7 +48,7 @@ public class Airbag {
         this.parserClass = parserClass;
         try {
             recognizer = parserClass.getConstructor(TokenStream.class).newInstance((TokenStream) null);
-            tokenProvider = new TokenProvider(lexerClass);
+            symbolProvider = new SymbolProvider(lexerClass);
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
                  NoSuchMethodException e) {
             throw new RuntimeException(e);
@@ -70,7 +64,7 @@ public class Airbag {
     public Airbag(Class<? extends Lexer> lexerClass) {
         try {
             recognizer = lexerClass.getConstructor(CharStream.class).newInstance((CharStream) null);
-            tokenProvider = new TokenProvider(lexerClass);
+            symbolProvider = new SymbolProvider(lexerClass);
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
                  NoSuchMethodException e) {
             throw new RuntimeException(e);
@@ -115,23 +109,13 @@ public class Airbag {
     }
 
     /**
-     * Returns a new {@link TokenProvider} for the configured lexer.
-     * The {@link TokenProvider} can be used to create a list of tokens from a string.
+     * Returns a new {@link SymbolProvider} for the configured lexer.
+     * The {@link SymbolProvider} can be used to create a list of tokens from a string.
      *
-     * @return A new {@link TokenProvider} instance.
+     * @return A new {@link SymbolProvider} instance.
      */
-    public TokenProvider getTokenProvider() {
-        return tokenProvider;
-    }
-
-    /**
-     * Returns a new {@link TreeProvider} for the configured parser.
-     * The {@link TreeProvider} can be used to create a parse tree from a string.
-     *
-     * @return A new {@link TreeProvider} instance.
-     */
-    public TreeProvider getTreeProvider() {
-        return new TreeProvider(parserClass);
+    public SymbolProvider getSymbolProvider() {
+        return symbolProvider;
     }
 
     /**
@@ -143,28 +127,14 @@ public class Airbag {
      * @param actual   The actual list of tokens to check against the expected list. Must not be null.
      * @throws AssertionFailedError if the actual list of tokens does not match the expected list.
      */
-    public void assertTokenList(List<? extends Token> expected, List<? extends Token> actual) {
-        var formatter = tokenProvider.getTokenFormatter();
-        BiPredicate<Token, Token> equalizer = Tokens.equalizer(formatter.getFields());
+    public void assertSymbolList(List<Symbol> expected, List<Symbol> actual) {
+        SymbolFormatter formatter = symbolProvider.getSymbolFormatter();
+        BiPredicate<Symbol, Symbol> equalizer = SymbolField.equalizer(formatter.getFields());
         if (!Utils.listEquals(expected, actual, equalizer)) {
             List<String> expectedLines = expected.stream().map(formatter::format).toList();
             List<String> actualLines = actual.stream().map(formatter::format).toList();
-            throw new AssertionFailedError("Tokens lists are not equal", expectedLines, actualLines);
+            throw new AssertionFailedError("Symbols lists are not equal", expectedLines, actualLines);
         }
     }
 
-    /**
-     * Asserts that the actual parse tree matches the expected validation tree.
-     * If the trees do not match, an {@link AssertionFailedError} is thrown with a detailed message.
-     * The validation tree provides a simplified way to check the structure of the parse tree without having to build a full parse tree manually.
-     *
-     * @param expected The validation tree to check against. Must not be null.
-     * @param actual   The actual parse tree to check. Must not be null.
-     * @throws AssertionFailedError if the actual parse tree does not match the validation tree.
-     */
-    public void assertParseTree(ValidationTree expected, ParseTree actual) {
-        if (!Validator.matches(expected, actual)) {
-            throw new AssertionFailedError("ParseTree does not match the validation tree", Trees.format(expected, recognizer), Trees.format(actual, recognizer));
-        }
-    }
 }
