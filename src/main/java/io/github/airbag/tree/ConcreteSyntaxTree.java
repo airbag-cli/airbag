@@ -138,7 +138,7 @@ public sealed class ConcreteSyntaxTree extends AbstractNode<ConcreteSyntaxTree> 
          * @param index The rule index.
          * @return The new root node.
          */
-        private static ConcreteSyntaxTree.Rule root(int index) {
+        public static ConcreteSyntaxTree.Rule root(int index) {
             return new ConcreteSyntaxTree.Rule(null, index);
         }
 
@@ -149,7 +149,7 @@ public sealed class ConcreteSyntaxTree extends AbstractNode<ConcreteSyntaxTree> 
          * @param index  The rule index.
          * @return The new attached node.
          */
-        private static ConcreteSyntaxTree.Rule attachTo(ConcreteSyntaxTree.Rule parent, int index) {
+        public static ConcreteSyntaxTree.Rule attachTo(ConcreteSyntaxTree parent, int index) {
             return new ConcreteSyntaxTree.Rule(parent, index);
         }
     }
@@ -181,7 +181,7 @@ public sealed class ConcreteSyntaxTree extends AbstractNode<ConcreteSyntaxTree> 
          * @param symbol The symbol.
          * @return The new root node.
          */
-        private static ConcreteSyntaxTree.Terminal root(Symbol symbol) {
+        public static ConcreteSyntaxTree.Terminal root(Symbol symbol) {
             return new ConcreteSyntaxTree.Terminal(null, symbol);
         }
 
@@ -192,7 +192,7 @@ public sealed class ConcreteSyntaxTree extends AbstractNode<ConcreteSyntaxTree> 
          * @param symbol The symbol.
          * @return The new attached node.
          */
-        private static ConcreteSyntaxTree.Terminal attachTo(ConcreteSyntaxTree.Rule parent, Symbol symbol) {
+        public static ConcreteSyntaxTree.Terminal attachTo(ConcreteSyntaxTree parent, Symbol symbol) {
             return new ConcreteSyntaxTree.Terminal(parent, symbol);
         }
 
@@ -232,7 +232,7 @@ public sealed class ConcreteSyntaxTree extends AbstractNode<ConcreteSyntaxTree> 
          * @param symbol The symbol.
          * @return The new root node.
          */
-        private static ConcreteSyntaxTree.Error root(Symbol symbol) {
+        public static ConcreteSyntaxTree.Error root(Symbol symbol) {
             return new ConcreteSyntaxTree.Error(null, symbol);
         }
 
@@ -243,7 +243,7 @@ public sealed class ConcreteSyntaxTree extends AbstractNode<ConcreteSyntaxTree> 
          * @param symbol The symbol.
          * @return The new attached node.
          */
-        private static ConcreteSyntaxTree.Error attachTo(ConcreteSyntaxTree.Rule parent, Symbol symbol) {
+        public static ConcreteSyntaxTree.Error attachTo(ConcreteSyntaxTree parent, Symbol symbol) {
             return new ConcreteSyntaxTree.Error(parent, symbol);
         }
 
