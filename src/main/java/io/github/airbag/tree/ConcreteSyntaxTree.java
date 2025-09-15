@@ -11,7 +11,7 @@ import org.antlr.v4.runtime.tree.ErrorNodeImpl;
 
 /**
  * A concrete syntax tree (CST) is a tree that represents the syntactic structure of a string according to some formal
- * grammar. It is a representation of the source code that is close to the original text, including all of the
+ * grammar. It is a representation of the source code that is close to the original text, including all the
  * details of the syntax, such as punctuation and whitespace.
  * <p>
  * This sealed class can only be one of three subtypes: {@link Rule}, {@link Terminal}, or {@link Error}.
@@ -62,6 +62,19 @@ public sealed class ConcreteSyntaxTree extends AbstractNode<ConcreteSyntaxTree> 
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Node<ConcreteSyntaxTree> toNode() {
+        return this;
+    }
+
+    @Override
+    public ConcreteSyntaxTree toTree() {
+        return this;
+    }
+
+    /**
      * Converts this {@link ConcreteSyntaxTree} back into an ANTLR {@link ParseTree}.
      * This can be useful for interoperability with other tools that expect ANTLR's format.
      *
@@ -84,8 +97,8 @@ public sealed class ConcreteSyntaxTree extends AbstractNode<ConcreteSyntaxTree> 
                 if (parent != null) {
                     parent.addChild(ruleNode);
                 }
-                for (var child : this) {
-                    child.toParseTree(ruleNode);
+                for (Node<ConcreteSyntaxTree> child : this) {
+                    child.toTree().toParseTree(ruleNode);
                 }
                 yield ruleNode;
             }
@@ -109,13 +122,6 @@ public sealed class ConcreteSyntaxTree extends AbstractNode<ConcreteSyntaxTree> 
         };
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected ConcreteSyntaxTree self() {
-        return this;
-    }
 
     /**
      * Represents a rule node in the CST, corresponding to a non-terminal symbol in the grammar.

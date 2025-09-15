@@ -29,9 +29,9 @@ public class ConcreteSyntaxTreeTest {
         assertInstanceOf(ConcreteSyntaxTree.Rule.class, cst);
         assertEquals(3, cst.children().size());
 
-        ConcreteSyntaxTree child1 = cst.children().get(0);
-        ConcreteSyntaxTree child2 = cst.children().get(1);
-        ConcreteSyntaxTree child3 = cst.children().get(2);
+        ConcreteSyntaxTree child1 = cst.children().get(0).toTree();
+        ConcreteSyntaxTree child2 = cst.children().get(1).toTree();
+        ConcreteSyntaxTree child3 = cst.children().get(2).toTree();
 
         assertInstanceOf(ConcreteSyntaxTree.Rule.class, child1);
         assertInstanceOf(ConcreteSyntaxTree.Terminal.class, child2);

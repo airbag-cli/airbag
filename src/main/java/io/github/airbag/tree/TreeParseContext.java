@@ -1,9 +1,22 @@
 package io.github.airbag.tree;
 
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.function.BiFunction;
-import java.util.function.Function;
+import io.github.airbag.symbol.SymbolFormatter;
+import org.antlr.v4.runtime.Recognizer;
 
-public record TreeParseContext(NavigableMap<Integer, Node<?>> nodeMap, Map<String, BiFunction<? super Node<?>, Object, ? extends Node<?>>> connectors) {
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+
+public record TreeParseContext(AtomicReference<Node<?>> nodeReference, Recognizer<?, ?> recognizer,
+                               Map<String, BiFunction<Node<?>, Object, Node<?>>> connectors, SymbolFormatter terminalFormatter, SymbolFormatter errorFormatter) {
+
+    public Node<?> getNode() {
+        return nodeReference.get();
+    }
+
+    public void setNode(Node<?> node) {
+        nodeReference.set(node);
+    }
+
+
 }

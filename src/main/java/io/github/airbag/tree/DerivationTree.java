@@ -1,7 +1,10 @@
 package io.github.airbag.tree;
 
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Stream;
 
 /**
  * A derivation tree is a data structure that represents the derivation of a string from a grammar.
@@ -10,9 +13,9 @@ import java.util.List;
  * properties and behaviors of a node within a tree structure.
  *
  * @param <T> The type of the nodes in the tree, following the Curiously Recurring Template Pattern (CRTP)
- *           to ensure type safety in the tree's methods.
+ *            to ensure type safety in the tree's methods.
  */
-public interface DerivationTree<T extends DerivationTree<T>> extends Iterable<T>  {
+public interface DerivationTree<T extends DerivationTree<T>> {
 
     /**
      * Returns the index of this node. For a rule node, this is the rule index. For a terminal node,
@@ -23,47 +26,46 @@ public interface DerivationTree<T extends DerivationTree<T>> extends Iterable<T>
     int index();
 
     /**
-     * Retrieves the parent node of this node in the tree.
+     * Returns this tree as a node.
      *
-     * @return The parent node, or the node itself if it is the root of the tree.
+     * @return this tree as a node.
      */
-    T getParent();
+    Node<T> toNode();
 
     /**
-     * Retrieves the list of children of this node.
+     * Get the distance to root
      *
-     * @return An unmodifiable list of child nodes. Returns an empty list if this is a leaf node.
+     * @return the distance to root
      */
-    List<T> children();
-
-    /**
-     * Retrieves the child node at the specified position in this node's children list.
-     *
-     * @param i The index of the child to return.
-     * @return The child node at the specified index.
-     * @throws IndexOutOfBoundsException if the index is out of range (index < 0 || index >= size()).
-     */
-    default T getChild(int i) {
-        return children().get(i);
+    default int depth() {
+        int depth = 0;
+        Node<?> node = toNode();
+        while (node.getParent() != this) {
+            node = node.getParent();
+            depth++;
+        }
+        return depth;
     }
 
     /**
-     * Returns the number of children of this node.
+     * The biggest distance to any subnode
      *
-     * @return The number of child nodes.
+     * @return the biggest distance to any subnode
      */
-    default int size() {
-        return children().size();
-    }
-
-    /**
-     * Returns an iterator over the children of this node. This allows the node's children
-     * to be iterated over in a for-each loop.
-     *
-     * @return An iterator for the list of child nodes.
-     */
-    @Override
-    default Iterator<T> iterator() {
-        return children().iterator();
+    default int height() {
+        Set<Node<?>> terminalNodes = new HashSet<>(toNode().children());
+        while (terminalNodes.stream().anyMatch(node -> node.size() != 0)) {
+            for (var node : terminalNodes) {
+                if (node.size() != 0) {
+                    terminalNodes.remove(node);
+                    terminalNodes.addAll(node.children());
+                }
+            }
+        }
+        int maxDepth = terminalNodes.stream()
+                .map(DerivationTree::depth)
+                .max(Integer::compareTo)
+                .orElse(0);
+        return maxDepth - depth();
     }
 }

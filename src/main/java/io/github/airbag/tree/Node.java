@@ -2,13 +2,56 @@ package io.github.airbag.tree;
 
 import io.github.airbag.symbol.Symbol;
 
+import java.util.List;
+
 /**
  * Represents a node in a derivation tree. This interface is the base for different types of nodes
  * that can appear in a tree, such as rules, terminals, errors, and patterns.
  *
  * @param <T> The type of the nodes in the tree, following the CRTP pattern.
  */
-public interface Node<T extends DerivationTree<T>> extends DerivationTree<T> {
+public interface Node<T extends DerivationTree<T>> extends DerivationTree<T>, Iterable<Node<T>> {
+
+    /**
+     * Retrieves the parent node of this node in the tree. A root node must have itself as parent.
+     *
+     * @return The parent node, or the node itself if it is the root of the tree.
+     */
+    Node<T> getParent();
+
+    /**
+     * Retrieves the list of children of this node.
+     *
+     * @return An unmodifiable list of child nodes. Returns an empty list if this is a leaf node.
+     */
+    List<Node<T>> children();
+
+    /**
+     * Converts this node into the tree type.
+     *
+     * @return the node as tree.
+     */
+    T toTree();
+
+    /**
+     * Retrieves the child node at the specified position in this node's children list.
+     *
+     * @param i The index of the child to return.
+     * @return The child node at the specified index.
+     * @throws IndexOutOfBoundsException if the index is out of range (index < 0 || index >= size()).
+     */
+    default Node<T> getChild(int i) {
+        return children().get(i);
+    }
+
+    /**
+     * Returns the number of children of this node.
+     *
+     * @return The number of child nodes.
+     */
+    default int size() {
+        return children().size();
+    }
 
     /**
      * A marker interface representing a rule node in the tree. A rule node corresponds to a

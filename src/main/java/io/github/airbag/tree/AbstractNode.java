@@ -2,6 +2,7 @@ package io.github.airbag.tree;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -20,12 +21,12 @@ public abstract class AbstractNode<T extends DerivationTree<T>> implements Node<
     /**
      * The parent of this node. If this is the root node, the parent points to itself.
      */
-    private final T parent;
+    private final Node<T> parent;
 
     /**
      * The list of children of this node. Populated as child nodes are constructed.
      */
-    private final List<T> children = new ArrayList<>();
+    private final List<Node<T>> children = new ArrayList<>();
 
     /**
      * Constructs a new node and links it to its parent.
@@ -35,9 +36,9 @@ public abstract class AbstractNode<T extends DerivationTree<T>> implements Node<
      */
     protected AbstractNode(AbstractNode<T> parent, int index) {
         this.index = index;
-        this.parent = parent == null ? self() : parent.self();
+        this.parent = parent == null ? toNode() : parent.toNode();
         if (parent != null) {
-            parent.children.add(self());
+            parent.children.add(toNode());
         }
     }
 
@@ -53,7 +54,7 @@ public abstract class AbstractNode<T extends DerivationTree<T>> implements Node<
      * {@inheritDoc}
      */
     @Override
-    public T getParent() {
+    public Node<T> getParent() {
         return parent;
     }
 
@@ -61,15 +62,23 @@ public abstract class AbstractNode<T extends DerivationTree<T>> implements Node<
      * {@inheritDoc}
      */
     @Override
-    public List<T> children() {
+    public List<Node<T>> children() {
         return Collections.unmodifiableList(children);
     }
 
     /**
-     * A method required by the CRTP to get the correctly typed `this` reference.
-     *
-     * @return The instance of the concrete subclass.
+     * {@inheritDoc}
      */
-    protected abstract T self();
+    @Override
+    public Iterator<Node<T>> iterator() {
+        return children().iterator();
+    }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int depth() {
+        return 0;
+    }
 }

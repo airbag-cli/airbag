@@ -40,7 +40,7 @@ public class SymbolProvider {
      * <p>
      * This also initializes a default symbol formatter ({@link SymbolFormatter#SIMPLE}) using the
      * vocabulary from the provided lexer. This default can be overridden using
-     * {@link #setSymbolFormatter(SymbolFormatter)}.
+     * {@link #setFormatter(SymbolFormatter)}.
      *
      * @param lexerClass The class of the ANTLR-generated lexer to be used for tokenization.
      *                   For example, {@code MyGrammarLexer.class}.
@@ -89,7 +89,7 @@ public class SymbolProvider {
      * using the provider's currently configured symbol formatter. By default, this is
      * {@link SymbolFormatter#SIMPLE}, so the input string should conform to its format.
      * The behavior of this method can be altered by providing a different formatter
-     * via {@link #setSymbolFormatter(SymbolFormatter)}.
+     * via {@link #setFormatter(SymbolFormatter)}.
      * <p>
      * Whitespace between symbol specifications is ignored.
      *
@@ -110,7 +110,7 @@ public class SymbolProvider {
      * @param input The string containing the symbol specifications.
      * @return A {@link List} of {@link Symbol} objects generated from the specification.
      * @throws IllegalArgumentException if any part of the input string cannot be parsed.
-     * @see #setSymbolFormatter(SymbolFormatter)
+     * @see #setFormatter(SymbolFormatter)
      * @see SymbolFormatter#SIMPLE
      */
     public List<Symbol> fromSpec(String input) {
@@ -156,12 +156,12 @@ public class SymbolProvider {
      * <p>
      * By default, this method uses the {@link SymbolFormatter#SIMPLE} formatter, which produces
      * a string representation that is compatible with the {@link #fromSpec(String)} method.
-     * The formatter can be customized for different output styles using {@link #setSymbolFormatter(SymbolFormatter)}.
+     * The formatter can be customized for different output styles using {@link #setFormatter(SymbolFormatter)}.
      *
      * @param symbol The symbol to be formatted.
      * @return A string representation of the symbol.
      * @see #fromSpec(String)
-     * @see #setSymbolFormatter(SymbolFormatter)
+     * @see #setFormatter(SymbolFormatter)
      * @see SymbolFormatter#SIMPLE
      */
     public String format(Symbol symbol) {
@@ -176,7 +176,7 @@ public class SymbolProvider {
      *
      * @param symbolFormatter The new formatter to use for the {@link #format(Symbol)} method.
      */
-    public void setSymbolFormatter(SymbolFormatter symbolFormatter) {
+    public void setFormatter(SymbolFormatter symbolFormatter) {
         this.formatter = symbolFormatter.withVocabulary(lexer.getVocabulary());
     }
 
@@ -187,9 +187,9 @@ public class SymbolProvider {
      * and {@link #fromSpec(String)} methods.
      *
      * @return The current symbol formatter.
-     * @see #setSymbolFormatter(SymbolFormatter)
+     * @see #setFormatter(SymbolFormatter)
      */
-    public SymbolFormatter getSymbolFormatter() {
+    public SymbolFormatter getFormatter() {
         return formatter;
     }
 
