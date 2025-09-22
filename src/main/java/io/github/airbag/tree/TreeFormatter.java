@@ -20,19 +20,19 @@ public class TreeFormatter {
             .appendLiteral(")")
             .toFormatter();
 
-    private final TreeFormatterBuilder.CompositePrinterParser printerParser;
+    private final TreeFormatterBuilder.NodePrinterParser printerParser;
     private final Recognizer<?, ?> recognizer;
     private final SymbolFormatter terminalFormatter;
     private final SymbolFormatter errorFormatter;
 
-    TreeFormatter(TreeFormatterBuilder.CompositePrinterParser printerParser) {
+    TreeFormatter(TreeFormatterBuilder.NodePrinterParser printerParser) {
         this.printerParser = printerParser;
         this.recognizer = null;
         this.terminalFormatter = SymbolFormatter.SIMPLE;
         this.errorFormatter = SymbolFormatter.ofPattern("(<%error%> (S 'X'))");
     }
 
-    TreeFormatter(TreeFormatterBuilder.CompositePrinterParser printerParser,
+    TreeFormatter(TreeFormatterBuilder.NodePrinterParser printerParser,
                   Recognizer<?, ?> recognizer,
                   SymbolFormatter terminalFormatter,
                   SymbolFormatter errorFormatter) {

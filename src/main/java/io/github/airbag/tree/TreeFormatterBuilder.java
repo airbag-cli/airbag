@@ -1,6 +1,7 @@
 package io.github.airbag.tree;
 
 import io.github.airbag.symbol.*;
+import org.antlr.v4.runtime.tree.Tree;
 
 import java.text.ParsePosition;
 import java.util.ArrayList;
@@ -131,7 +132,7 @@ public class TreeFormatterBuilder {
      * @return The built tree formatter.
      */
     public TreeFormatter toFormatter() {
-        return new TreeFormatter(new CompositePrinterParser(printerParsers));
+        return new TreeFormatter(new NodePrinterParser(printerParsers));
     }
 
     /**
@@ -173,14 +174,51 @@ public class TreeFormatterBuilder {
 
         private final TreePrinterParser[] printerParsers;
 
-        public CompositePrinterParser(List<TreePrinterParser> list) {
-            this(list.toArray(new TreePrinterParser[0]));
+        private CompositePrinterParser(List<TreePrinterParser> printerParsers) {
+            this(printerParsers.toArray(new TreePrinterParser[0]));
         }
 
         private CompositePrinterParser(TreePrinterParser[] printerParsers) {
+            this.printerParsers = printerParsers;
+        }
+
+        @Override
+        public boolean format(TreeFormatContext ctx, StringBuilder buf) {
+            int initialLength = buf.length();
+            for (TreePrinterParser printer : printerParsers) {
+                if (!printer.format(ctx, buf)) {
+                    buf.setLength(initialLength);
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        @Override
+        public int parse(TreeParseContext ctx, CharSequence text, int position) {
+            for (TreePrinterParser parser : printerParsers) {
+                position = parser.parse(ctx, text, position);
+                if (position < 0) {
+                    return position;
+                }
+            }
+            return position;
+        }
+    }
+
+    static class NodePrinterParser implements TreePrinterParser {
+
+        private final TreePrinterParser[] printerParsers;
+
+        public NodePrinterParser(List<TreePrinterParser> list) {
+            this(list.toArray(new TreePrinterParser[0]));
+        }
+
+        private NodePrinterParser(TreePrinterParser[] printerParsers) {
             for (int i = 0; i < printerParsers.length; i++) {
                 if (printerParsers[i] instanceof ChildrenPrinterParser childrenPrinterParser) {
-                    printerParsers[i] = new ChildrenPrinterParser(this, childrenPrinterParser.separator);
+                    printerParsers[i] = new ChildrenPrinterParser(this,
+                            childrenPrinterParser.separator);
                 }
             }
             this.printerParsers = printerParsers;
@@ -234,7 +272,6 @@ public class TreeFormatterBuilder {
             // Save the original parent node before starting the sequence.
             Node<?> parent = ctx.getNode();
             for (TreePrinterParser parser : printerParsers) {
-                // ALWAYS reset the context to the parent before calling a sub-parser.
                 position = parser.parse(ctx, text, position);
                 if (position < 0) {
                     // Restore context on failure before returning.
@@ -242,30 +279,38 @@ public class TreeFormatterBuilder {
                     return position;
                 }
             }
-            // Restore context one last time so the CompositePrinterParser itself
-            // does not have a side effect on the context for its caller.
-            ctx.setNode(ctx.getNode().getParent());
             return position;
         }
     }
 
     static class ChildrenPrinterParser implements TreePrinterParser {
 
-        private final CompositePrinterParser printerParser;
+        private final CompositePrinterParser prefix;
+        private final CompositePrinterParser postfix;
+        private final NodePrinterParser printerParser;
         private final LiteralPrinterParser separator;
 
         ChildrenPrinterParser(String separator) {
             this.printerParser = null;
             this.separator = new LiteralPrinterParser(separator);
+            this.prefix = null;
+            this.postfix = null;
         }
 
-        ChildrenPrinterParser(CompositePrinterParser printerParser, LiteralPrinterParser separator) {
+        ChildrenPrinterParser(NodePrinterParser printerParser, LiteralPrinterParser separator) {
             this.separator = separator;
             this.printerParser = printerParser;
+            this.prefix = null;
+            this.postfix = null;
         }
 
         @Override
         public boolean format(TreeFormatContext ctx, StringBuilder buf) {
+            if (prefix != null) {
+                if (!prefix.format(ctx, buf)) {
+                    return false;
+                }
+            }
             Node<?> parent = ctx.getNode();
             for (int i = 0; i < parent.size(); i++) {
                 var child = parent.getChild(i);
@@ -279,46 +324,53 @@ public class TreeFormatterBuilder {
                 }
             }
             ctx.setNode(parent);
+            if (postfix != null) {
+                if (!postfix.format(ctx, buf)) {
+                    return false;
+                }
+            }
             return true;
         }
 
         @Override
         public int parse(TreeParseContext ctx, CharSequence text, int position) {
             Node<?> parent = ctx.getNode();
-            boolean first = true;
-            while (true) {
-                if (!first) {
-                    int separatorPosition = separator.parse(ctx, text, position);
-                    if (separatorPosition < 0) {
-                        // No more separators, we're done.
-                        break;
-                    }
-                    position = separatorPosition;
+
+            //Check the prefix
+            if (prefix != null) {
+                position = prefix.parse(ctx, text, position);
+                if (position < 0) {
+                    return position;
                 }
-
-                ctx.setNode(parent);
-                int childPosition = printerParser.parse(ctx, text, position);
-
-                if (childPosition < 0) {
-                    if (first) {
-                        // Couldn't parse even the first child. This is fine (e.g. empty rule).
-                        ctx.setNode(parent);
-                        return position;
-                    } else {
-                        // We parsed a separator, so we expected another child. This is an error.
-                        ctx.setNode(parent);
-                        return ~position;
-                    }
-                }
-
-                position = childPosition;
-                first = false;
             }
+
+            int result;
+            do {
+                ctx.setNode(parent);
+                result = printerParser.parse(ctx, text, position);
+                if (result < 0) {
+                    break;
+                }
+                position = result;
+                result = separator.parse(ctx, text, position);
+                if (result > 0) {
+                    position = result;
+                }
+                //No separator after a child means we are done.
+            } while (result >= 0);
             ctx.setNode(parent);
+
+            //Check postfix
+            if (postfix != null) {
+                position = postfix.parse(ctx, text, position);
+                if (position < 0) {
+                    return position;
+                }
+            }
+
             return position;
         }
     }
-
 
     static class LiteralPrinterParser implements TreePrinterParser {
 
@@ -453,7 +505,8 @@ public class TreeFormatterBuilder {
         private final TreePrinterParser[] printerParsers;
 
         RulePrinterParser() {
-            printerParsers = new TreePrinterParser[] {new StringRuleNamePrinterParser(), new IntegerRulePrinterParser()};
+            printerParsers = new TreePrinterParser[]{new StringRuleNamePrinterParser(),
+                    new IntegerRulePrinterParser()};
         }
 
         @Override
@@ -477,18 +530,5 @@ public class TreeFormatterBuilder {
             return ~position;
         }
 
-    }
-
-    static class PaddingPrinterParser implements TreePrinterParser {
-
-        @Override
-        public boolean format(TreeFormatContext ctx, StringBuilder buf) {
-            return false;
-        }
-
-        @Override
-        public int parse(TreeParseContext ctx, CharSequence text, int position) {
-            return 0;
-        }
     }
 }
