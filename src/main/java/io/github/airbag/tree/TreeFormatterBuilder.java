@@ -1,7 +1,7 @@
 package io.github.airbag.tree;
 
-import io.github.airbag.symbol.*;
-import org.antlr.v4.runtime.tree.Tree;
+import io.github.airbag.symbol.Symbol;
+import io.github.airbag.symbol.SymbolFormatter;
 
 import java.text.ParsePosition;
 import java.util.ArrayList;
@@ -217,8 +217,7 @@ public class TreeFormatterBuilder {
         private NodePrinterParser(TreePrinterParser[] printerParsers) {
             for (int i = 0; i < printerParsers.length; i++) {
                 if (printerParsers[i] instanceof ChildrenPrinterParser childrenPrinterParser) {
-                    printerParsers[i] = new ChildrenPrinterParser(this,
-                            childrenPrinterParser.separator);
+                    printerParsers[i] = new ChildrenPrinterParser(this, childrenPrinterParser);
                 }
             }
             this.printerParsers = printerParsers;
@@ -287,21 +286,31 @@ public class TreeFormatterBuilder {
 
         private final CompositePrinterParser prefix;
         private final CompositePrinterParser postfix;
-        private final NodePrinterParser printerParser;
+        private final NodePrinterParser nodePrinterParser;
         private final LiteralPrinterParser separator;
 
         ChildrenPrinterParser(String separator) {
-            this.printerParser = null;
+            this.nodePrinterParser = null;
             this.separator = new LiteralPrinterParser(separator);
             this.prefix = null;
             this.postfix = null;
         }
 
-        ChildrenPrinterParser(NodePrinterParser printerParser, LiteralPrinterParser separator) {
+        ChildrenPrinterParser(CompositePrinterParser prefix,
+                              CompositePrinterParser postfix,
+                              LiteralPrinterParser separator) {
+            this.prefix = prefix;
+            this.postfix = postfix;
             this.separator = separator;
-            this.printerParser = printerParser;
-            this.prefix = null;
-            this.postfix = null;
+            this.nodePrinterParser = null;
+        }
+
+        ChildrenPrinterParser(NodePrinterParser printerParser,
+                              ChildrenPrinterParser childrenPrinterParser) {
+            this.separator = childrenPrinterParser.separator;
+            this.nodePrinterParser = printerParser;
+            this.prefix = childrenPrinterParser.prefix;
+            this.postfix = childrenPrinterParser.postfix;
         }
 
         @Override
@@ -315,7 +324,7 @@ public class TreeFormatterBuilder {
             for (int i = 0; i < parent.size(); i++) {
                 var child = parent.getChild(i);
                 ctx.setNode(child);
-                if (!printerParser.format(ctx, buf)) {
+                if (!nodePrinterParser.format(ctx, buf)) {
                     ctx.setNode(parent);
                     return false;
                 }
@@ -347,7 +356,7 @@ public class TreeFormatterBuilder {
             int result;
             do {
                 ctx.setNode(parent);
-                result = printerParser.parse(ctx, text, position);
+                result = nodePrinterParser.parse(ctx, text, position);
                 if (result < 0) {
                     break;
                 }
