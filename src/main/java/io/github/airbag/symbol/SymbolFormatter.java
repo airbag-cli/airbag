@@ -296,13 +296,27 @@ public class SymbolFormatter {
      * will format or parse the literal character 's'. To include a literal backslash, use a double
      * backslash {@code \\}. To include a literal percent sign, use {@code \%}.
      *
+     * <h3>Alternatives</h3>
+     * Alternatives patterns are separated by {@code |}. This character is non-escapable with this method
+     * therefore it is advisable to directly use {@link SymbolFormatterBuilder#appendPattern(String)}
+     * if the desired pattern includes this character.
+     *
      * @param pattern the pattern string that defines the format.
      * @return a new {@link SymbolFormatter} instance based on the provided pattern.
      * @throws IllegalArgumentException if the pattern string is invalid.
      * @see SymbolFormatterBuilder#appendPattern(String)
      */
     public static SymbolFormatter ofPattern(String pattern) {
-        return new SymbolFormatterBuilder().appendPattern(pattern).toFormatter();
+        String[] patterns = pattern.split("\\|");
+        SymbolFormatter formatter = null;
+        for (String singlePattern : patterns) {
+            if (formatter == null) {
+                formatter = new SymbolFormatterBuilder().appendPattern(singlePattern).toFormatter();
+            } else {
+                formatter = formatter.withAlternative(new SymbolFormatterBuilder().appendPattern(singlePattern).toFormatter());
+            }
+        }
+        return formatter;
     }
 
     /**

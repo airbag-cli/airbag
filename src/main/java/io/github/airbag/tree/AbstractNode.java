@@ -74,11 +74,4 @@ public abstract class AbstractNode<T extends DerivationTree<T>> implements Node<
         return children().iterator();
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int depth() {
-        return 0;
-    }
 }

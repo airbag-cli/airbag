@@ -3,6 +3,7 @@ package io.github.airbag.tree;
 import io.github.airbag.gen.ExpressionLexer;
 import io.github.airbag.gen.ExpressionParser;
 import io.github.airbag.symbol.Symbol;
+import io.github.airbag.symbol.SymbolFormatter;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.junit.jupiter.api.DisplayName;
@@ -46,7 +47,7 @@ public class TreeFormatterTest {
         Node<?> child = tree.children().getFirst();
         assertInstanceOf(ConcreteSyntaxTree.Terminal.class, child);
         Symbol expectedSymbol = Symbol.of().type(ExpressionLexer.INT).text("123").get();
-        assertEquals(expectedSymbol, ((ConcreteSyntaxTree.Terminal)child).getSymbol());
+        assertEquals(expectedSymbol, ((ConcreteSyntaxTree.Terminal) child).getSymbol());
     }
 
     @Test
@@ -79,10 +80,13 @@ public class TreeFormatterTest {
         var parser = new ExpressionParser(new CommonTokenStream(lexer));
         TreeFormatter formatter = TreeFormatter.SIMPLE.withRecognizer(parser);
         ConcreteSyntaxTree tree = ConcreteSyntaxTree.from(parser.prog());
-        assertEquals("(prog (stat (ID 'x') '=' (expr (INT '5')) (NEWLINE '\\n')) EOF)", formatter.format(tree));
+        assertEquals("(prog (stat (ID 'x') '=' (expr (INT '5')) (NEWLINE '\\n')) EOF)",
+                formatter.format(tree));
 
-        ConcreteSyntaxTree parsedTree = formatter.parseCST("(prog (stat (ID 'x') '=' (expr (INT '5')) (NEWLINE '\\n')) EOF)");
-        assertEquals("(prog (stat (ID 'x') '=' (expr (INT '5')) (NEWLINE '\\n')) EOF)", formatter.format(parsedTree));
+        ConcreteSyntaxTree parsedTree = formatter.parseCST(
+                "(prog (stat (ID 'x') '=' (expr (INT '5')) (NEWLINE '\\n')) EOF)");
+        assertEquals("(prog (stat (ID 'x') '=' (expr (INT '5')) (NEWLINE '\\n')) EOF)",
+                formatter.format(parsedTree));
 
         assertNotNull(parsedTree);
         assertInstanceOf(ConcreteSyntaxTree.Rule.class, parsedTree);
@@ -130,5 +134,33 @@ public class TreeFormatterTest {
         assertInstanceOf(ConcreteSyntaxTree.Terminal.class, eofNode);
         assertEquals(ExpressionLexer.EOF, eofNode.index());
         assertEquals("<EOF>", ((ConcreteSyntaxTree.Terminal) eofNode).getSymbol().text());
+    }
+
+    @Test
+    void testPaddingParser() {
+        var lexer = new ExpressionLexer(CharStreams.fromString("""
+                x = 5
+                """));
+        var parser = new ExpressionParser(new CommonTokenStream(lexer));
+        ConcreteSyntaxTree tree = ConcreteSyntaxTree.from(parser.prog());
+        TreeFormatter formatter = new TreeFormatterBuilder().appendRule()
+                .appendLiteral(":\n")
+                .startChildren()
+                .appendPadding(2)
+                .appendChildren("\n")
+                .endChildren()
+                .toFormatter();
+        formatter = formatter.withRecognizer(parser)
+                .withTerminalFormatter(SymbolFormatter.ofPattern("S: X"))
+                .withErrorFormatter(SymbolFormatter.ofPattern("<ERROR> S: X"));
+        assertEquals("""
+               prog:
+                 stat:
+                   ID: x
+                   '=': =
+                   expr:
+                     INT: 5
+                   NEWLINE: \\n
+                 EOF: <EOF>""", formatter.format(tree));
     }
 }

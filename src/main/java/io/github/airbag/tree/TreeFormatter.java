@@ -4,6 +4,7 @@ import io.github.airbag.symbol.Symbol;
 import io.github.airbag.symbol.SymbolException;
 import io.github.airbag.symbol.SymbolFormatter;
 import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.Vocabulary;
 
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -81,8 +82,24 @@ public class TreeFormatter {
         return new TreeFormatter(printerParser,
                 recognizer,
                 terminalFormatter.withVocabulary(recognizer.getVocabulary()),
-                errorFormatter.withVocabulary(
-                        recognizer.getVocabulary()));
+                errorFormatter.withVocabulary(recognizer.getVocabulary()));
+    }
+
+    public TreeFormatter withTerminalFormatter(SymbolFormatter terminalFormatter) {
+        return new TreeFormatter(printerParser,
+                recognizer,
+                terminalFormatter.withVocabulary(getVocabulary()),
+                errorFormatter.withVocabulary(getVocabulary()));
+    }
+    public TreeFormatter withErrorFormatter(SymbolFormatter errorFormatter) {
+        return new TreeFormatter(printerParser,
+                recognizer,
+                terminalFormatter.withVocabulary(getVocabulary()),
+                errorFormatter.withVocabulary(getVocabulary()));
+    }
+
+    private Vocabulary getVocabulary() {
+        return recognizer == null ? null : recognizer.getVocabulary();
     }
 
 }

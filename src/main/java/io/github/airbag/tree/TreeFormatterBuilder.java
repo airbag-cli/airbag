@@ -153,8 +153,10 @@ public class TreeFormatterBuilder {
                 null :
                 new CompositePrinterParser(printerParsers.subList(index + 1,
                         printerParsers.size()));
-        ChildrenPrinterParser childrenPrinterParser = new ChildrenPrinterParser(prefix, postfix, (ChildrenPrinterParser) printerParsers.get(index));
-        printerParsers.subList(index, printerParsers.size()).clear();
+        ChildrenPrinterParser childrenPrinterParser = new ChildrenPrinterParser(prefix,
+                postfix,
+                (ChildrenPrinterParser) printerParsers.get(index));
+        printerParsers.subList(childrenStart, printerParsers.size()).clear();
         printerParsers.add(childrenPrinterParser);
         return this;
     }
@@ -166,6 +168,11 @@ public class TreeFormatterBuilder {
             }
         }
         return -1;
+    }
+
+    public TreeFormatterBuilder appendPadding(int padSize) {
+        printerParsers.add(new PaddingPrinterParser(padSize));
+        return this;
     }
 
 
@@ -370,27 +377,28 @@ public class TreeFormatterBuilder {
         @Override
         public boolean format(TreeFormatContext ctx, StringBuilder buf) {
             Objects.requireNonNull(nodePrinterParser, "Node printer is null");
-            if (prefix != null) {
-                if (!prefix.format(ctx, buf)) {
-                    return false;
-                }
-            }
             Node<?> parent = ctx.getNode();
             for (int i = 0; i < parent.size(); i++) {
                 var child = parent.getChild(i);
                 ctx.setNode(child);
+                if (prefix != null) {
+                    if (!prefix.format(ctx, buf)) {
+                        return false;
+                    }
+                }
                 if (!nodePrinterParser.format(ctx, buf)) {
                     ctx.setNode(parent);
                     return false;
                 }
                 if (i < parent.size() - 1) {
                     separator.format(null, buf);
+                } else if (postfix != null) {
+                    return postfix.format(ctx, buf);
+
                 }
             }
             ctx.setNode(parent);
-            if (postfix != null) {
-                return postfix.format(ctx, buf);
-            }
+
             return true;
         }
 
@@ -593,5 +601,43 @@ public class TreeFormatterBuilder {
             return ~position;
         }
 
+    }
+
+    static class PaddingPrinterParser implements TreePrinterParser {
+
+        private final String singlePad;
+
+        public PaddingPrinterParser(int padSize) {
+            this.singlePad = " ".repeat(padSize);
+        }
+
+        @Override
+        public boolean format(TreeFormatContext ctx, StringBuilder buf) {
+            int depth = ctx.getNode() == null ? 0 : ctx.getNode().depth();
+            buf.append(singlePad.repeat(depth));
+            return true;
+        }
+
+        @Override
+        public int parse(TreeParseContext ctx, CharSequence text, int position) {
+            // During parsing, the node in the context is the parent of the node to be created.
+            // The depth of the new node is the parent's depth + 1.
+            // If the parent node is null, we are parsing the root node, which has depth 0.
+            validatePosition(text, position);
+            int depth = (ctx.getNode() == null) ? 0 : ctx.getNode().depth() + 1;
+            String padding = singlePad.repeat(depth);
+
+            if (padding.isEmpty()) {
+                return position;
+            }
+
+            int positionEnd = position + padding.length();
+
+            if (positionEnd > text.length() ||
+                !padding.equals(text.subSequence(position, positionEnd).toString())) {
+                return ~position;
+            }
+            return positionEnd;
+        }
     }
 }

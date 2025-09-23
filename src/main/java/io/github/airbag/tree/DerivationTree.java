@@ -40,7 +40,7 @@ public interface DerivationTree<T extends DerivationTree<T>> {
     default int depth() {
         int depth = 0;
         Node<?> node = toNode();
-        while (node.getParent() != this) {
+        while (node.getParent() != node) {
             node = node.getParent();
             depth++;
         }
