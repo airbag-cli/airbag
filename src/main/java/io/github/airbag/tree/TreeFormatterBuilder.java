@@ -6,6 +6,7 @@ import io.github.airbag.symbol.SymbolFormatter;
 import java.text.ParsePosition;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Builder for creating {@link TreeFormatter} instances.
@@ -361,13 +362,14 @@ public class TreeFormatterBuilder {
         ChildrenPrinterParser(NodePrinterParser printerParser,
                               ChildrenPrinterParser childrenPrinterParser) {
             this.separator = childrenPrinterParser.separator;
-            this.nodePrinterParser = printerParser;
+            this.nodePrinterParser = Objects.requireNonNull(printerParser);
             this.prefix = childrenPrinterParser.prefix;
             this.postfix = childrenPrinterParser.postfix;
         }
 
         @Override
         public boolean format(TreeFormatContext ctx, StringBuilder buf) {
+            Objects.requireNonNull(nodePrinterParser, "Node printer is null");
             if (prefix != null) {
                 if (!prefix.format(ctx, buf)) {
                     return false;
@@ -387,17 +389,16 @@ public class TreeFormatterBuilder {
             }
             ctx.setNode(parent);
             if (postfix != null) {
-                if (!postfix.format(ctx, buf)) {
-                    return false;
-                }
+                return postfix.format(ctx, buf);
             }
             return true;
         }
 
         @Override
         public int parse(TreeParseContext ctx, CharSequence text, int position) {
-            Node<?> parent = ctx.getNode();
+            Objects.requireNonNull(nodePrinterParser, "Node parser is null");
 
+            Node<?> parent = ctx.getNode();
             //Check the prefix
             if (prefix != null) {
                 position = prefix.parse(ctx, text, position);
