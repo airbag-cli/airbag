@@ -67,8 +67,14 @@ import java.util.Objects;
  */
 public class TreeFormatterBuilder {
 
+    /**
+     * The chain of printer-parsers
+     */
     private final List<TreePrinterParser> printerParsers = new ArrayList<>();
 
+    /**
+     * The start of the child section
+     */
     private int childrenStart = -1;
 
     /**
@@ -129,11 +135,54 @@ public class TreeFormatterBuilder {
         return this;
     }
 
+    /**
+     * Marks the beginning of a scoped section for formatting a node's children,
+     * allowing for more complex structures that include prefixes and postfixes
+     * around the list of children.
+     *
+     * <p>This method must be paired with a subsequent call to {@link #endChildren()}.
+     * Between these two calls, you should call {@link #appendChildren(String)}
+     * exactly once. Any formatters appended before {@code appendChildren} will
+     * form a "prefix" that is printed once before the children, and any formatters
+     * appended after will form a "postfix" printed once after the children.
+     *
+     * <p><b>Example:</b></p>
+     * <pre>{@code
+     * // Formats children as a JSON-like array: "[child1, child2]"
+     * TreeFormatter formatter = new TreeFormatterBuilder()
+     *     .appendRule()
+     *     .startChildren()
+     *     .appendLiteral("[")  // Prefix
+     *     .appendChildren(", ")
+     *     .appendLiteral("]")  // Postfix
+     *     .endChildren()
+     *     .toFormatter();
+     * }</pre>
+     *
+     * @return This builder.
+     * @see #endChildren()
+     * @see #appendChildren(String)
+     */
     public TreeFormatterBuilder startChildren() {
         childrenStart = printerParsers.size();
         return this;
     }
 
+    /**
+     * Concludes a scoped section for formatting children that was started with
+     * {@link #startChildren()}.
+     *
+     * <p>This method gathers all formatters appended since the call to
+     * {@code startChildren()}, identifies the {@link #appendChildren(String)}
+     * component, and groups the other components into a prefix (before children)
+     * and a postfix (after children). This allows for creating formats where
+     * the entire block of children is enclosed in special characters, like brackets.
+     *
+     * @return This builder.
+     * @throws IllegalStateException if called without a preceding {@code startChildren()}
+     *         or if no {@code appendChildren()} was called within the scope.
+     * @see #startChildren()
+     */
     public TreeFormatterBuilder endChildren() {
         if (childrenStart == -1) {
             throw new IllegalStateException("Cannot end a child section that has started.");
@@ -158,6 +207,7 @@ public class TreeFormatterBuilder {
                 (ChildrenPrinterParser) printerParsers.get(index));
         printerParsers.subList(childrenStart, printerParsers.size()).clear();
         printerParsers.add(childrenPrinterParser);
+        childrenStart = -1;
         return this;
     }
 
@@ -383,6 +433,7 @@ public class TreeFormatterBuilder {
                 ctx.setNode(child);
                 if (prefix != null) {
                     if (!prefix.format(ctx, buf)) {
+                        ctx.setNode(parent);
                         return false;
                     }
                 }
@@ -392,13 +443,12 @@ public class TreeFormatterBuilder {
                 }
                 if (i < parent.size() - 1) {
                     separator.format(null, buf);
-                } else if (postfix != null) {
-                    return postfix.format(ctx, buf);
-
                 }
             }
             ctx.setNode(parent);
-
+            if (postfix != null) {
+                return postfix.format(ctx, buf);
+            }
             return true;
         }
 
@@ -407,17 +457,15 @@ public class TreeFormatterBuilder {
             Objects.requireNonNull(nodePrinterParser, "Node parser is null");
 
             Node<?> parent = ctx.getNode();
-            //Check the prefix
-            if (prefix != null) {
-                position = prefix.parse(ctx, text, position);
-                if (position < 0) {
-                    return position;
-                }
-            }
-
             int result;
             do {
                 ctx.setNode(parent);
+                if (prefix != null) {
+                    position = prefix.parse(ctx, text, position);
+                    if (position < 0) {
+                        return position;
+                    }
+                }
                 result = nodePrinterParser.parse(ctx, text, position);
                 if (result < 0) {
                     break;
