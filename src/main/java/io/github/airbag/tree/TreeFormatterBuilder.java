@@ -68,6 +68,8 @@ public class TreeFormatterBuilder {
 
     private final List<TreePrinterParser> printerParsers = new ArrayList<>();
 
+    private int childrenStart = -1;
+
     /**
      * Appends a printer/parser for a literal string to the formatter.
      * <p>
@@ -125,6 +127,46 @@ public class TreeFormatterBuilder {
         printerParsers.add(new RulePrinterParser());
         return this;
     }
+
+    public TreeFormatterBuilder startChildren() {
+        childrenStart = printerParsers.size();
+        return this;
+    }
+
+    public TreeFormatterBuilder endChildren() {
+        if (childrenStart == -1) {
+            throw new IllegalStateException("Cannot end a child section that has started.");
+        }
+        if (childrenStart == printerParsers.size()) {
+            childrenStart = -1;
+            return this;
+        }
+        int index = findChildrenPrinterParser();
+        if (index < 0) {
+            throw new IllegalStateException("No children printer parser found");
+        }
+        CompositePrinterParser prefix = childrenStart == index ?
+                null :
+                new CompositePrinterParser(printerParsers.subList(childrenStart, index));
+        CompositePrinterParser postfix = index == printerParsers.size() - 1 ?
+                null :
+                new CompositePrinterParser(printerParsers.subList(index + 1,
+                        printerParsers.size()));
+        ChildrenPrinterParser childrenPrinterParser = new ChildrenPrinterParser(prefix, postfix, (ChildrenPrinterParser) printerParsers.get(index));
+        printerParsers.subList(index, printerParsers.size()).clear();
+        printerParsers.add(childrenPrinterParser);
+        return this;
+    }
+
+    private int findChildrenPrinterParser() {
+        for (int i = 0; i < printerParsers.size(); i++) {
+            if (printerParsers.get(i) instanceof ChildrenPrinterParser) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
 
     /**
      * Builds the tree formatter.
@@ -215,8 +257,19 @@ public class TreeFormatterBuilder {
         }
 
         private NodePrinterParser(TreePrinterParser[] printerParsers) {
+            boolean noRuleBefore = true;
             for (int i = 0; i < printerParsers.length; i++) {
+                if (printerParsers[i] instanceof RulePrinterParser) {
+                    if (!noRuleBefore) {
+                        throw new IllegalStateException("Can only have a single rule printer parser");
+                    }
+                    noRuleBefore = false;
+                }
                 if (printerParsers[i] instanceof ChildrenPrinterParser childrenPrinterParser) {
+                    if (noRuleBefore) {
+                        throw new IllegalStateException(
+                                "A rule printer parser must be placed before the children printer parser.");
+                    }
                     printerParsers[i] = new ChildrenPrinterParser(this, childrenPrinterParser);
                 }
             }
@@ -298,10 +351,10 @@ public class TreeFormatterBuilder {
 
         ChildrenPrinterParser(CompositePrinterParser prefix,
                               CompositePrinterParser postfix,
-                              LiteralPrinterParser separator) {
+                              ChildrenPrinterParser childrenPrinterParser) {
             this.prefix = prefix;
             this.postfix = postfix;
-            this.separator = separator;
+            this.separator = childrenPrinterParser.separator;
             this.nodePrinterParser = null;
         }
 
