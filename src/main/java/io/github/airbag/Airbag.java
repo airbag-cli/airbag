@@ -1,17 +1,21 @@
 package io.github.airbag;
 
-import io.github.airbag.symbol.*;
+import io.github.airbag.symbol.Symbol;
+import io.github.airbag.symbol.SymbolField;
+import io.github.airbag.symbol.SymbolFormatter;
+import io.github.airbag.symbol.SymbolProvider;
+import io.github.airbag.tree.TreeProvider;
 import io.github.airbag.util.Utils;
-import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.Lexer;
+import org.antlr.v4.runtime.Parser;
 import org.opentest4j.AssertionFailedError;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.function.BiPredicate;
 
 /**
  * The Airbag class is the central component of the Airbag library.
- * It serves as a factory for creating {@link SymbolProvider} and {@link TreeProvider} instances, which are essential for creating token streams and parse trees from ANTLR grammars.
+ * It serves as a factory for creating {@link SymbolProvider} and {@link io.github.airbag.tree.TreeProvider} instances, which are essential for creating token streams and parse trees from ANTLR grammars.
  * <p>
  * This class simplifies the process of working with ANTLR grammars by providing a unified interface for creating and managing lexer and parser instances.
  * It supports creating Airbag instances from either the lexer and parser classes directly, or by providing the fully qualified name of the grammar, in which case it will load the classes using the thread's context class loader.
@@ -22,21 +26,14 @@ import java.util.function.BiPredicate;
 public class Airbag {
 
     /**
-     * The {@link Class} object for the ANTLR parser.
-     * This is used to create new instances of the parser.
-     */
-    private Class<? extends Parser> parserClass;
-
-    /**
-     * The ANTLR recognizer, which can be either a lexer or a parser.
-     * This is used to get the vocabulary and other information about the grammar.
-     */
-    private Recognizer<?, ?> recognizer;
-
-    /**
      * The Token provider for creating tokens from string or specification.
      */
     private final SymbolProvider symbolProvider;
+
+    /**
+     * The Tree provider for creating CSTs and VSTs.
+     */
+    private final TreeProvider treeProvider;
 
     /**
      * Constructs a new Airbag instance from the given parser and lexer classes.
@@ -45,14 +42,8 @@ public class Airbag {
      * @param lexerClass  The {@link Class} object for the ANTLR lexer. Must not be null.
      */
     public Airbag(Class<? extends Parser> parserClass, Class<? extends Lexer> lexerClass) {
-        this.parserClass = parserClass;
-        try {
-            recognizer = parserClass.getConstructor(TokenStream.class).newInstance((TokenStream) null);
-            symbolProvider = new SymbolProvider(lexerClass);
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
-                 NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
+        symbolProvider = new SymbolProvider(lexerClass);
+        treeProvider = new TreeProvider(parserClass);
     }
 
     /**
@@ -62,13 +53,8 @@ public class Airbag {
      * @param lexerClass The {@link Class} object for the ANTLR lexer. Must not be null.
      */
     public Airbag(Class<? extends Lexer> lexerClass) {
-        try {
-            recognizer = lexerClass.getConstructor(CharStream.class).newInstance((CharStream) null);
-            symbolProvider = new SymbolProvider(lexerClass);
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
-                 NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
+        symbolProvider = new SymbolProvider(lexerClass);
+        treeProvider = null;
     }
 
     /**
@@ -101,22 +87,14 @@ public class Airbag {
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
         try {
             var lexerClass = loader.loadClass(fullyQualifiedName + "Lexer").asSubclass(Lexer.class);
-            var parserClass = loader.loadClass(fullyQualifiedName + "Parser").asSubclass(Parser.class);
+            var parserClass = loader.loadClass(fullyQualifiedName + "Parser")
+                    .asSubclass(Parser.class);
             return new Airbag(parserClass, lexerClass);
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
     }
 
-    /**
-     * Returns a new {@link SymbolProvider} for the configured lexer.
-     * The {@link SymbolProvider} can be used to create a list of tokens from a string.
-     *
-     * @return A new {@link SymbolProvider} instance.
-     */
-    public SymbolProvider getSymbolProvider() {
-        return symbolProvider;
-    }
 
     /**
      * Asserts that the actual list of tokens matches the expected list.
@@ -128,13 +106,35 @@ public class Airbag {
      * @throws AssertionFailedError if the actual list of tokens does not match the expected list.
      */
     public void assertSymbolList(List<Symbol> expected, List<Symbol> actual) {
-        SymbolFormatter formatter = symbolProvider.getSymbolFormatter();
+        SymbolFormatter formatter = symbolProvider.getFormatter();
         BiPredicate<Symbol, Symbol> equalizer = SymbolField.equalizer(formatter.getFields());
         if (!Utils.listEquals(expected, actual, equalizer)) {
             List<String> expectedLines = expected.stream().map(formatter::format).toList();
             List<String> actualLines = actual.stream().map(formatter::format).toList();
-            throw new AssertionFailedError("Symbols lists are not equal", expectedLines, actualLines);
+            throw new AssertionFailedError("Symbols lists are not equal",
+                    expectedLines,
+                    actualLines);
         }
     }
+
+    /**
+     * Returns a {@link SymbolProvider} for the configured lexer.
+     * The {@link SymbolProvider} can be used to create a list of symbols.
+     *
+     * @return A new {@link SymbolProvider} instance.
+     */
+    public SymbolProvider getSymbolProvider() {
+        return symbolProvider;
+    }
+
+    /**
+     * Returns the {@link TreeProvider} for the configured parser.
+     *
+     * @return the {@link TreeProvider} for the configured parser.
+     */
+    public TreeProvider getTreeProvider() {
+        return treeProvider;
+    }
+
 
 }
