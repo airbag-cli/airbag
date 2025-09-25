@@ -88,6 +88,9 @@ public class SymbolFormatterBuilder {
      */
     private final Set<SymbolField<?>> fields = new HashSet<>();
 
+    /**
+     * The start index of the optional section
+     */
     private int optionalStart = -1;
 
     /**

@@ -406,7 +406,7 @@ public class SymbolFormatter {
         for (var parser : printerParsers) {
             ctx = new SymbolParseContext(new HashMap<>(), parser, vocabulary);
             int current = parser.parse(ctx, input, initial);
-            if (current > 0) {
+            if (current >= 0) {
                 position.setIndex(current);
                 position.setErrorIndex(-1); // Clear error index on success
                 return ctx.resolveFields();
