@@ -486,8 +486,14 @@ public class SymbolFormatterBuilder {
                         }
                         literalBuf.append(pattern.charAt(i));
                     }
-                    case '[' -> startOptional();
-                    case ']' -> endOptional();
+                    case '[' -> {
+                        flushLiteralBuf(literalBuf);
+                        startOptional();
+                    }
+                    case ']' -> {
+                        flushLiteralBuf(literalBuf);
+                        endOptional();
+                    }
                     default -> literalBuf.append(c);
                 }
             }
