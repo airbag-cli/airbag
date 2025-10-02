@@ -158,6 +158,7 @@ public sealed class ConcreteSyntaxTree extends AbstractNode<ConcreteSyntaxTree> 
         public static ConcreteSyntaxTree.Rule attachTo(ConcreteSyntaxTree parent, int index) {
             return new ConcreteSyntaxTree.Rule(parent, index);
         }
+
     }
 
     /**

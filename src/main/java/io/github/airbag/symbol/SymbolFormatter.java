@@ -471,4 +471,13 @@ public class SymbolFormatter {
         return fields;
     }
 
+    @Override
+    public String toString() {
+        StringJoiner joiner = new StringJoiner(" | ");
+        for (CompositePrinterParser parser : printerParsers) {
+            joiner.add(parser.toString());
+        }
+        return joiner.toString();
+    }
+
 }

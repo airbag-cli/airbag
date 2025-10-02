@@ -20,6 +20,11 @@ public class SimpleFormatterTest {
         formatter = SymbolFormatter.SIMPLE.withVocabulary(ExpressionLexer.VOCABULARY);
     }
 
+    @Test
+    void testToString() {
+        assertEquals("<EOF> | l[:c] | (S[:c] \\'X\\')", formatter.toString());
+    }
+
     @Nested
     @DisplayName("format()")
     class Format {
