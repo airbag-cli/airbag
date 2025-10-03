@@ -220,11 +220,45 @@ public class TreeFormatterBuilder {
         return -1;
     }
 
+    /**
+     * Appends a printer/parser that adds padding based on the node's depth,
+     * useful for creating indented, "pretty-printed" string representations of the tree.
+     * <p>
+     * <b>Formatting:</b> This component calculates the current node's depth within the
+     * tree and prepends a corresponding amount of padding. The total padding is
+     * {@code padSize * node.depth()}. For example, if {@code padSize} is 2, a root
+     * node (depth 0) gets no padding, its children (depth 1) get 2 spaces,
+     * grandchildren (depth 2) get 4 spaces, and so on.
+     * <p>
+     * <b>Parsing:</b> It expects to find the same amount of padding in the input
+     * text that would have been generated during formatting. It consumes the
+     * required number of spaces based on the depth of the node being parsed.
+     *
+     * <p><b>Example: Pretty-printing a tree</b></p>
+     * <pre>{@code
+     * // Creates a formatter that indents each level of the tree.
+     * TreeFormatter formatter = new TreeFormatterBuilder()
+     *     .appendPadding(2) // 2 spaces per depth level
+     *     .appendRule()
+     *     .appendLiteral("
+")
+     *     .appendChildren("") // Children are on new lines
+     *     .toFormatter();
+     *
+     * // A tree might be formatted as:
+     * // ruleA
+     * //   child1
+     * //   child2
+     * //     grandchild1
+     * }</pre>
+     *
+     * @param padSize The number of spaces to add for each level of depth.
+     * @return This builder.
+     */
     public TreeFormatterBuilder appendPadding(int padSize) {
         printerParsers.add(new PaddingPrinterParser(padSize));
         return this;
     }
-
 
     /**
      * Builds the tree formatter.
@@ -461,9 +495,9 @@ public class TreeFormatterBuilder {
             do {
                 ctx.setNode(parent);
                 if (prefix != null) {
-                    position = prefix.parse(ctx, text, position);
-                    if (position < 0) {
-                        return position;
+                    result = prefix.parse(ctx, text, position);
+                    if (result < 0) {
+                        break;
                     }
                 }
                 result = nodePrinterParser.parse(ctx, text, position);

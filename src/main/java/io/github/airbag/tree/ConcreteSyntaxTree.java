@@ -9,6 +9,8 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import org.antlr.v4.runtime.tree.TerminalNodeImpl;
 import org.antlr.v4.runtime.tree.ErrorNodeImpl;
 
+import java.util.function.BiPredicate;
+
 /**
  * A concrete syntax tree (CST) is a tree that represents the syntactic structure of a string according to some formal
  * grammar. It is a representation of the source code that is close to the original text, including all the
@@ -46,10 +48,10 @@ public sealed class ConcreteSyntaxTree extends AbstractNode<ConcreteSyntaxTree> 
      * @param parseTree The current ANTLR {@link ParseTree} node to convert.
      * @return The corresponding {@link ConcreteSyntaxTree} node.
      */
-    private static ConcreteSyntaxTree from(ConcreteSyntaxTree.Rule parent, ParseTree parseTree) {
+    private static ConcreteSyntaxTree from(Rule parent, ParseTree parseTree) {
         return switch (parseTree) {
             case RuleNode ruleNode -> {
-                ConcreteSyntaxTree.Rule rule = ConcreteSyntaxTree.Rule.attachTo(parent, ruleNode.getRuleContext().getRuleIndex());
+                Rule rule = Rule.attachTo(parent, ruleNode.getRuleContext().getRuleIndex());
                 for (int i = 0; i < ruleNode.getChildCount(); i++) {
                     from(rule, ruleNode.getChild(i));
                 }
@@ -122,6 +124,52 @@ public sealed class ConcreteSyntaxTree extends AbstractNode<ConcreteSyntaxTree> 
         };
     }
 
+    public boolean equals(Object obj, BiPredicate<Symbol, Symbol> equalizer) {
+        if (obj == this) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (obj instanceof ConcreteSyntaxTree concreteSyntaxTree) {
+            switch (this) {
+                case ConcreteSyntaxTree.Rule rule -> {
+                    if (rule.size() != concreteSyntaxTree.size()) {
+                        return false;
+                    } else {
+                        for (int i = 0; i< rule.size(); i++) {
+                            if (!rule.getChild(i).equals(concreteSyntaxTree.getChild(i))) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    }
+                }
+                case ConcreteSyntaxTree.Terminal terminal -> {
+                    if (concreteSyntaxTree instanceof ConcreteSyntaxTree.Terminal terminalNode) {
+                        return equalizer.test(terminal.getSymbol(), terminalNode.getSymbol());
+                    } else {
+                        return false;
+                    }
+                }
+                case ConcreteSyntaxTree.Error error -> {
+                    if (concreteSyntaxTree instanceof ConcreteSyntaxTree.Error errorNode) {
+                        return equalizer.test(error.getSymbol(), errorNode.getSymbol());
+                    } else {
+                        return false;
+                    }
+                }
+                default -> throw new IllegalStateException("Unexpected value: " + this);
+            }
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public String toString() {
+        return TreeFormatter.SIMPLE.format(this);
+    }
 
     /**
      * Represents a rule node in the CST, corresponding to a non-terminal symbol in the grammar.
@@ -158,6 +206,7 @@ public sealed class ConcreteSyntaxTree extends AbstractNode<ConcreteSyntaxTree> 
         public static ConcreteSyntaxTree.Rule attachTo(ConcreteSyntaxTree parent, int index) {
             return new ConcreteSyntaxTree.Rule(parent, index);
         }
+
     }
 
     /**

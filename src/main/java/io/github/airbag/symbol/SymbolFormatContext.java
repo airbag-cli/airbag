@@ -4,9 +4,26 @@ import org.antlr.v4.runtime.Vocabulary;
 
 /**
  * A context object for formatting a symbol.
- *
- * @param symbol The symbol to be formatted.
  */
-record SymbolFormatContext(Symbol symbol, Vocabulary vocabulary) {
+class SymbolFormatContext {
+
+    private final Symbol symbol;
+    private final Vocabulary vocabulary;
+
+    /**
+     * @param symbol The symbol to be formatted.
+     */
+    SymbolFormatContext(Symbol symbol, Vocabulary vocabulary) {
+        this.symbol = symbol;
+        this.vocabulary = vocabulary;
+    }
+
+    public Symbol symbol() {
+        return symbol;
+    }
+
+    public Vocabulary vocabulary() {
+        return vocabulary;
+    }
 
 }

@@ -27,6 +27,7 @@ public final class SymbolField<T> {
     /**
      * Represents the {@code type} field of a {@link Symbol}.
      * This field holds an integer identifying the kind of symbol (e.g., identifier, keyword, operator).
+     *
      * @see Symbol#type()
      */
     public static final SymbolField<Integer> TYPE = new SymbolField<>("type", Symbol::type,
@@ -36,6 +37,7 @@ public final class SymbolField<T> {
     /**
      * Represents the {@code text} field of a {@link Symbol}.
      * This field holds the actual text matched for the symbol from the input source.
+     *
      * @see Symbol#text()
      */
     public static final SymbolField<String> TEXT = new SymbolField<>("text",
@@ -46,6 +48,7 @@ public final class SymbolField<T> {
     /**
      * Represents the {@code index} field of a {@link Symbol}.
      * This field holds the zero-based index of the symbol within the symbol stream.
+     *
      * @see Symbol#index()
      */
     public static final SymbolField<Integer> INDEX = new SymbolField<>("index",
@@ -56,6 +59,7 @@ public final class SymbolField<T> {
     /**
      * Represents the {@code line} field of a {@link Symbol}.
      * This field holds the line number where the symbol appears in the input source.
+     *
      * @see Symbol#line()
      */
     public static final SymbolField<Integer> LINE = new SymbolField<>("line",
@@ -66,6 +70,7 @@ public final class SymbolField<T> {
     /**
      * Represents the {@code position} field of a {@link Symbol}.
      * This field holds the character position of the symbol within its line.
+     *
      * @see Symbol#position()
      */
     public static final SymbolField<Integer> POSITION = new SymbolField<>("position",
@@ -75,6 +80,7 @@ public final class SymbolField<T> {
     /**
      * Represents the {@code channel} field of a {@link Symbol}.
      * This field is used to associate a symbol with a specific channel, such as a hidden channel for whitespace or comments.
+     *
      * @see Symbol#channel()
      */
     public static final SymbolField<Integer> CHANNEL = new SymbolField<>("channel",
@@ -83,6 +89,7 @@ public final class SymbolField<T> {
     /**
      * Represents the {@code start} field of a {@link Symbol}.
      * This field holds the starting character index of the symbol in the input source.
+     *
      * @see Symbol#start()
      */
     public static final SymbolField<Integer> START = new SymbolField<>("start",
@@ -93,6 +100,7 @@ public final class SymbolField<T> {
     /**
      * Represents the {@code stop} field of a {@link Symbol}.
      * This field holds the stopping character index of the symbol in the input source.
+     *
      * @see Symbol#stop()
      */
     public static final SymbolField<Integer> STOP = new SymbolField<>("stop",
@@ -148,7 +156,7 @@ public final class SymbolField<T> {
      * Sets the value of this specific field on a {@link Symbol.Builder}.
      *
      * @param builder The builder instance on which to set the value. Must not be null.
-     * @param value The value to set for the field.
+     * @param value   The value to set for the field.
      */
     public void resolve(Symbol.Builder builder, T value) {
         resolver.accept(builder, value);
@@ -175,7 +183,7 @@ public final class SymbolField<T> {
             case "type" -> (T) Integer.valueOf(Symbol.INVALID_TYPE);
             case "text" -> (T) "";
             case "channel" -> (T) Integer.valueOf(Symbol.DEFAULT_CHANNEL);
-            case "index", "line", "position" , "start", "stop" -> (T) Integer.valueOf(-1);
+            case "index", "line", "position", "start", "stop" -> (T) Integer.valueOf(-1);
             default -> throw new RuntimeException("Unknown field");
         };
     }
@@ -197,6 +205,15 @@ public final class SymbolField<T> {
             }
             return true;
         };
+    }
+
+    /**
+     * Return a set of all fields.
+     *
+     * @return a set of all fields.
+     */
+    public static Set<SymbolField<?>> all() {
+        return Set.of(TYPE, TEXT, INDEX, LINE, POSITION, START, STOP, CHANNEL);
     }
 
 }

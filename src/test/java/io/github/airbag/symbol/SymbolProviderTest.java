@@ -1,8 +1,6 @@
-package io.github.airbag;
+package io.github.airbag.symbol;
 
 import io.github.airbag.gen.ExpressionLexer;
-import io.github.airbag.symbol.Symbol;
-import io.github.airbag.symbol.SymbolProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

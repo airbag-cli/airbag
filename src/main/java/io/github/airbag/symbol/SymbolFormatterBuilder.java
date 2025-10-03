@@ -3,6 +3,7 @@ package io.github.airbag.symbol;
 import org.antlr.v4.runtime.Vocabulary;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * Builder for creating {@link SymbolFormatter} instances.
@@ -88,6 +89,9 @@ public class SymbolFormatterBuilder {
      */
     private final Set<SymbolField<?>> fields = new HashSet<>();
 
+    /**
+     * The start index of the optional section
+     */
     private int optionalStart = -1;
 
     /**
@@ -363,9 +367,9 @@ public class SymbolFormatterBuilder {
      * For example, in the pattern {@code s:x}, the colon is a literal.
      * <p>
      * To treat a sequence of characters as a single literal, especially if it contains characters
-     * that could be interpreted as pattern modifiers, you can enclose the sequence in {@code %} characters.
-     * Everything between the opening and closing {@code %} is treated as one literal block.
-     * For example, {@code %s%} would result in the literal "s" being printed, not the symbolic name.
+     * that could be interpreted as pattern modifiers, you can enclose the sequence in {@code '} characters.
+     * Everything between the opening and closing {@code '} is treated as one literal block.
+     * For example, {@code 's'} would result in the literal "s" being printed, not the symbolic name.
      * This is useful for ensuring that text is treated as a literal, regardless of its content.
      *
      * <h3>Optional Sections</h3>
@@ -379,23 +383,23 @@ public class SymbolFormatterBuilder {
      * The backslash character {@code \} is used as an escape character. It allows individual pattern
      * letters to be treated as literals outside a quoted block. For example, a pattern of {@code \s}
      * will format or parse the literal character 's'. To include a literal backslash, use a double
-     * backslash {@code \\}. To include a literal percent sign, use {@code \%}.
+     * backslash {@code \\}. To include a literal percent sign, use {@code \'}.
      *
      * <h3>Examples</h3>
      * <pre>{@code
      *   // Format a symbol as "SYMBOLIC_NAME:'text'"
      *   // For a symbol with symbolic name "ID" and text "user", the output would be "ID:'user'"
-     *   String pattern1 = "s:'x'";
+     *   String pattern1 = "s:\\'x\\'";
      *
      *   // Replicate ANTLR's default Symbol.toString() format
      *   // Example output: [@-1,0:3='text',<0>,1:0]
      *   // Using quoted blocks for all literal parts to avoid ambiguity.
-     *   String antlrPattern = "\\[@N,B:E='X',<L>,[%channel%=c],R:P\\]";
+     *   String antlrPattern = "\\[@N,B:E=\\'X\\',<L>,['channel'=c],R:P\\]";
      *
      *   // Format a symbol with an optional channel display
      *   // If the channel is not the default, it will be included (e.g., "ID[channel=1]")
      *   // Otherwise, it will be omitted (e.g., "ID")
-     *   String optionalChannelPattern = "s[\\[%channel%=c\\]]";
+     *   String optionalChannelPattern = "s[\\['channel'=c\\]]";
      * }</pre>
      *
      * @param pattern the pattern string to define the formatter.
@@ -430,6 +434,8 @@ public class SymbolFormatterBuilder {
             'r'
     );
 
+    private static final Set<Character> SPECIAL_CHARACTERS = Set.of('[', ']', '\'', '\\');
+
     private void parsePattern(String pattern) {
         StringBuilder literalBuf = new StringBuilder();
         for (int i = 0; i < pattern.length(); i++) {
@@ -459,11 +465,11 @@ public class SymbolFormatterBuilder {
                 }
             } else {
                 switch (c) {
-                    case '%' -> {
+                    case '\'' -> {
                         flushLiteralBuf(literalBuf);
                         i++; // Skip opening '%'
                         int contentStart = i;
-                        while (i < pattern.length() && pattern.charAt(i) != '%') {
+                        while (i < pattern.length() && pattern.charAt(i) != '\'') {
                             i++;
                         }
                         if (i >= pattern.length()) {
@@ -483,8 +489,14 @@ public class SymbolFormatterBuilder {
                         }
                         literalBuf.append(pattern.charAt(i));
                     }
-                    case '[' -> startOptional();
-                    case ']' -> endOptional();
+                    case '[' -> {
+                        flushLiteralBuf(literalBuf);
+                        startOptional();
+                    }
+                    case ']' -> {
+                        flushLiteralBuf(literalBuf);
+                        endOptional();
+                    }
                     default -> literalBuf.append(c);
                 }
             }
@@ -603,6 +615,11 @@ public class SymbolFormatterBuilder {
          */
         int peek(SymbolParseContext context, CharSequence text, int position);
 
+        /**
+         * Returns {@code true} if the printer parser is optional.
+         *
+         * @return {@code true} if the printer parser is optional.
+         */
         default boolean isOptional() {
             return false;
         }
@@ -669,6 +686,19 @@ public class SymbolFormatterBuilder {
         public boolean isOptional() {
             return isOptional;
         }
+
+        @Override
+        public String toString() {
+            StringBuilder buf = new StringBuilder();
+            if (isOptional) {
+                buf.append("[");
+            }
+            Arrays.stream(printerParsers).forEach(buf::append);
+            if (isOptional) {
+                buf.append("]");
+            }
+            return buf.toString();
+        }
     }
 
     static class IntegerPrinterParser implements SymbolPrinterParser {
@@ -718,6 +748,33 @@ public class SymbolFormatterBuilder {
                     findNumberEnd(text, position);
         }
 
+        @Override
+        public String toString() {
+            switch (integerSymbolField.name()) {
+                case "type" -> {
+                    return "I";
+                }
+                case "index" -> {
+                    return isStrict ? "n" : "N";
+                }
+                case "line" -> {
+                    return isStrict ? "r" : "R";
+                }
+                case "position" -> {
+                    return isStrict ? "p" : "P";
+                }
+                case "channel" -> {
+                    return isStrict ? "c" : "C";
+                }
+                case "start" -> {
+                    return isStrict ? "b" : "B";
+                }
+                case "stop" -> {
+                    return isStrict ? "e" : "E";
+                }
+                default -> throw new RuntimeException();
+            }
+        }
     }
 
     private static void validatePosition(CharSequence text, int position) {
@@ -767,6 +824,32 @@ public class SymbolFormatterBuilder {
             return positionEnd;
         }
 
+        @Override
+        public String toString() {
+            if (literal.isEmpty()) {
+                return "";
+            }
+            long specialCharCount = literal.chars()
+                    .filter(c -> PATTERN_LETTERS.contains((char) c) || SPECIAL_CHARACTERS.contains((char) c))
+                    .count();
+
+            if (specialCharCount == 0) {
+                return literal;
+            }
+
+            if (specialCharCount > 1 && !literal.contains("'")) {
+                return "'" + literal + "'";
+            } else {
+                StringBuilder sb = new StringBuilder();
+                for (char c : literal.toCharArray()) {
+                    if (PATTERN_LETTERS.contains(c) || SPECIAL_CHARACTERS.contains(c)) {
+                        sb.append('\\');
+                    }
+                    sb.append(c);
+                }
+                return sb.toString();
+            }
+        }
     }
 
     static class TextPrinterParser implements SymbolPrinterParser {
@@ -893,6 +976,11 @@ public class SymbolFormatterBuilder {
             }
             return delimiters.toArray(new SymbolPrinterParser[0]);
         }
+
+        @Override
+        public String toString() {
+            return option == TextOption.NOTHING ? "x" : "X";
+        }
     }
 
     static class SymbolicTypePrinterParser implements SymbolPrinterParser {
@@ -957,6 +1045,11 @@ public class SymbolFormatterBuilder {
             }
             return longestMatch == 0 ? ~position : position + longestMatch;
         }
+
+        @Override
+        public String toString() {
+            return "s";
+        }
     }
 
     static class LiteralTypePrinterParser implements SymbolPrinterParser {
@@ -1020,11 +1113,17 @@ public class SymbolFormatterBuilder {
             }
             return longestMatch == 0 ? ~position : position + longestMatch;
         }
+
+        @Override
+        public String toString() {
+            return "l";
+        }
     }
 
     static class TypePrinterParser implements SymbolPrinterParser {
 
         private SymbolPrinterParser[] printerParsers;
+        private final TypeFormat format;
 
         TypePrinterParser(TypeFormat format) {
             switch (format) {
@@ -1044,6 +1143,7 @@ public class SymbolFormatterBuilder {
                 case LITERAL_ONLY ->
                         printerParsers = new SymbolPrinterParser[]{new LiteralTypePrinterParser()};
             }
+            this.format = format;
         }
 
         @Override
@@ -1075,6 +1175,17 @@ public class SymbolFormatterBuilder {
                 }
             }
             return ~position;
+        }
+
+        @Override
+        public String toString() {
+            return switch (format) {
+                case INTEGER_ONLY -> "i";
+                case SYMBOLIC_ONLY -> "s";
+                case LITERAL_ONLY -> "l";
+                case SYMBOLIC_FIRST -> "S";
+                case LITERAL_FIRST -> "L";
+            };
         }
     }
 
@@ -1109,6 +1220,11 @@ public class SymbolFormatterBuilder {
             }
             boolean matches = text.subSequence(position, position + 3).toString().equals("EOF");
             return matches ? position + 3 : ~position;
+        }
+
+        @Override
+        public String toString() {
+            return "<EOF>";
         }
     }
 }

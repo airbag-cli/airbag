@@ -11,11 +11,33 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@DisplayName("Test TreeFormatter")
 public class TreeFormatterTest {
 
+    private static final ConcreteSyntaxTree ACTUAL = createParseTree("a = 10 + b\n");
+
+    private static final ConcreteSyntaxTree EXPECTED = ConcreteSyntaxTree.Rule.root(ExpressionParser.RULE_prog);
+
+    private static ConcreteSyntaxTree createParseTree(String expression) {
+        ExpressionLexer lexer = new ExpressionLexer(CharStreams.fromString(expression));
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
+        ExpressionParser parser = new ExpressionParser(tokens);
+        return ConcreteSyntaxTree.from(parser.prog());
+    }
+
+    static {
+        SymbolFormatter formatter = SymbolFormatter.SIMPLE.withVocabulary(ExpressionLexer.VOCABULARY);
+        ConcreteSyntaxTree stat = ConcreteSyntaxTree.Rule.attachTo(EXPECTED, ExpressionParser.RULE_stat);
+        ConcreteSyntaxTree.Terminal.attachTo(stat, formatter.parse("(ID 'a')"));
+        ConcreteSyntaxTree.Terminal.attachTo(stat, formatter.parse("'='"));
+        ConcreteSyntaxTree expr = ConcreteSyntaxTree.Rule.attachTo(stat, ExpressionParser.RULE_expr);
+        ConcreteSyntaxTree.Terminal.attachTo(ConcreteSyntaxTree.Rule.attachTo(expr, ExpressionParser.RULE_expr), formatter.parse("(INT '10')"));
+        ConcreteSyntaxTree.Terminal.attachTo(expr, formatter.parse("'+'"));
+        ConcreteSyntaxTree.Terminal.attachTo(ConcreteSyntaxTree.Rule.attachTo(expr, ExpressionParser.RULE_expr), formatter.parse("(ID 'b')"));
+        ConcreteSyntaxTree.Terminal.attachTo(stat, formatter.parse("(NEWLINE '\\n')"));
+        ConcreteSyntaxTree.Terminal.attachTo(EXPECTED, formatter.parse("EOF"));
+    }
+
     @Test
-    @DisplayName("should format a simple tree with SIMPLE formatter")
     void testSimpleFormatter() {
         // Create a simple tree: a root rule with one terminal child
         ConcreteSyntaxTree root = ConcreteSyntaxTree.Rule.root(ExpressionParser.RULE_expr);
@@ -30,7 +52,6 @@ public class TreeFormatterTest {
     }
 
     @Test
-    @DisplayName("should parse a simple tree with SIMPLE formatter")
     void testSimpleParser() {
         // The string to pars
         String formattedTree = "(2 (9 '123'))";
@@ -51,9 +72,9 @@ public class TreeFormatterTest {
     }
 
     @Test
-    @DisplayName("should correctly parse sibling nodes")
     void testSiblingNodeParsing() {
-        String stringTree = "(2 (9 '123') (10 'my text'))";
+        String stringTree = """
+        (2 (9 '123') (10 'my text'))""";
 
         // Parse the string
         ConcreteSyntaxTree tree = TreeFormatter.SIMPLE.parseCST(stringTree);
@@ -93,12 +114,12 @@ public class TreeFormatterTest {
         assertEquals(ExpressionParser.RULE_prog, parsedTree.index());
         assertEquals(2, parsedTree.children().size());
 
-        Node<?> statNode = parsedTree.children().getFirst();
+        Node<ConcreteSyntaxTree> statNode = parsedTree.children().getFirst();
         assertInstanceOf(ConcreteSyntaxTree.Rule.class, statNode);
         assertEquals(ExpressionParser.RULE_stat, statNode.index());
-        assertEquals(4, ((ConcreteSyntaxTree.Rule) statNode).children().size());
+        assertEquals(4, statNode.children().size());
 
-        Node<?> idNode = ((ConcreteSyntaxTree.Rule) statNode).children().getFirst();
+        Node<ConcreteSyntaxTree> idNode =  statNode.children().getFirst();
         assertInstanceOf(ConcreteSyntaxTree.Terminal.class, idNode);
         assertEquals(ExpressionLexer.ID, idNode.index());
         assertEquals("x", ((ConcreteSyntaxTree.Terminal) idNode).getSymbol().text());
@@ -110,27 +131,27 @@ public class TreeFormatterTest {
                 break;
             }
         }
-        Node<?> eqNode = ((ConcreteSyntaxTree.Rule) statNode).children().get(1);
+        Node<ConcreteSyntaxTree> eqNode =  statNode.children().get(1);
         assertInstanceOf(ConcreteSyntaxTree.Terminal.class, eqNode);
         assertEquals(assignTokenType, eqNode.index());
         assertEquals("=", ((ConcreteSyntaxTree.Terminal) eqNode).getSymbol().text());
 
-        Node<?> exprNode = ((ConcreteSyntaxTree.Rule) statNode).children().get(2);
+        Node<ConcreteSyntaxTree> exprNode =  statNode.children().get(2);
         assertInstanceOf(ConcreteSyntaxTree.Rule.class, exprNode);
         assertEquals(ExpressionParser.RULE_expr, exprNode.index());
-        assertEquals(1, ((ConcreteSyntaxTree.Rule) exprNode).children().size());
+        assertEquals(1, exprNode.children().size());
 
-        Node<?> intNode = ((ConcreteSyntaxTree.Rule) exprNode).children().getFirst();
+        Node<ConcreteSyntaxTree> intNode =  exprNode.children().getFirst();
         assertInstanceOf(ConcreteSyntaxTree.Terminal.class, intNode);
         assertEquals(ExpressionLexer.INT, intNode.index());
         assertEquals("5", ((ConcreteSyntaxTree.Terminal) intNode).getSymbol().text());
 
-        Node<?> newlineNode = ((ConcreteSyntaxTree.Rule) statNode).children().get(3);
+        Node<ConcreteSyntaxTree> newlineNode =  statNode.children().get(3);
         assertInstanceOf(ConcreteSyntaxTree.Terminal.class, newlineNode);
         assertEquals(ExpressionLexer.NEWLINE, newlineNode.index());
         assertEquals("\n", ((ConcreteSyntaxTree.Terminal) newlineNode).getSymbol().text());
 
-        Node<?> eofNode = parsedTree.children().get(1);
+        Node<ConcreteSyntaxTree> eofNode = parsedTree.children().get(1);
         assertInstanceOf(ConcreteSyntaxTree.Terminal.class, eofNode);
         assertEquals(ExpressionLexer.EOF, eofNode.index());
         assertEquals("<EOF>", ((ConcreteSyntaxTree.Terminal) eofNode).getSymbol().text());
