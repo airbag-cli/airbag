@@ -4,17 +4,33 @@ import io.github.airbag.symbol.SymbolFormatterBuilder.CompositePrinterParser;
 import org.antlr.v4.runtime.Vocabulary;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 /**
  * A context object for parsing a symbol.
- *
- * @param fieldMap A map of symbol fields to their values.
  */
-record SymbolParseContext(Map<SymbolField<?>, Object> fieldMap, CompositePrinterParser printerParser, Vocabulary vocabulary) {
+class SymbolParseContext {
 
-    @Override
+    private final Map<SymbolField<?>, Object> fieldMap;
+    private final CompositePrinterParser printerParser;
+    private final Vocabulary vocabulary;
+
+    public SymbolParseContext(CompositePrinterParser printerParser, Vocabulary vocabulary) {
+        this.printerParser = printerParser;
+        this.vocabulary = vocabulary;
+        fieldMap = new HashMap<>();
+    }
+
+    public CompositePrinterParser printerParser() {
+        return printerParser;
+    }
+
+    public Vocabulary vocabulary() {
+        return vocabulary;
+    }
+
     public Map<SymbolField<?>, Object> fieldMap() {
         return Collections.unmodifiableMap(fieldMap);
     }

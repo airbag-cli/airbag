@@ -120,7 +120,7 @@ public class TreeFormatter {
      * @param tree The concrete syntax tree to format.
      * @return The formatted string representation of the tree.
      * @throws SymbolException if the tree cannot be formatted, for example, if a
-     *         component of the format cannot be applied to a given node.
+     *                         component of the format cannot be applied to a given node.
      */
     public String format(ConcreteSyntaxTree tree) {
         StringBuilder buf = new StringBuilder();
@@ -146,7 +146,7 @@ public class TreeFormatter {
      * @param text The character sequence to parse.
      * @return The resulting {@link ConcreteSyntaxTree}.
      * @throws RuntimeException if the input text cannot be parsed into a valid tree
-     *         structure according to the formatter's rules.
+     *                          structure according to the formatter's rules.
      */
     public ConcreteSyntaxTree parseCST(CharSequence text) {
         Map<String, BiFunction<Node<?>, Object, Node<?>>> connectors = Map.ofEntries(entry("rule",
@@ -158,8 +158,7 @@ public class TreeFormatter {
                 entry("error",
                         (parent, symbol) -> ConcreteSyntaxTree.Error.attachTo((ConcreteSyntaxTree) parent,
                                 (Symbol) symbol)));
-        TreeParseContext ctx = new TreeParseContext(new AtomicReference<>(),
-                recognizer,
+        TreeParseContext ctx = new TreeParseContext(recognizer,
                 connectors,
                 terminalFormatter,
                 errorFormatter);
@@ -241,7 +240,6 @@ public class TreeFormatter {
     private Vocabulary getVocabulary() {
         return recognizer == null ? null : recognizer.getVocabulary();
     }
-
 
 
 }
