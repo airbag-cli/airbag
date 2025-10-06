@@ -166,10 +166,6 @@ public sealed class ConcreteSyntaxTree extends AbstractNode<ConcreteSyntaxTree> 
         }
     }
 
-    @Override
-    public String toString() {
-        return TreeFormatter.SIMPLE.format(this);
-    }
 
     /**
      * Represents a rule node in the CST, corresponding to a non-terminal symbol in the grammar.
