@@ -2,106 +2,152 @@ package io.github.airbag.tree;
 
 import io.github.airbag.symbol.Symbol;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 /**
- * Represents a node in a derivation tree. This interface is the base for different types of nodes
- * that can appear in a tree, such as rules, terminals, errors, and patterns.
- *
- * @param <T> The type of the nodes in the tree, following the CRTP pattern.
+ * An abstract base class for nodes in a {@link DerivationTree}. It provides the fundamental
+ * implementation for Terminal-child relationships and tree structure.
  */
-public interface Node<T extends DerivationTree<T>> extends DerivationTree<T>, Iterable<Node<T>> {
+public abstract sealed class Node implements DerivationTree permits Node.Rule, Node.Terminal, Node.Error {
 
     /**
-     * Retrieves the parent node of this node in the tree. A root node must have itself as parent.
-     *
-     * @return The parent node, or the node itself if it is the root of the tree.
+     * The index of this node. For a rule, it's the rule index; for a terminal, it's the token type.
      */
-    Node<T> getParent();
+    private final int index;
 
     /**
-     * Retrieves the list of children of this node.
-     *
-     * @return An unmodifiable list of child nodes. Returns an empty list if this is a leaf node.
+     * The Terminal of this node. If this is the root node, the Terminal points to itself.
      */
-    List<Node<T>> children();
+    private final DerivationTree parent;
 
     /**
-     * Converts this node into the tree type.
-     *
-     * @return the node as tree.
+     * The list of children of this node. Populated as child nodes are constructed.
      */
-    T toTree();
+    private final List<DerivationTree> children = new ArrayList<>();
 
     /**
-     * Retrieves the child node at the specified position in this node's children list.
+     * Constructs a new node and links it to its Terminal.
      *
-     * @param i The index of the child to return.
-     * @return The child node at the specified index.
-     * @throws IndexOutOfBoundsException if the index is out of range (index < 0 || index >= size()).
+     * @param parent The Terminal node. If null, this node is considered the root.
+     * @param index  The index for this node.
      */
-    default Node<T> getChild(int i) {
-        return children().get(i);
+    protected Node(DerivationTree parent, int index) {
+        this.index = index;
+        this.parent = parent == null ? this: parent;
+        if (this.parent instanceof Node parentNode) {
+            if (this.parent != this) {
+                switch (parentNode) {
+                    case Rule ignored -> parentNode.children.add(this);
+                    default -> throw new IllegalArgumentException("Parent node is not a rule");
+                }
+            }
+
+        } else {
+            throw new RuntimeException("%s is an unknown implementation of DerivationTree".formatted(this.parent.getClass()));
+        }
     }
 
-    /**
-     * Returns the number of children of this node.
-     *
-     * @return The number of child nodes.
-     */
-    default int size() {
-        return children().size();
+    public int index() {
+        return index;
     }
 
-    /**
-     * A marker interface representing a rule node in the tree. A rule node corresponds to a
-     * non-terminal symbol in the grammar and has children that represent the production of that rule.
-     *
-     * @param <T> The type of the nodes in the tree.
-     */
-    interface Rule<T extends DerivationTree<T>> extends Node<T> {
-
+    public DerivationTree getParent() {
+        return parent;
     }
 
-    /**
-     * Represents a terminal node in the tree. A terminal node corresponds to a terminal symbol
-     * (e.g., a token) in the grammar and has no children.
-     *
-     * @param <T> The type of the nodes in the tree.
-     */
-    interface Terminal<T extends DerivationTree<T>> extends Node<T> {
+    public List<DerivationTree> children() {
+        return Collections.unmodifiableList(children);
+    }
+
+    public Iterator<DerivationTree> iterator() {
+        return children().iterator();
+    }
+
+    @Override
+    public String toString() {
+        return TreeFormatter.SIMPLE.format(this);
+    }
+
+    public final static class Rule extends Node implements DerivationTree.Rule {
 
         /**
-         * Gets the underlying symbol associated with this terminal node.
+         * Constructs a new node and links it to its Terminal.
          *
-         * @return The {@link Symbol} representing the token.
+         * @param parent The Terminal node. If null, this node is considered the root.
+         * @param index  The index for this node.
          */
-        Symbol getSymbol();
+        private Rule(DerivationTree parent, int index) {
+            super(parent, index);
+        }
+
+        public static Node.Rule root(int ruleIndex) {
+            return attachTo(null, ruleIndex);
+        }
+
+        public static Node.Rule attachTo(DerivationTree parent, int index) {
+            return new Node.Rule(parent, index);
+        }
     }
 
-    /**
-     * Represents an error node in the tree. An error node indicates a syntax error at a particular
-     * point in the input string.
-     *
-     * @param <T> The type of the nodes in the tree.
-     */
-    interface Error<T extends DerivationTree<T>> extends Node<T> {
+    public final static class Terminal extends Node implements DerivationTree.Terminal {
+
+        private final Symbol symbol;
 
         /**
-         * Gets the underlying symbol associated with this error node.
+         * Constructs a new node and links it to its Terminal.
          *
-         * @return The {@link Symbol} where the error was detected.
+         * @param parent The Terminal node. If null, this node is considered the root.
+         * @param symbol The symbol attached to the node.
          */
-        Symbol getSymbol();
+        private Terminal(DerivationTree parent, Symbol symbol) {
+            super(parent, symbol.type());
+            this.symbol = symbol;
+        }
+
+        public static Node.Terminal attachTo(DerivationTree parent, Symbol symbol) {
+            return new Node.Terminal(parent, symbol);
+        }
+
+        public static Node.Terminal root(Symbol symbol) {
+            return attachTo(null, symbol);
+        }
+
+        @Override
+        public Symbol symbol() {
+            return symbol;
+        }
     }
 
-    /**
-     * Represents a pattern node in the tree. This can be used to represent repeated patterns
-     * or other structural elements not directly corresponding to a single grammar rule.
-     *
-     * @param <T> The type of the nodes in the tree.
-     */
-    interface Pattern<T extends DerivationTree<T>> extends Node<T> {
+    public final static class Error extends Node implements DerivationTree.Error {
 
+        private final Symbol symbol;
+
+        /**
+         * Constructs a new node and links it to its Terminal.
+         *
+         * @param parent The Terminal node. If null, this node is considered the root.
+         * @param symbol The symbol attached to the node.
+         */
+        private Error(DerivationTree parent, Symbol symbol) {
+            super(parent, symbol.type());
+            this.symbol = symbol;
+        }
+
+        public static Node.Error attachTo(DerivationTree parent, Symbol symbol) {
+            return new Node.Error(parent, symbol);
+        }
+
+        public static Node.Error root(Symbol symbol) {
+            return attachTo(null, symbol);
+        }
+
+        @Override
+        public Symbol symbol() {
+            return symbol;
+        }
     }
+
 }
