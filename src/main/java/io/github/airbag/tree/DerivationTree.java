@@ -1,6 +1,11 @@
 package io.github.airbag.tree;
 
 import io.github.airbag.symbol.Symbol;
+import org.antlr.v4.runtime.DefaultErrorStrategy;
+import org.antlr.v4.runtime.tree.ErrorNode;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.RuleNode;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -10,6 +15,29 @@ import java.util.stream.Stream;
 
 
 public sealed interface DerivationTree permits Node, DerivationTree.Rule, DerivationTree.Terminal, DerivationTree.Error {
+
+    static DerivationTree from(ParseTree parseTree) {
+        return from(null, parseTree);
+    }
+
+    static DerivationTree from(DerivationTree parent ,ParseTree parseTree) {
+        switch(parseTree) {
+            case RuleNode ruleNode -> {
+                DerivationTree node = Node.Rule.attachTo(parent, ruleNode.getRuleContext().getRuleIndex());
+                for (int i = 0; i < ruleNode.getChildCount(); i++) {
+                    from(node, ruleNode.getChild(i));
+                }
+                return node;
+            }
+            case ErrorNode errorNode -> {
+                return Node.Error.attachTo(parent,new Symbol(errorNode.getSymbol()));
+            }
+            case TerminalNode terminalNode -> {
+                return Node.Terminal.attachTo(parent, new Symbol(terminalNode.getSymbol()));
+            }
+            default -> throw new IllegalStateException("Unexpected value: " + parseTree);
+        }
+    }
 
     int index();
 

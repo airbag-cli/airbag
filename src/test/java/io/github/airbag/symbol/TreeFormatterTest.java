@@ -1,10 +1,15 @@
 package io.github.airbag.symbol;
 
+import io.github.airbag.gen.ExpressionLexer;
+import io.github.airbag.gen.ExpressionParser;
 import io.github.airbag.tree.*;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class TreeFormatterTest {
 
@@ -110,4 +115,15 @@ public class TreeFormatterTest {
         assertEquals(2, actual.getChild(0).size());
         assertEquals(1, actual.getChild(1).size());
     }
+
+    @Test
+    void testAntlrFormatter() {
+        ExpressionLexer lexer = new ExpressionLexer(CharStreams.fromString("x = 5\n"));
+        ExpressionParser parser = new ExpressionParser(new CommonTokenStream(lexer));
+        ParseTree tree = parser.prog();
+        assertEquals("(prog (stat x = (expr 5) \\n) <EOF>)", tree.toStringTree(parser));
+        TreeFormatter formatter = TreeFormatter.ANTLR.withRecognizer(parser);
+        assertEquals("(prog (stat x = (expr 5) \\n) <EOF>)", formatter.format(DerivationTree.from(tree)));
+    }
+
 }

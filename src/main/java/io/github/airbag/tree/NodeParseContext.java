@@ -7,6 +7,8 @@ interface NodeParseContext {
     SymbolFormatter symbolFormatter();
     Recognizer<?,?> recognizer();
     RootParseContext root();
+    int depth();
     void addChildContext(NodeParseContext childCtx);
     DerivationTree resolve(DerivationTree parent);
+    NodeParseContext getParent();
 }

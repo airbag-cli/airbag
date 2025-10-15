@@ -50,10 +50,25 @@ class RootParseContext implements NodeParseContext{
         return root.resolve(null);
     }
 
+    @Override
+    public NodeParseContext getParent() {
+        return this;
+    }
+
+    @Override
+    public int depth() {
+        return -1;
+    }
+
     class Rule implements NodeParseContext {
 
         private int index;
+        private final NodeParseContext parent;
         private final List<NodeParseContext> children = new ArrayList<>();
+
+        public Rule(NodeParseContext parent) {
+            this.parent = parent;
+        }
 
         public int index() {
             return index;
@@ -91,11 +106,26 @@ class RootParseContext implements NodeParseContext{
             }
             return rule;
         }
+
+        @Override
+        public NodeParseContext getParent() {
+            return parent;
+        }
+
+        @Override
+        public int depth() {
+            return 1 + parent.depth();
+        }
     }
 
     class Terminal implements NodeParseContext {
 
+        private final NodeParseContext parent;
         private Symbol symbol;
+
+        public Terminal(NodeParseContext parent) {
+            this.parent = parent;
+        }
 
         public Symbol getSymbol() {
             return symbol;
@@ -129,11 +159,26 @@ class RootParseContext implements NodeParseContext{
         public DerivationTree resolve(DerivationTree parent) {
             return Node.Terminal.attachTo(parent, symbol);
         }
+
+        @Override
+        public NodeParseContext getParent() {
+            return parent;
+        }
+
+        @Override
+        public int depth() {
+            return 1 + parent.depth();
+        }
     }
 
     class Error implements NodeParseContext {
 
+        private final NodeParseContext parent;
         private Symbol symbol;
+
+        public Error(NodeParseContext parent) {
+            this.parent = parent;
+        }
 
         public Symbol getSymbol() {
             return symbol;
@@ -166,6 +211,16 @@ class RootParseContext implements NodeParseContext{
         @Override
         public DerivationTree resolve(DerivationTree parent) {
             return Node.Error.attachTo(parent, symbol);
+        }
+
+        @Override
+        public NodeParseContext getParent() {
+            return parent;
+        }
+
+        @Override
+        public int depth() {
+            return 1 + parent.depth();
         }
     }
 }
