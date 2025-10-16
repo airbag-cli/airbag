@@ -4,13 +4,16 @@ import io.github.airbag.symbol.Symbol;
 import io.github.airbag.symbol.SymbolField;
 import io.github.airbag.symbol.SymbolFormatter;
 import io.github.airbag.symbol.SymbolProvider;
+import io.github.airbag.tree.DerivationTree;
 import io.github.airbag.tree.TreeProvider;
+import io.github.airbag.tree.Validator;
 import io.github.airbag.util.Utils;
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.Parser;
 import org.opentest4j.AssertionFailedError;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiPredicate;
 
 /**
@@ -95,7 +98,6 @@ public class Airbag {
         }
     }
 
-
     /**
      * Asserts that the actual list of tokens matches the expected list.
      * If the lists do not match, an {@link AssertionFailedError} is thrown with a detailed message comparing the two lists.
@@ -118,6 +120,31 @@ public class Airbag {
     }
 
     /**
+     * Asserts that the actual derivation tree matches the expected derivation tree.
+     * <p>
+     * The comparison is performed by a {@link Validator}, which traverses both trees and compares the symbols at each node.
+     * The symbols are compared using a "weak" equality check by default, which means that the token type and text must be the same, but other properties such as line and column numbers may differ.
+     * The exact fields to be compared can be configured on the {@link SymbolFormatter} instance obtained from the {@link TreeProvider}.
+     * <p>
+     * If the trees do not match, an {@link AssertionFailedError} is thrown with a message indicating the mismatch.
+     * The error will contain the expected and actual trees, which can be inspected to find the difference.
+     *
+     * @param expected The expected derivation tree. Must not be null.
+     * @param actual   The actual derivation tree to check against the expected tree. Must not be null.
+     * @throws AssertionFailedError if the actual derivation tree does not match the expected tree.
+     * @throws NullPointerException if the {@link TreeProvider} was not configured for this Airbag instance.
+     */
+    public void assertTree(DerivationTree expected, DerivationTree actual) {
+        SymbolFormatter formatter = Objects.requireNonNull(treeProvider)
+                .getFormatter()
+                .getSymbolFormatter();
+        Validator validator = new Validator(SymbolField.equalizer(formatter.getFields()));
+        if (!validator.validate(expected, actual)) {
+            throw new AssertionFailedError("Derivation trees are not matching", expected, actual);
+        }
+    }
+
+    /**
      * Returns a {@link SymbolProvider} for the configured lexer.
      * The {@link SymbolProvider} can be used to create a list of symbols.
      *
@@ -135,6 +162,4 @@ public class Airbag {
     public TreeProvider getTreeProvider() {
         return treeProvider;
     }
-
-
 }

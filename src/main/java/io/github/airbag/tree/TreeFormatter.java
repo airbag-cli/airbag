@@ -1,245 +1,213 @@
 package io.github.airbag.tree;
 
-import io.github.airbag.symbol.Symbol;
-import io.github.airbag.symbol.SymbolException;
 import io.github.airbag.symbol.SymbolFormatter;
 import io.github.airbag.symbol.SymbolFormatterBuilder;
+import io.github.airbag.symbol.TextOption;
+import io.github.airbag.symbol.TypeFormat;
+import io.github.airbag.tree.TreeFormatterBuilder.TreePrinterParser;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Vocabulary;
 
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiFunction;
-
-import static java.util.Map.entry;
+import java.text.ParsePosition;
+import java.util.Objects;
 
 /**
- * A formatter for converting tree structures, specifically {@link ConcreteSyntaxTree},
- * to and from their string representations.
+ * Formats a {@link DerivationTree} to and from a string representation.
  * <p>
- * This class is the engine that drives the formatting (printing) and parsing of
- * tree nodes. It is designed to be immutable and thread-safe, making it safe to
- * share and reuse instances.
- * <p>
- * {@code TreeFormatter} instances are created using a {@link TreeFormatterBuilder},
- * which provides a flexible fluent API for defining custom tree formats. A tree
- * formatter relies on several components:
+ * This class is the main entry point for serializing a {@link DerivationTree} into a string
+ * and deserializing a string back into a {@link DerivationTree}. It is immutable and
+ * thread-safe, making it safe to be shared and reused.
+ *
+ * <h3>Instantiation</h3>
+ * Instances of this class are created using a {@link TreeFormatterBuilder}. The builder
+ * allows for defining a highly customized format by specifying how different types of
+ * nodes (rule, terminal, error) should be represented.
+ *
+ * <h3>Predefined Formatters</h3>
+ * For common use cases, several predefined formatters are provided as static fields:
  * <ul>
- *   <li>A main tree structure format, defined by the sequence of printers and
- *       parsers in the {@link TreeFormatterBuilder}.</li>
- *   <li>A {@link SymbolFormatter} for handling the representation of terminal
- *       (leaf) nodes.</li>
- *   <li>A {@link SymbolFormatter} for handling the representation of error nodes.</li>
- *   <li>An optional ANTLR {@link Recognizer} to resolve rule indices to names and
- *       provide a {@link Vocabulary} to the symbol formatters.</li>
+ *   <li>{@link #SIMPLE}: A simple LISP-style S-expression format.</li>
+ *   <li>{@link #ANTLR}: A format that closely mimics the output of ANTLR's
+ *       {@code Trees.toStringTree(tree, parser)}.</li>
  * </ul>
  *
+ * <h3>Customization</h3>
+ * Once a formatter is created, it can be further customized. The
+ * {@link #withSymbolFormatter(SymbolFormatter)} method allows you to control how terminal
+ * symbols are formatted, while {@link #withRecognizer(Recognizer)} provides the necessary
+ * context (like rule and token names) from an ANTLR parser or lexer.
+ *
  * @see TreeFormatterBuilder
- * @see ConcreteSyntaxTree
+ * @see DerivationTree
  * @see SymbolFormatter
  */
 public class TreeFormatter {
 
+    private final TreePrinterParser treePrinterParser;
+    private final SymbolFormatter symbolFormatter;
+    private final Recognizer<?, ?> recognizer;
+
     /**
-     * A simple, human-readable formatter that represents the tree in a LISP-style,
-     * parenthesized format.
+     * A formatter that produces a LISP-style S-expression format, similar to the output of
+     * {@code org.antlr.v4.runtime.tree.Trees#toStringTree(Tree, Parser)}.
      * <p>
-     * The format is defined as {@code "(<ruleName> <child1> <child2> ...)"}. Each node
-     * is recursively formatted using this structure. Terminal nodes are formatted
-     * using {@link SymbolFormatter#SIMPLE}.
-     *
-     * <p><b>Example:</b></p>
-     * <pre>{@code
-     * // Assuming a tree for an expression "1 + 2" with root rule "expr"
-     * // and children for "1", "+", and "2".
-     *
-     * String formatted = TreeFormatter.SIMPLE.format(tree);
-     *
-     * // formatted will be: "(expr (INT '1') '+' (INT '2'))"
-     * }</pre>
-     * This is a common default for visualizing tree structures.
+     * <b>Example Output:</b>
+     * <pre>{@code (expr (expr (atom 42)) + (expr (atom 1)))}
+     * </pre>
+     * This format is useful for creating compact, machine-readable representations of a tree.
+     * It uses the rule names from the recognizer and the text of the terminal symbols.
      */
-    public static final TreeFormatter SIMPLE = new TreeFormatterBuilder().appendLiteral("(")
-            .appendRule()
-            .appendLiteral(" ")
-            .appendChildren(" ")
-            .appendLiteral(")")
+    public static final TreeFormatter ANTLR = new TreeFormatterBuilder().onRule(onRule -> onRule.appendLiteral(
+                    "(").appendRule().appendLiteral(" ").appendChildren(" ").appendLiteral(")"))
+            .onTerminal(
+                    NodeFormatterBuilder::appendSymbol)
+            .onError(NodeFormatterBuilder::appendSymbol)
+            .toFormatter()
+            .withSymbolFormatter(new SymbolFormatterBuilder().appendText(
+                    TextOption.ESCAPED).toFormatter());
+
+    /**
+     * A simple formatter that produces a LISP-style S-expression format.
+     * <p>
+     * <b>Example Output:</b>
+     * <pre>{@code (expr (atom 42) + (atom 1))}
+     * </pre>
+     * This format is very similar to {@link #ANTLR} but provides a more distinct representation
+     * for error nodes, wrapping them in {@code (<error> ...)}.
+     */
+    public static final TreeFormatter SIMPLE = new TreeFormatterBuilder().onRule(onRule -> onRule.appendLiteral(
+                            "(")
+                    .appendRule()
+                    .appendLiteral(" ")
+                    .appendChildren(" ")
+                    .appendLiteral(")"))
+            .onTerminal(NodeFormatterBuilder::appendSymbol)
+            .onError(onError -> onError.appendLiteral("(<error> ")
+                    .appendSymbol()
+                    .appendLiteral(")"))
             .toFormatter();
 
-    /**
-     * The main parser/formatter for the tree structure.
-     */
-    private final TreeFormatterBuilder.NodePrinterParser printerParser;
-    /**
-     * The ANTLR recognizer for resolving rule and token names.
-     */
-    private final Recognizer<?, ?> recognizer;
-    /**
-     * The formatter for terminal (leaf) nodes.
-     */
-    private final SymbolFormatter terminalFormatter;
-    /**
-     * The formatter for error nodes.
-     */
-    private final SymbolFormatter errorFormatter;
-
-    /**
-     * Constructs a new formatter with default settings.
-     *
-     * @param printerParser The main printer/parser for the tree structure.
-     */
-    TreeFormatter(TreeFormatterBuilder.NodePrinterParser printerParser) {
-        this.printerParser = printerParser;
+    TreeFormatter(TreePrinterParser treePrinterParser) {
+        this.symbolFormatter = SymbolFormatter.SIMPLE;
         this.recognizer = null;
-        this.terminalFormatter = SymbolFormatter.SIMPLE;
-        this.errorFormatter = SymbolFormatter.ofPattern("(<error> l)|(<error> (S 'X'))");
+        this.treePrinterParser = treePrinterParser;
     }
 
-    /**
-     * Constructs a new formatter with all components specified.
-     *
-     * @param printerParser     The main printer/parser for the tree structure.
-     * @param recognizer        The ANTLR recognizer.
-     * @param terminalFormatter The formatter for terminal nodes.
-     * @param errorFormatter    The formatter for error nodes.
-     */
-    TreeFormatter(TreeFormatterBuilder.NodePrinterParser printerParser,
+    TreeFormatter(SymbolFormatter symbolFormatter,
                   Recognizer<?, ?> recognizer,
-                  SymbolFormatter terminalFormatter,
-                  SymbolFormatter errorFormatter) {
-        this.printerParser = printerParser;
+                  TreePrinterParser treePrinterParser) {
+        this.symbolFormatter = symbolFormatter;
         this.recognizer = recognizer;
-        this.terminalFormatter = terminalFormatter;
-        this.errorFormatter = errorFormatter;
+        this.treePrinterParser = treePrinterParser;
     }
 
     /**
-     * Formats a {@link ConcreteSyntaxTree} into a string according to the rules
-     * defined in this formatter.
+     * Formats the given {@link DerivationTree} into a string according to this formatter's rules.
      *
-     * @param tree The concrete syntax tree to format.
+     * @param tree The derivation tree to format. Must not be null.
      * @return The formatted string representation of the tree.
-     * @throws SymbolException if the tree cannot be formatted, for example, if a
-     *                         component of the format cannot be applied to a given node.
+     * @throws RuntimeException if formatting fails for any reason (e.g., a required format
+     *                          for a node type was not defined).
      */
-    public String format(ConcreteSyntaxTree tree) {
+    public String format(DerivationTree tree) {
+        NodeFormatContext ctx = new NodeFormatContext(symbolFormatter, recognizer);
+        ctx.setNode(tree);
         StringBuilder buf = new StringBuilder();
-        TreeFormatContext ctx = new TreeFormatContext(new AtomicReference<>(tree),
-                recognizer,
-                terminalFormatter,
-                errorFormatter);
-        if (!printerParser.format(ctx, buf)) {
-            buf.setLength(0);
-            throw new SymbolException("Failed to format tree %s".formatted(tree));
+        if (!treePrinterParser.format(ctx, buf)) {
+            throw new RuntimeException("Cannot format %s".formatted(tree));
         }
         return buf.toString();
     }
 
     /**
-     * Parses a string into a {@link ConcreteSyntaxTree} according to the rules
-     * defined in this formatter.
+     * Parses a character sequence into a {@link DerivationTree}.
      * <p>
-     * This method expects the <b>entire</b> input string to be consumed by the
-     * parsing process. If any trailing text is left unparsed, the behavior is
-     * currently undefined and may result in an error or an incompletely parsed tree.
+     * This method expects to consume the entire input string. If any part of the string
+     * cannot be parsed or if there is trailing text, it will throw an exception.
      *
      * @param text The character sequence to parse.
-     * @return The resulting {@link ConcreteSyntaxTree}.
-     * @throws RuntimeException if the input text cannot be parsed into a valid tree
-     *                          structure according to the formatter's rules.
+     * @return The parsed {@link DerivationTree}.
+     * @throws RuntimeException if parsing fails or the entire input is not consumed.
      */
-    public ConcreteSyntaxTree parseCST(CharSequence text) {
-        Map<String, BiFunction<Node<?>, Object, Node<?>>> connectors = Map.ofEntries(entry("rule",
-                        (parent, index) -> ConcreteSyntaxTree.Rule.attachTo((ConcreteSyntaxTree) parent,
-                                (int) index)),
-                entry("terminal",
-                        (parent, symbol) -> ConcreteSyntaxTree.Terminal.attachTo((ConcreteSyntaxTree) parent,
-                                (Symbol) symbol)),
-                entry("error",
-                        (parent, symbol) -> ConcreteSyntaxTree.Error.attachTo((ConcreteSyntaxTree) parent,
-                                (Symbol) symbol)));
-        TreeParseContext ctx = new TreeParseContext(recognizer,
-                connectors,
-                terminalFormatter,
-                errorFormatter);
-        int result = printerParser.parse(ctx, text, 0);
-        if (result < 0) {
-            throw new RuntimeException("Cannot parse");
+    public DerivationTree parse(CharSequence text) {
+        ParsePosition parsePosition = new ParsePosition(0);
+        DerivationTree tree = parse(text, parsePosition);
+        if (parsePosition.getErrorIndex() >= 0) {
+            throw new RuntimeException("Cannot parse text %s".formatted(text));
         }
-        return (ConcreteSyntaxTree) ctx.getNode();
+        if (parsePosition.getIndex() != text.length()) {
+            throw new RuntimeException("Text has unparsed trainling text at %d".formatted(
+                    parsePosition.getIndex()));
+        }
+        return tree;
     }
 
     /**
-     * Returns a new {@link TreeFormatter} instance configured with the specified
-     * ANTLR {@link Recognizer}.
+     * Parses a character sequence into a {@link DerivationTree}, starting at a given position.
      * <p>
-     * The recognizer is essential for formats that involve rule names, as it provides
-     * the mapping from rule indices to names. It also supplies the {@link Vocabulary}
-     * to the underlying terminal and error {@link SymbolFormatter}s, allowing them
-     * to resolve token types to their symbolic or literal names.
-     * <p>
-     * Since {@link TreeFormatter} is immutable, this method returns a new instance
-     * with the updated configuration.
+     * This is the core parsing method. It attempts to deserialize a tree from the given
+     * text, updating the {@link ParsePosition} to indicate success or failure.
      *
-     * @param recognizer The ANTLR recognizer (e.g., a subclass of {@code Parser} or
-     *                   {@code Lexer}) to use for resolving names.
-     * @return A new formatter instance with the given recognizer.
+     * @param text     The character sequence to parse. Must not be null.
+     * @param position The {@link ParsePosition} object. On input, {@code getIndex()} is the
+     *                 starting position. On success, {@code getIndex()} is updated to the
+     *                 position after the parsed text. On failure, {@code getErrorIndex()}
+     *                 is set to the position where the error occurred, and the method returns {@code null}.
+     * @return The parsed {@link DerivationTree}, or {@code null} if parsing fails.
      */
-    public TreeFormatter withRecognizer(Recognizer<?, ?> recognizer) {
-        return new TreeFormatter(printerParser,
-                recognizer,
-                terminalFormatter.withVocabulary(recognizer.getVocabulary()),
-                errorFormatter.withVocabulary(recognizer.getVocabulary()));
+    public DerivationTree parse(CharSequence text, ParsePosition position) {
+        Objects.requireNonNull(text, "text");
+        Objects.requireNonNull(position, "position");
+        RootParseContext rootCtx = new RootParseContext(symbolFormatter, recognizer);
+        int result = treePrinterParser.parse(rootCtx, text, position.getIndex());
+        if (result < 0) {
+            position.setErrorIndex(~result);
+            return null;
+        }
+        position.setIndex(result);
+        return rootCtx.resolve();
     }
 
     /**
-     * Returns a new {@link TreeFormatter} instance with a custom formatter for
-     * terminal (leaf) nodes.
+     * Creates a new {@link TreeFormatter} instance with the specified {@link SymbolFormatter}.
      * <p>
-     * This allows for fine-grained control over how tokens in the tree are
-     * represented in the formatted string. For example, you could choose to format
-     * terminals using {@link SymbolFormatter#ANTLR} for detailed debug output.
-     * <p>
-     * The vocabulary from the current formatter's recognizer (if any) will be
-     * passed to the new terminal formatter.
-     * <p>
-     * Since {@link TreeFormatter} is immutable, this method returns a new instance.
+     * This allows for customizing how terminal symbols (tokens) within the tree are rendered
+     * without changing the overall tree structure format. The new symbol formatter will automatically
+     * inherit the vocabulary from this formatter's recognizer, if present.
      *
-     * @param terminalFormatter The {@link SymbolFormatter} to use for terminal nodes.
-     * @return A new formatter instance with the specified terminal formatter.
+     * @param formatter The {@link SymbolFormatter} to use for formatting terminal nodes.
+     * @return A new, configured {@link TreeFormatter} instance.
      */
-    public TreeFormatter withTerminalFormatter(SymbolFormatter terminalFormatter) {
-        return new TreeFormatter(printerParser,
+    public TreeFormatter withSymbolFormatter(SymbolFormatter formatter) {
+        return new TreeFormatter(formatter.withVocabulary(getVocabulary()),
                 recognizer,
-                terminalFormatter.withVocabulary(getVocabulary()),
-                errorFormatter.withVocabulary(getVocabulary()));
-    }
-
-    /**
-     * Returns a new {@link TreeFormatter} instance with a custom formatter for
-     * error nodes.
-     * <p>
-     * This allows for customizing the string representation of error nodes within
-     * the tree, which can be useful for logging and debugging parsing errors.
-     * <p>
-     * The vocabulary from the current formatter's recognizer (if any) will be
-     * passed to the new error formatter.
-     * <p>
-     * Since {@link TreeFormatter} is immutable, this method returns a new instance.
-     *
-     * @param errorFormatter The {@link SymbolFormatter} to use for error nodes.
-     * @return A new formatter instance with the specified error formatter.
-     */
-    public TreeFormatter withErrorFormatter(SymbolFormatter errorFormatter) {
-        return new TreeFormatter(printerParser,
-                recognizer,
-                terminalFormatter.withVocabulary(getVocabulary()),
-                errorFormatter.withVocabulary(getVocabulary()));
+                treePrinterParser);
     }
 
     private Vocabulary getVocabulary() {
         return recognizer == null ? null : recognizer.getVocabulary();
     }
 
+    /**
+     * Creates a new {@link TreeFormatter} instance with the specified ANTLR {@link Recognizer}.
+     * <p>
+     * The recognizer (typically a parser) provides the vocabulary needed to resolve rule indices
+     * to rule names and token types to symbolic or literal names. Setting a recognizer is
+     * essential for formats that use names instead of integer indices (e.g., {@code "expr"} instead of {@code 0}).
+     *
+     * @param recognizer The ANTLR recognizer (e.g., a {@code Parser} instance) to provide context.
+     * @return A new, configured {@link TreeFormatter} instance.
+     */
+    public TreeFormatter withRecognizer(Recognizer<?, ?> recognizer) {
+        if (recognizer == null) {
+            return new TreeFormatter(symbolFormatter.withVocabulary(null), null, treePrinterParser);
+        }
+        return new TreeFormatter(symbolFormatter.withVocabulary(recognizer.getVocabulary()),
+                recognizer,
+                treePrinterParser);
+    }
 
+    public SymbolFormatter getSymbolFormatter() {
+        return symbolFormatter;
+    }
 }

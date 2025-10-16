@@ -1,36 +1,57 @@
 package io.github.airbag.tree;
 
+import io.github.airbag.symbol.Symbol;
+import org.antlr.v4.runtime.DefaultErrorStrategy;
+import org.antlr.v4.runtime.tree.ErrorNode;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.RuleNode;
+import org.antlr.v4.runtime.tree.TerminalNode;
+
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
-/**
- * A derivation tree is a data structure that represents the derivation of a string from a grammar.
- * It shows how the rules of the grammar are applied to derive the string.
- * This interface is the base interface for all derivation trees, defining the fundamental
- * properties and behaviors of a node within a tree structure.
- *
- * @param <T> The type of the nodes in the tree, following the Curiously Recurring Template Pattern (CRTP)
- *            to ensure type safety in the tree's methods.
- */
-public interface DerivationTree<T extends DerivationTree<T>> {
 
-    /**
-     * Returns the index of this node. For a rule node, this is the rule index. For a terminal node,
-     * this is the token type.
-     *
-     * @return The integer index of the node.
-     */
+public sealed interface DerivationTree permits Node, DerivationTree.Rule, DerivationTree.Terminal, DerivationTree.Error {
+
+    static DerivationTree from(ParseTree parseTree) {
+        return from(null, parseTree);
+    }
+
+    static DerivationTree from(DerivationTree parent ,ParseTree parseTree) {
+        switch(parseTree) {
+            case RuleNode ruleNode -> {
+                DerivationTree node = Node.Rule.attachTo(parent, ruleNode.getRuleContext().getRuleIndex());
+                for (int i = 0; i < ruleNode.getChildCount(); i++) {
+                    from(node, ruleNode.getChild(i));
+                }
+                return node;
+            }
+            case ErrorNode errorNode -> {
+                return Node.Error.attachTo(parent,new Symbol(errorNode.getSymbol()));
+            }
+            case TerminalNode terminalNode -> {
+                return Node.Terminal.attachTo(parent, new Symbol(terminalNode.getSymbol()));
+            }
+            default -> throw new IllegalStateException("Unexpected value: " + parseTree);
+        }
+    }
+
     int index();
 
-    /**
-     * Returns this tree as a node.
-     *
-     * @return this tree as a node.
-     */
-    Node<T> toNode();
+    DerivationTree getParent();
+
+    List<DerivationTree> children();
+
+    default int size() {
+        return children().size();
+    }
+
+    default DerivationTree getChild(int i) {
+        return children().get(i);
+    }
 
     /**
      * Get the distance to root
@@ -39,7 +60,7 @@ public interface DerivationTree<T extends DerivationTree<T>> {
      */
     default int depth() {
         int depth = 0;
-        Node<?> node = toNode();
+        DerivationTree node = this;
         while (node.getParent() != node) {
             node = node.getParent();
             depth++;
@@ -53,7 +74,7 @@ public interface DerivationTree<T extends DerivationTree<T>> {
      * @return the biggest distance to any subnode
      */
     default int height() {
-        Set<Node<?>> terminalNodes = new HashSet<>(toNode().children());
+        Set<DerivationTree> terminalNodes = new HashSet<>(children());
         while (terminalNodes.stream().anyMatch(node -> node.size() != 0)) {
             for (var node : terminalNodes) {
                 if (node.size() != 0) {
@@ -67,5 +88,19 @@ public interface DerivationTree<T extends DerivationTree<T>> {
                 .max(Integer::compareTo)
                 .orElse(0);
         return maxDepth - depth();
+    }
+
+    sealed interface Rule extends DerivationTree permits Node.Rule {
+
+    }
+
+    sealed interface Terminal extends DerivationTree permits Node.Terminal {
+
+        Symbol symbol();
+    }
+
+    sealed interface Error extends DerivationTree permits Node.Error {
+
+        Symbol symbol();
     }
 }

@@ -1,60 +1,62 @@
 package io.github.airbag.tree;
 
-import io.github.airbag.symbol.Symbol;
-import io.github.airbag.symbol.SymbolFormatter;
+import io.github.airbag.tree.NodeFormatterBuilder.LiteralPrinterParser;
+import io.github.airbag.tree.NodeFormatterBuilder.NodePrinterParser;
 
-import java.text.ParsePosition;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Builder for creating {@link TreeFormatter} instances.
  * <p>
- * This builder provides a flexible and powerful way to define custom formats for
- * converting {@link Node} objects to and from strings.
- * It is the primary mechanism for constructing {@link TreeFormatter}s, which are
- * immutable and thread-safe once created.
- *
- * <h3>Overview</h3>
- * The builder uses a fluent API to assemble a sequence of "printer-parsers".
- * Each printer-parser is a component responsible for a specific part of the
- * format. For example, one component might handle a rule's name, while another
- * handles its children.
- * <p>
- * A {@link TreeFormatter} has two main functions:
+ * This builder provides a flexible way to define custom formats for converting
+ * {@link DerivationTree} objects to and from strings. It works by allowing you to
+ * specify a distinct format for each type of node in the tree:
  * <ul>
- *   <li><b>Formatting (Printing):</b> Converting a {@code Node} object into a string.</li>
- *   <li><b>Parsing:</b> Converting a string back into a {@code Node} object.</li>
+ *   <li>{@link DerivationTree.Rule} nodes</li>
+ *   <li>{@link DerivationTree.Terminal} nodes</li>
+ *   <li>{@link DerivationTree.Error} nodes</li>
  * </ul>
- * The sequence of appended components defines the exact format for both operations.
- * When formatting, terminal and error nodes are formatted using their own respective
- * {@link SymbolFormatter} instances provided via the {@link TreeFormatContext}.
  *
  * <h3>Usage</h3>
- * To create a formatter, you instantiate a {@code TreeFormatterBuilder} and call
- * various {@code append...} methods to define the desired format. Once the
- * format is defined, you call {@link #toFormatter()} to create the
- * {@link TreeFormatter} instance.
+ * To create a formatter, you instantiate a {@code TreeFormatterBuilder} and use the
+ * {@link #onRule(Consumer)}, {@link #onTerminal(Consumer)}, and {@link #onError(Consumer)}
+ * methods to define the format for each node type. These methods provide a
+ * {@link NodeFormatterBuilder} instance within a lambda, which is used to define the
+ * actual format for that node type.
+ * <p>
+ * Once all node formats are defined, you call {@link #toFormatter()} to create the
+ * immutable and thread-safe {@link TreeFormatter} instance.
  *
- * <p><b>Example: LISP-style Formatter</b></p>
+ * <p><b>Example: LISP-style S-expression Format</b></p>
  * <pre>{@code
- * // Creates a formatter that represents a tree in a LISP-like format,
- * // e.g., "(ruleName child1 child2)"
- * TreeFormatter formatter = new TreeFormatterBuilder()
- *     .appendLiteral("(")
- *     .appendRule()
- *     .appendLiteral(" ")
- *     .appendChildren(" ") // Recursively formats children, separated by a space
- *     .appendLiteral(")")
+ * // This example creates a formatter that represents a tree in a LISP-like format,
+ * // such as "(rule (child1) (child2))".
+ *
+ * TreeFormatter lispFormatter = new TreeFormatterBuilder()
+ *     .onRule(ruleNode -> ruleNode
+ *         .appendLiteral("(")
+ *         .appendRule()
+ *         .appendLiteral(" ")
+ *         .appendChildren(" ") // Recursively format children, separated by a space
+ *         .appendLiteral(")")
+ *     )
+ *     .onTerminal(terminalNode -> terminalNode
+ *         .appendLiteral("(")
+ *         .appendSymbol() // Uses the SymbolFormatter; for terminals, often just the text
+ *         .appendLiteral(")")
+ *     )
+ *     .onError(errorNode -> errorNode
+ *         .appendLiteral("(<error> ")
+ *         .appendSymbol()
+ *         .appendLiteral(")")
+ *     )
  *     .toFormatter();
  *
- * // Formatting example:
- * // Assuming a rule node for 'expression' with two children representing '1' and '+',
- * // the output of formatter.format(node, context) might be:
- * // "(expression 1 +)"
+ * // The resulting formatter can then be customized with a Recognizer or SymbolFormatter
+ * TreeFormatter finalFormatter = lispFormatter.withRecognizer(myRecognizer);
  *
- * // The same formatter can also parse this string back into a tree structure.
+ * // Format a tree to a string
+ * String output = finalFormatter.format(myTree);
  * }</pre>
  *
  * <h3>State and Thread-Safety</h3>
@@ -63,263 +65,186 @@ import java.util.Objects;
  * objects, however, are immutable and safe for use in multithreaded environments.
  *
  * @see TreeFormatter
- * @see Node
+ * @see NodeFormatterBuilder
+ * @see DerivationTree
  */
 public class TreeFormatterBuilder {
 
-    /**
-     * The chain of printer-parsers
-     */
-    private final List<TreePrinterParser> printerParsers = new ArrayList<>();
+    private NodePrinterParser[] rulePrinterParsers;
+    private NodePrinterParser[] terminalPrinterParsers;
+    private NodePrinterParser[] errorPrinterParsers;
 
     /**
-     * The start of the child section
-     */
-    private int childrenStart = -1;
-
-    /**
-     * Appends a printer/parser for a literal string to the formatter.
+     * Defines the format for {@link DerivationTree.Rule} nodes.
      * <p>
-     * This component always appends the specified literal to the output during
-     * formatting and expects to consume the exact same literal from the input
-     * during parsing.
+     * The provided consumer is passed a {@link NodeFormatterBuilder} instance that can be
+     * used to construct the specific format for rule nodes.
      *
-     * @param literal The literal string to append.
-     * @return This builder.
+     * @param onRule A consumer that accepts a {@link NodeFormatterBuilder} to define the format.
+     * @return This builder, for chaining.
      */
-    public TreeFormatterBuilder appendLiteral(String literal) {
-        printerParsers.add(new LiteralPrinterParser(literal));
+    public TreeFormatterBuilder onRule(Consumer<NodeFormatterBuilder> onRule) {
+        NodeFormatterBuilder builder = new NodeFormatterBuilder();
+        onRule.accept(builder);
+        rulePrinterParsers = builder.printerParsers();
         return this;
     }
 
     /**
-     * Appends a printer/parser for the children of a rule node.
+     * Defines the format for {@link DerivationTree.Terminal} nodes.
      * <p>
-     * <b>Formatting:</b> This component iterates through the children of the current
-     * {@link Node.Rule}. For each child, it recursively applies the complete tree
-     * format, and it appends the specified separator between each child's output.
-     * <p>
-     * <b>Parsing:</b> It repeatedly attempts to parse child nodes, separated by the
-     * given separator. It continues as long as it can successfully parse a
-     * child-separator sequence. This process is inherently recursive, as parsing a
-     * child involves applying the complete tree format.
+     * The provided consumer is passed a {@link NodeFormatterBuilder} instance that can be
+     * used to construct the specific format for terminal nodes.
      *
-     * @param separator The string to use as a separator between child nodes.
-     * @return This builder.
+     * @param onTerminal A consumer that accepts a {@link NodeFormatterBuilder} to define the format.
+     * @return This builder, for chaining.
      */
-    public TreeFormatterBuilder appendChildren(String separator) {
-        printerParsers.add(new ChildrenPrinterParser(separator));
+    public TreeFormatterBuilder onTerminal(Consumer<NodeFormatterBuilder> onTerminal) {
+        NodeFormatterBuilder builder = new NodeFormatterBuilder();
+        onTerminal.accept(builder);
+        terminalPrinterParsers = builder.printerParsers();
         return this;
     }
 
     /**
-     * Appends a printer/parser for a rule's identity.
+     * Defines the format for {@link DerivationTree.Error} nodes.
      * <p>
-     * This component handles the representation of a {@link Node.Rule} itself,
-     * distinct from its children or any surrounding literals.
-     * <p>
-     * <b>Formatting:</b> It attempts to format the rule's name (e.g., "expression")
-     * if a {@code Recognizer} with rule names is available in the
-     * {@link TreeFormatContext}. If not, it falls back to formatting the rule's
-     * integer index.
-     * <p>
-     * <b>Parsing:</b> It first attempts to parse a rule name by checking against the
-     * list of known rule names. If that fails, it attempts to parse an integer,
-     * which it uses as the rule index. The parsed rule is then attached to the
-     * tree being built.
+     * The provided consumer is passed a {@link NodeFormatterBuilder} instance that can be
+     * used to construct the specific format for error nodes.
      *
-     * @return This builder.
+     * @param onError A consumer that accepts a {@link NodeFormatterBuilder} to define the format.
+     * @return This builder, for chaining.
      */
-    public TreeFormatterBuilder appendRule() {
-        printerParsers.add(new RulePrinterParser());
+    public TreeFormatterBuilder onError(Consumer<NodeFormatterBuilder> onError) {
+        NodeFormatterBuilder builder = new NodeFormatterBuilder();
+        onError.accept(builder);
+        errorPrinterParsers = builder.printerParsers();
         return this;
     }
 
     /**
-     * Marks the beginning of a scoped section for formatting a node's children,
-     * allowing for more complex structures that include prefixes and postfixes
-     * around the list of children.
-     *
-     * <p>This method must be paired with a subsequent call to {@link #endChildren()}.
-     * Between these two calls, you should call {@link #appendChildren(String)}
-     * exactly once. Any formatters appended before {@code appendChildren} will
-     * form a "prefix" that is printed once before the children, and any formatters
-     * appended after will form a "postfix" printed once after the children.
-     *
-     * <p><b>Example:</b></p>
-     * <pre>{@code
-     * // Formats children as a JSON-like array: "[child1, child2]"
-     * TreeFormatter formatter = new TreeFormatterBuilder()
-     *     .appendRule()
-     *     .startChildren()
-     *     .appendLiteral("[")  // Prefix
-     *     .appendChildren(", ")
-     *     .appendLiteral("]")  // Postfix
-     *     .endChildren()
-     *     .toFormatter();
-     * }</pre>
-     *
-     * @return This builder.
-     * @see #endChildren()
-     * @see #appendChildren(String)
-     */
-    public TreeFormatterBuilder startChildren() {
-        childrenStart = printerParsers.size();
-        return this;
-    }
-
-    /**
-     * Concludes a scoped section for formatting children that was started with
-     * {@link #startChildren()}.
-     *
-     * <p>This method gathers all formatters appended since the call to
-     * {@code startChildren()}, identifies the {@link #appendChildren(String)}
-     * component, and groups the other components into a prefix (before children)
-     * and a postfix (after children). This allows for creating formats where
-     * the entire block of children is enclosed in special characters, like brackets.
-     *
-     * @return This builder.
-     * @throws IllegalStateException if called without a preceding {@code startChildren()}
-     *         or if no {@code appendChildren()} was called within the scope.
-     * @see #startChildren()
-     */
-    public TreeFormatterBuilder endChildren() {
-        if (childrenStart == -1) {
-            throw new IllegalStateException("Cannot end a child section that has started.");
-        }
-        if (childrenStart == printerParsers.size()) {
-            childrenStart = -1;
-            return this;
-        }
-        int index = findChildrenPrinterParser();
-        if (index < 0) {
-            throw new IllegalStateException("No children printer parser found");
-        }
-        CompositePrinterParser prefix = childrenStart == index ?
-                null :
-                new CompositePrinterParser(printerParsers.subList(childrenStart, index));
-        CompositePrinterParser postfix = index == printerParsers.size() - 1 ?
-                null :
-                new CompositePrinterParser(printerParsers.subList(index + 1,
-                        printerParsers.size()));
-        ChildrenPrinterParser childrenPrinterParser = new ChildrenPrinterParser(prefix,
-                postfix,
-                (ChildrenPrinterParser) printerParsers.get(index));
-        printerParsers.subList(childrenStart, printerParsers.size()).clear();
-        printerParsers.add(childrenPrinterParser);
-        childrenStart = -1;
-        return this;
-    }
-
-    private int findChildrenPrinterParser() {
-        for (int i = 0; i < printerParsers.size(); i++) {
-            if (printerParsers.get(i) instanceof ChildrenPrinterParser) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    /**
-     * Appends a printer/parser that adds padding based on the node's depth,
-     * useful for creating indented, "pretty-printed" string representations of the tree.
+     * Builds the immutable {@link TreeFormatter} from the configured node formats.
      * <p>
-     * <b>Formatting:</b> This component calculates the current node's depth within the
-     * tree and prepends a corresponding amount of padding. The total padding is
-     * {@code padSize * node.depth()}. For example, if {@code padSize} is 2, a root
-     * node (depth 0) gets no padding, its children (depth 1) get 2 spaces,
-     * grandchildren (depth 2) get 4 spaces, and so on.
-     * <p>
-     * <b>Parsing:</b> It expects to find the same amount of padding in the input
-     * text that would have been generated during formatting. It consumes the
-     * required number of spaces based on the depth of the node being parsed.
+     * If a format for a specific node type (e.g., rule, terminal) has not been defined,
+     * it will default to an empty format. This may lead to unexpected behavior or errors
+     * during formatting or parsing if that node type is encountered.
      *
-     * <p><b>Example: Pretty-printing a tree</b></p>
-     * <pre>{@code
-     * // Creates a formatter that indents each level of the tree.
-     * TreeFormatter formatter = new TreeFormatterBuilder()
-     *     .appendPadding(2) // 2 spaces per depth level
-     *     .appendRule()
-     *     .appendLiteral("
-")
-     *     .appendChildren("") // Children are on new lines
-     *     .toFormatter();
-     *
-     * // A tree might be formatted as:
-     * // ruleA
-     * //   child1
-     * //   child2
-     * //     grandchild1
-     * }</pre>
-     *
-     * @param padSize The number of spaces to add for each level of depth.
-     * @return This builder.
-     */
-    public TreeFormatterBuilder appendPadding(int padSize) {
-        printerParsers.add(new PaddingPrinterParser(padSize));
-        return this;
-    }
-
-    /**
-     * Builds the tree formatter.
-     *
-     * @return The built tree formatter.
+     * @return The newly created, immutable {@link TreeFormatter} instance.
      */
     public TreeFormatter toFormatter() {
-        return new TreeFormatter(new NodePrinterParser(printerParsers));
+        return new TreeFormatter(new TreePrinterParser(rulePrinterParsers,
+                terminalPrinterParsers,
+                errorPrinterParsers));
     }
 
-    /**
-     * The internal interface for parsing and formatting tree nodes.
-     * This interface is the building block for the composite {@link TreeFormatter}.
-     * It defines the dual functionality of formatting (printing) a node and
-     * parsing an input character sequence to construct a node.
-     */
-    interface TreePrinterParser {
+    static class TreePrinterParser implements NodePrinterParser {
 
-        /**
-         * Formats a value from a context into a string buffer.
-         *
-         * @param ctx the context holding the node to be formatted.
-         * @param buf the buffer to append the formatted text to.
-         * @return true if the formatting was successful, false otherwise.
-         */
-        boolean format(TreeFormatContext ctx, StringBuilder buf);
+        private final CompositePrinterParser rulePrinterParser;
+        private final CompositePrinterParser terminalPrinterParser;
+        private final CompositePrinterParser errorPrinterParser;
 
-        /**
-         * Parses a text string, consuming characters and updating the context.
-         *
-         * @param ctx      the context to store the parsed node.
-         * @param text     the text to parse.
-         * @param position the position to start parsing from.
-         * @return the new position after a successful parse, or a negative value if parsing fails.
-         */
-        int parse(TreeParseContext ctx, CharSequence text, int position);
+        public TreePrinterParser(NodePrinterParser[] rulePrinterParsers,
+                                 NodePrinterParser[] terminalPrinterParsers,
+                                 NodePrinterParser[] errorPrinterParsers) {
+
+            for (int i = 0; i < rulePrinterParsers.length; i++) {
+                if (rulePrinterParsers[i] instanceof NodeFormatterBuilder.ChildrenPrinterParser(
+                        LiteralPrinterParser separator
+                )) {
+                    rulePrinterParsers[i] = new ChildrenPrinterParser(this, separator);
+                }
+            }
+            this.rulePrinterParser = new CompositePrinterParser(rulePrinterParsers);
+            this.terminalPrinterParser = new CompositePrinterParser(terminalPrinterParsers);
+            this.errorPrinterParser = new CompositePrinterParser(errorPrinterParsers);
+        }
+
+        @Override
+        public boolean format(NodeFormatContext ctx, StringBuilder buf) {
+            return switch (ctx.node()) {
+                case DerivationTree.Rule ignored -> rulePrinterParser.format(ctx, buf);
+                case DerivationTree.Terminal ignored -> terminalPrinterParser.format(ctx, buf);
+                case DerivationTree.Error ignored -> errorPrinterParser.format(ctx, buf);
+            };
+        }
+
+        @Override
+        public int parse(NodeParseContext ctx, CharSequence text, int position) {
+            int result;
+            RootParseContext.Terminal terminalCtx = ctx.root().new Terminal(ctx);
+            result = terminalPrinterParser.parse(terminalCtx, text, position);
+            if (result > 0) {
+                ctx.addChildContext(terminalCtx);
+                return result;
+            }
+            RootParseContext.Rule ruleCtx = ctx.root().new Rule(ctx);
+            result = rulePrinterParser.parse(ruleCtx, text, position);
+            if (result > 0) {
+                ctx.addChildContext(ruleCtx);
+                return result;
+            }
+            RootParseContext.Error errorCtx = ctx.root().new Error(ctx);
+            result = errorPrinterParser.parse(errorCtx, text, position);
+            if (result > 0) {
+                ctx.addChildContext(errorCtx);
+            }
+            return result;
+        }
+
     }
 
-    private static void validatePosition(CharSequence text, int position) {
-        int length = text.length();
-        if (position > length || position < 0) {
-            throw new IndexOutOfBoundsException();
+    static class ChildrenPrinterParser implements NodePrinterParser {
+
+        private final TreePrinterParser treePrinterParser;
+        private final LiteralPrinterParser separator;
+
+        ChildrenPrinterParser(TreePrinterParser treePrinterParser, LiteralPrinterParser separator) {
+            this.treePrinterParser = treePrinterParser;
+            this.separator = separator;
+        }
+
+        @Override
+        public boolean format(NodeFormatContext ctx, StringBuilder buf) {
+            var current = ctx.node();
+            for (int i = 0; i < current.size(); i++) {
+                var child = current.getChild(i);
+                ctx.setNode(child);
+                if (!treePrinterParser.format(ctx, buf)) {
+                    ctx.setNode(current);
+                    return false;
+                }
+                if (i + 1 != current.size()) {
+                    separator.format(ctx, buf);
+                }
+            }
+            ctx.setNode(current);
+            return true;
+        }
+
+        @Override
+        public int parse(NodeParseContext ctx, CharSequence text, int position) {
+            int result;
+            do {
+                position = treePrinterParser.parse(ctx, text, position);
+                result = position;
+                position = separator.parse(ctx, text, position);
+            } while (position < text.length() && position > 0);
+            return result;
         }
     }
 
-    static class CompositePrinterParser implements TreePrinterParser {
+    static class CompositePrinterParser implements NodePrinterParser {
 
-        private final TreePrinterParser[] printerParsers;
+        private final NodePrinterParser[] printerParsers;
 
-        private CompositePrinterParser(List<TreePrinterParser> printerParsers) {
-            this(printerParsers.toArray(new TreePrinterParser[0]));
-        }
-
-        private CompositePrinterParser(TreePrinterParser[] printerParsers) {
+        private CompositePrinterParser(NodePrinterParser[] printerParsers) {
             this.printerParsers = printerParsers;
         }
 
         @Override
-        public boolean format(TreeFormatContext ctx, StringBuilder buf) {
+        public boolean format(NodeFormatContext ctx, StringBuilder buf) {
             int initialLength = buf.length();
-            for (TreePrinterParser printer : printerParsers) {
+            for (NodePrinterParser printer : printerParsers) {
                 if (!printer.format(ctx, buf)) {
                     buf.setLength(initialLength);
                     return false;
@@ -329,397 +254,14 @@ public class TreeFormatterBuilder {
         }
 
         @Override
-        public int parse(TreeParseContext ctx, CharSequence text, int position) {
-            for (TreePrinterParser parser : printerParsers) {
+        public int parse(NodeParseContext ctx, CharSequence text, int position) {
+            for (NodePrinterParser parser : printerParsers) {
                 position = parser.parse(ctx, text, position);
                 if (position < 0) {
                     return position;
                 }
             }
             return position;
-        }
-    }
-
-    static class NodePrinterParser implements TreePrinterParser {
-
-        private final TreePrinterParser[] printerParsers;
-
-        public NodePrinterParser(List<TreePrinterParser> list) {
-            this(list.toArray(new TreePrinterParser[0]));
-        }
-
-        private NodePrinterParser(TreePrinterParser[] printerParsers) {
-            boolean noRuleBefore = true;
-            for (int i = 0; i < printerParsers.length; i++) {
-                if (printerParsers[i] instanceof RulePrinterParser) {
-                    if (!noRuleBefore) {
-                        throw new IllegalStateException("Can only have a single rule printer parser");
-                    }
-                    noRuleBefore = false;
-                }
-                if (printerParsers[i] instanceof ChildrenPrinterParser childrenPrinterParser) {
-                    if (noRuleBefore) {
-                        throw new IllegalStateException(
-                                "A rule printer parser must be placed before the children printer parser.");
-                    }
-                    printerParsers[i] = new ChildrenPrinterParser(this, childrenPrinterParser);
-                }
-            }
-            this.printerParsers = printerParsers;
-        }
-
-        @Override
-        public boolean format(TreeFormatContext ctx, StringBuilder buf) {
-            return switch (ctx.getNode()) {
-                case Node.Rule<?> ignored -> {
-                    for (var printer : printerParsers) {
-                        if (!printer.format(ctx, buf)) {
-                            yield false;
-                        }
-                    }
-                    yield true;
-                }
-                case Node.Terminal<?> terminal -> {
-                    SymbolFormatter formatter = ctx.terminalFormatter();
-                    buf.append(formatter.format(terminal.getSymbol()));
-                    yield true;
-                }
-                case Node.Error<?> error -> {
-                    SymbolFormatter formatter = ctx.errorFormatter();
-                    buf.append(formatter.format(error.getSymbol()));
-                    yield true;
-                }
-                default -> throw new RuntimeException();
-            };
-        }
-
-        @Override
-        public int parse(TreeParseContext ctx, CharSequence text, int position) {
-            ParsePosition parsePosition = new ParsePosition(position);
-            SymbolFormatter symbolFormatter = ctx.terminalFormatter();
-            Symbol symbol = symbolFormatter.parse(text, parsePosition);
-            if (parsePosition.getErrorIndex() < 0) {
-                var connector = ctx.connectors().get("terminal");
-                Node<?> node = connector.apply(ctx.getNode(), symbol);
-                ctx.setNode(node);
-                return parsePosition.getIndex();
-            }
-            symbolFormatter = ctx.errorFormatter();
-            symbol = symbolFormatter.parse(text, parsePosition);
-            if (parsePosition.getErrorIndex() < 0) {
-                var connector = ctx.connectors().get("error");
-                Node<?> node = connector.apply(ctx.getNode(), symbol);
-                ctx.setNode(node);
-                return parsePosition.getIndex();
-            }
-
-            // Save the original parent node before starting the sequence.
-            Node<?> parent = ctx.getNode();
-            for (TreePrinterParser parser : printerParsers) {
-                position = parser.parse(ctx, text, position);
-                if (position < 0) {
-                    // Restore context on failure before returning.
-                    ctx.setNode(parent);
-                    return position;
-                }
-            }
-            return position;
-        }
-    }
-
-    static class ChildrenPrinterParser implements TreePrinterParser {
-
-        private final CompositePrinterParser prefix;
-        private final CompositePrinterParser postfix;
-        private final NodePrinterParser nodePrinterParser;
-        private final LiteralPrinterParser separator;
-
-        ChildrenPrinterParser(String separator) {
-            this.nodePrinterParser = null;
-            this.separator = new LiteralPrinterParser(separator);
-            this.prefix = null;
-            this.postfix = null;
-        }
-
-        ChildrenPrinterParser(CompositePrinterParser prefix,
-                              CompositePrinterParser postfix,
-                              ChildrenPrinterParser childrenPrinterParser) {
-            this.prefix = prefix;
-            this.postfix = postfix;
-            this.separator = childrenPrinterParser.separator;
-            this.nodePrinterParser = null;
-        }
-
-        ChildrenPrinterParser(NodePrinterParser printerParser,
-                              ChildrenPrinterParser childrenPrinterParser) {
-            this.separator = childrenPrinterParser.separator;
-            this.nodePrinterParser = Objects.requireNonNull(printerParser);
-            this.prefix = childrenPrinterParser.prefix;
-            this.postfix = childrenPrinterParser.postfix;
-        }
-
-        @Override
-        public boolean format(TreeFormatContext ctx, StringBuilder buf) {
-            Objects.requireNonNull(nodePrinterParser, "Node printer is null");
-            Node<?> parent = ctx.getNode();
-            for (int i = 0; i < parent.size(); i++) {
-                var child = parent.getChild(i);
-                ctx.setNode(child);
-                if (prefix != null) {
-                    if (!prefix.format(ctx, buf)) {
-                        ctx.setNode(parent);
-                        return false;
-                    }
-                }
-                if (!nodePrinterParser.format(ctx, buf)) {
-                    ctx.setNode(parent);
-                    return false;
-                }
-                if (i < parent.size() - 1) {
-                    separator.format(null, buf);
-                }
-            }
-            ctx.setNode(parent);
-            if (postfix != null) {
-                return postfix.format(ctx, buf);
-            }
-            return true;
-        }
-
-        @Override
-        public int parse(TreeParseContext ctx, CharSequence text, int position) {
-            Objects.requireNonNull(nodePrinterParser, "Node parser is null");
-
-            Node<?> parent = ctx.getNode();
-            int result;
-            do {
-                ctx.setNode(parent);
-                if (prefix != null) {
-                    result = prefix.parse(ctx, text, position);
-                    if (result < 0) {
-                        break;
-                    }
-                }
-                result = nodePrinterParser.parse(ctx, text, position);
-                if (result < 0) {
-                    break;
-                }
-                position = result;
-                result = separator.parse(ctx, text, position);
-                if (result > 0) {
-                    position = result;
-                }
-                //No separator after a child means we are done.
-            } while (result >= 0);
-            ctx.setNode(parent);
-
-            //Check postfix
-            if (postfix != null) {
-                position = postfix.parse(ctx, text, position);
-                if (position < 0) {
-                    return position;
-                }
-            }
-
-            return position;
-        }
-    }
-
-    static class LiteralPrinterParser implements TreePrinterParser {
-
-        private final String literal;
-
-        LiteralPrinterParser(String literal) {
-            this.literal = literal;
-        }
-
-        @Override
-        public boolean format(TreeFormatContext context, StringBuilder buf) {
-            buf.append(literal);
-            return true;
-        }
-
-        @Override
-        public int parse(TreeParseContext context, CharSequence text, int position) {
-            validatePosition(text, position);
-            int positionEnd = position + literal.length();
-            if (positionEnd > text.length() ||
-                !literal.equals(text.subSequence(position, positionEnd).toString())) {
-                return ~position;
-            }
-            return positionEnd;
-        }
-    }
-
-    static class IntegerRulePrinterParser implements TreePrinterParser {
-
-        @Override
-        public boolean format(TreeFormatContext ctx, StringBuilder buf) {
-            Node<?> node = ctx.getNode();
-            return switch (node) {
-                case Node.Rule<?> ruleNode -> {
-                    buf.append(ruleNode.index());
-                    yield true;
-                }
-                case null, default -> false;
-            };
-
-        }
-
-        @Override
-        public int parse(TreeParseContext ctx, CharSequence text, int position) {
-            int numberEnd = peek(text, position);
-            if (numberEnd < 0) {
-                return numberEnd;
-            }
-            Node<?> parent = ctx.getNode();
-            int ruleIndex = Integer.parseInt(text.subSequence(position, numberEnd).toString());
-            var connector = ctx.connectors().get("rule");
-            Node<?> node = connector.apply(parent, ruleIndex);
-            ctx.setNode(node);
-            return numberEnd;
-        }
-
-        public int peek(CharSequence text, int position) {
-            validatePosition(text, position);
-            return text.charAt(position) == '-' ?
-                    findNumberEnd(text, position + 1) :
-                    findNumberEnd(text, position);
-        }
-    }
-
-    static int findNumberEnd(CharSequence text, int position) {
-        if (position >= text.length() || !Character.isDigit(text.charAt(position))) {
-            return ~position;
-        }
-        while (text.length() != position && Character.isDigit(text.charAt(position))) {
-            position++;
-        }
-        return position;
-    }
-
-    static class StringRuleNamePrinterParser implements TreePrinterParser {
-
-        @Override
-        public boolean format(TreeFormatContext ctx, StringBuilder buf) {
-            Node<?> node = ctx.getNode();
-            return switch (node) {
-                case Node.Rule<?> ruleNode -> {
-                    String[] ruleNames = ctx.recognizer() == null ?
-                            new String[0] :
-                            ctx.recognizer().getRuleNames();
-                    if (ruleNode.index() >= ruleNames.length) {
-                        yield false;
-                    }
-                    buf.append(ruleNames[ruleNode.index()]);
-                    yield true;
-                }
-                case null, default -> false;
-            };
-        }
-
-
-        @Override
-        public int parse(TreeParseContext ctx, CharSequence text, int position) {
-            validatePosition(text, position);
-            String[] ruleNames = ctx.recognizer() == null ?
-                    new String[0] :
-                    ctx.recognizer().getRuleNames();
-            int index = findRuleIndex(text, ruleNames, position);
-            if (index < 0) {
-                return ~position;
-            }
-            var connector = ctx.connectors().get("rule");
-            Node<?> node = connector.apply(ctx.getNode(), index);
-            ctx.setNode(node);
-            return position + ruleNames[index].length();
-        }
-
-        private int findRuleIndex(CharSequence text, String[] ruleNames, int position) {
-            int index = -1;
-            int maxLength = 0;
-            for (int i = 0; i < ruleNames.length; i++) {
-                String ruleName = ruleNames[i];
-                if (ruleName.length() > maxLength &&
-                    text.length() - position >= ruleName.length() &&
-                    text.subSequence(position, position + ruleName.length())
-                            .toString()
-                            .equals(ruleName)) {
-                    maxLength = ruleName.length();
-                    index = i;
-                }
-            }
-            return index;
-        }
-    }
-
-    static class RulePrinterParser implements TreePrinterParser {
-
-        private final TreePrinterParser[] printerParsers;
-
-        RulePrinterParser() {
-            printerParsers = new TreePrinterParser[]{new StringRuleNamePrinterParser(),
-                    new IntegerRulePrinterParser()};
-        }
-
-        @Override
-        public boolean format(TreeFormatContext context, StringBuilder buf) {
-            for (TreePrinterParser printer : printerParsers) {
-                if (printer.format(context, buf)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        @Override
-        public int parse(TreeParseContext context, CharSequence text, int position) {
-            for (TreePrinterParser parser : printerParsers) {
-                int end = parser.parse(context, text, position);
-                if (end > 0) {
-                    return end;
-                }
-            }
-            return ~position;
-        }
-
-    }
-
-    static class PaddingPrinterParser implements TreePrinterParser {
-
-        private final String singlePad;
-
-        public PaddingPrinterParser(int padSize) {
-            this.singlePad = " ".repeat(padSize);
-        }
-
-        @Override
-        public boolean format(TreeFormatContext ctx, StringBuilder buf) {
-            int depth = ctx.getNode() == null ? 0 : ctx.getNode().depth();
-            buf.append(singlePad.repeat(depth));
-            return true;
-        }
-
-        @Override
-        public int parse(TreeParseContext ctx, CharSequence text, int position) {
-            // During parsing, the node in the context is the parent of the node to be created.
-            // The depth of the new node is the parent's depth + 1.
-            // If the parent node is null, we are parsing the root node, which has depth 0.
-            validatePosition(text, position);
-            int depth = (ctx.getNode() == null) ? 0 : ctx.getNode().depth() + 1;
-            String padding = singlePad.repeat(depth);
-
-            if (padding.isEmpty()) {
-                return position;
-            }
-
-            int positionEnd = position + padding.length();
-
-            if (positionEnd > text.length() ||
-                !padding.equals(text.subSequence(position, positionEnd).toString())) {
-                return ~position;
-            }
-            return positionEnd;
         }
     }
 }
