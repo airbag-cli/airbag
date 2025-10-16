@@ -4,13 +4,16 @@ import io.github.airbag.symbol.Symbol;
 import io.github.airbag.symbol.SymbolField;
 import io.github.airbag.symbol.SymbolFormatter;
 import io.github.airbag.symbol.SymbolProvider;
+import io.github.airbag.tree.DerivationTree;
 import io.github.airbag.tree.TreeProvider;
+import io.github.airbag.tree.Validator;
 import io.github.airbag.util.Utils;
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.Parser;
 import org.opentest4j.AssertionFailedError;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiPredicate;
 
 /**
@@ -114,6 +117,16 @@ public class Airbag {
             throw new AssertionFailedError("Symbols lists are not equal",
                     expectedLines,
                     actualLines);
+        }
+    }
+
+    public void assertTree(DerivationTree expected, DerivationTree actual) {
+        SymbolFormatter formatter = Objects.requireNonNull(treeProvider)
+                .getFormatter()
+                .getSymbolFormatter();
+        Validator validator = new Validator(SymbolField.equalizer(formatter.getFields()));
+        if (!validator.validate(expected, actual)) {
+            throw new AssertionFailedError("Derivation trees are not matching", expected, actual);
         }
     }
 

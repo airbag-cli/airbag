@@ -206,4 +206,8 @@ public class TreeFormatter {
                 recognizer,
                 treePrinterParser);
     }
+
+    public SymbolFormatter getSymbolFormatter() {
+        return symbolFormatter;
+    }
 }

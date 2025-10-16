@@ -7,6 +7,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A utility for creating {@link DerivationTree} instances from various sources, primarily for testing.
@@ -40,7 +41,7 @@ import java.util.List;
 public class TreeProvider {
 
     private final Parser parser;
-    private final TreeFormatter formatter;
+    private TreeFormatter formatter;
 
     /**
      * Constructs a TreeProvider for a specific ANTLR {@link Parser} class.
@@ -55,12 +56,12 @@ public class TreeProvider {
      *                                  constructor that accepts a {@link TokenStream}.
      */
     public TreeProvider(Class<? extends Parser> parserClass) {
-        this(instantiateParser(parserClass), null);
+        this(instantiateParser(parserClass), TreeFormatter.SIMPLE);
     }
 
     private TreeProvider(Parser parser, TreeFormatter formatter) {
         this.parser = parser;
-        this.formatter = formatter;
+        this.formatter = Objects.requireNonNull(formatter);
     }
 
     private static Parser instantiateParser(Class<? extends Parser> parserClass) {
@@ -129,10 +130,14 @@ public class TreeProvider {
      * @throws RuntimeException      if the string cannot be parsed by the configured formatter.
      */
     public DerivationTree fromSpec(String stringTree) {
-        if (formatter == null) {
-            throw new IllegalStateException("A TreeFormatter must be configured via withFormatter() before using fromSpec().");
-        }
         return formatter.parse(stringTree);
     }
 
+    public TreeFormatter getFormatter() {
+        return formatter;
+    }
+
+    public void setFormatter(TreeFormatter formatter) {
+        this.formatter = Objects.requireNonNull(formatter);
+    }
 }
