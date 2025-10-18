@@ -61,7 +61,7 @@ public class TreeProvider {
 
     private TreeProvider(Parser parser, TreeFormatter formatter) {
         this.parser = parser;
-        this.formatter = Objects.requireNonNull(formatter);
+        this.formatter = Objects.requireNonNull(formatter).withRecognizer(parser);
     }
 
     private static Parser instantiateParser(Class<? extends Parser> parserClass) {
@@ -138,6 +138,6 @@ public class TreeProvider {
     }
 
     public void setFormatter(TreeFormatter formatter) {
-        this.formatter = Objects.requireNonNull(formatter);
+        this.formatter = Objects.requireNonNull(formatter.withRecognizer(parser));
     }
 }

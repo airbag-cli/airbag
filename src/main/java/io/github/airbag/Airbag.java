@@ -34,7 +34,7 @@ public class Airbag {
     private final SymbolProvider symbolProvider;
 
     /**
-     * The Tree provider for creating CSTs and VSTs.
+     * The Tree provider for creating derivation trees.
      */
     private final TreeProvider treeProvider;
 
@@ -96,6 +96,19 @@ public class Airbag {
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Asserts that the actual symbol matches the expected symbol.
+     * If the symbols do not match, an {@link AssertionFailedError} is thrown with a detailed message comparing the two symbols.
+     * The comparison is done using a "weak" equality check, which means that the token type and text must be the same, but other properties such as line and column numbers may differ.
+     *
+     * @param expected The expected symbol. Must not be null.
+     * @param actual   The actual symbol to check against the expected symbol. Must not be null.
+     * @throws AssertionFailedError if the actual symbol does not match the expected symbol.
+     */
+    public void assertSymbol(Symbol expected, Symbol actual) {
+        assertSymbolList(List.of(expected), List.of(actual));
     }
 
     /**
