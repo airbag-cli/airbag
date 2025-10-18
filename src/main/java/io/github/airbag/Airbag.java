@@ -34,7 +34,7 @@ public class Airbag {
     private final SymbolProvider symbolProvider;
 
     /**
-     * The Tree provider for creating CSTs and VSTs.
+     * The Tree provider for creating derivation trees.
      */
     private final TreeProvider treeProvider;
 
