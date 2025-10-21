@@ -401,7 +401,7 @@ public class SymbolFormatter {
         Objects.requireNonNull(input, "input");
         SymbolParseContext ctx;
         int initial = position.getIndex();
-        int lastError = -1;
+        int maxError = -1;
 
         for (var parser : printerParsers) {
             ctx = new SymbolParseContext(parser, vocabulary);
@@ -411,12 +411,12 @@ public class SymbolFormatter {
                 position.setErrorIndex(-1); // Clear error index on success
                 return ctx.resolveFields();
             } else {
-                lastError = current; // Record the failure position
+                maxError = Math.min(current, maxError); // Record the failure position
             }
         }
 
         // All parsers failed, set the error index and return null
-        position.setErrorIndex(~lastError);
+        position.setErrorIndex(~maxError);
         return null;
     }
 

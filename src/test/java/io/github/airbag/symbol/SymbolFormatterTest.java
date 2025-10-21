@@ -579,6 +579,16 @@ public class SymbolFormatterTest {
         }
 
         @Test
+        void parseWithAlternativesShouldReturnFurthestError() {
+            SymbolFormatter partialMatch = SymbolFormatter.ofPattern("\\'a\\' \\'b\\'");
+            SymbolFormatter noMatch = SymbolFormatter.ofPattern("'x' 'y'");
+            SymbolFormatter formatter = partialMatch.withAlternative(noMatch);
+            java.text.ParsePosition position = new java.text.ParsePosition(0);
+            assertNull(formatter.parse("'a' 'c'", position));
+            assertEquals(5, position.getErrorIndex());
+        }
+
+        @Test
         void conflictingFieldThrowsException() {
             SymbolFormatter formatter = SymbolFormatter.ofPattern("X[l]")
                     .withVocabulary(VOCABULARY);
