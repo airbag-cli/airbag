@@ -412,8 +412,7 @@ public class SymbolFormatterBuilder {
         return this;
     }
 
-    private static final Set<Character> PATTERN_LETTERS = Set.of(
-            'I',
+    private static final Set<Character> PATTERN_LETTERS = Set.of('I',
             'S',
             's',
             'L',
@@ -431,8 +430,7 @@ public class SymbolFormatterBuilder {
             'P',
             'p',
             'R',
-            'r'
-    );
+            'r');
 
     private static final Set<Character> SPECIAL_CHARACTERS = Set.of('[', ']', '\'', '\\');
 
@@ -733,6 +731,10 @@ public class SymbolFormatterBuilder {
         public int parse(SymbolParseContext context, CharSequence text, int position) {
             int numberEnd = peek(context, text, position);
             if (numberEnd < 0) {
+                context.setErrorMessage(
+                        "Expected an integer for field '%s' but found '%s'".formatted(
+                                integerSymbolField.name(),
+                                textLookahead(text, position)));
                 return numberEnd;
             }
             context.addField(integerSymbolField,
@@ -743,9 +745,14 @@ public class SymbolFormatterBuilder {
         @Override
         public int peek(SymbolParseContext context, CharSequence text, int position) {
             validatePosition(text, position);
-            return text.charAt(position) == '-' ?
-                    findNumberEnd(text, position + 1) :
-                    findNumberEnd(text, position);
+            if (text.charAt(position) == '-') {
+                int result = findNumberEnd(text, position + 1);
+                if (result < 0) {
+                    return -~result;
+                }
+                return result;
+            }
+            return findNumberEnd(text, position);
         }
 
         @Override
@@ -784,6 +791,13 @@ public class SymbolFormatterBuilder {
         }
     }
 
+    private static String textLookahead(CharSequence text, int position) {
+        if (position == text.length()) {
+            return "<text end>";
+        }
+        return text.subSequence(position, Math.min(text.length(), position + 10)).toString();
+    }
+
     static int findNumberEnd(CharSequence text, int position) {
         if (position >= text.length() || !Character.isDigit(text.charAt(position))) {
             return ~position;
@@ -810,7 +824,17 @@ public class SymbolFormatterBuilder {
 
         @Override
         public int parse(SymbolParseContext context, CharSequence text, int position) {
-            return peek(context, text, position);
+            int result = peek(context, text, position);
+            if (result < 0) {
+                context.setErrorMessage("Expected literal '%s' but found '%s'".formatted(
+                                literal,
+                                textLookahead(text, position))
+                        .replace("\n", "\\n")
+                        .replace("\t", "\\t")
+                        .replace("\r", "\\r"));
+
+            }
+            return result;
         }
 
         @Override
@@ -830,7 +854,8 @@ public class SymbolFormatterBuilder {
                 return "";
             }
             long specialCharCount = literal.chars()
-                    .filter(c -> PATTERN_LETTERS.contains((char) c) || SPECIAL_CHARACTERS.contains((char) c))
+                    .filter(c -> PATTERN_LETTERS.contains((char) c) ||
+                                 SPECIAL_CHARACTERS.contains((char) c))
                     .count();
 
             if (specialCharCount == 0) {
@@ -886,6 +911,9 @@ public class SymbolFormatterBuilder {
         public int parse(SymbolParseContext context, CharSequence text, int position) {
             int endPosition = peek(context, text, position);
             if (endPosition < 0) {
+                context.setErrorMessage(
+                        "Invalid escape sequence found near '%s'".formatted(
+                                textLookahead(text, position)));
                 return endPosition;
             }
             StringBuilder buf = unescapeText(text, position, endPosition);
@@ -1003,11 +1031,14 @@ public class SymbolFormatterBuilder {
         public int parse(SymbolParseContext context, CharSequence text, int position) {
             int endPosition = peek(context, text, position);
             if (endPosition < 0) {
+                if (context.vocabulary() == null) {
+                    context.setErrorMessage("No vocabulary set");
+                } else {
+                    context.setErrorMessage("Unrecognized symbolic type name starting with '%s'".formatted(textLookahead(text, position)));
+                }
                 return endPosition;
             }
             String symbolicName = text.subSequence(position, endPosition).toString();
-            Vocabulary vocabulary = context.vocabulary();
-
             int type = getType(symbolicName, context.vocabulary());
             context.addField(SymbolField.TYPE, type);
             return endPosition;
@@ -1072,6 +1103,12 @@ public class SymbolFormatterBuilder {
         public int parse(SymbolParseContext context, CharSequence text, int position) {
             int endPosition = peek(context, text, position);
             if (endPosition < 0) {
+                if (context.vocabulary() == null) {
+                    context.setErrorMessage("No vocabulary set");
+                } else {
+                    context.setErrorMessage("Unrecognized literal type name starting with '%s'".formatted(textLookahead(text, position)));
+                }
+
                 return endPosition;
             }
             String literalName = text.subSequence(position, endPosition).toString();
@@ -1205,6 +1242,7 @@ public class SymbolFormatterBuilder {
         public int parse(SymbolParseContext context, CharSequence text, int position) {
             int end = peek(context, text, position);
             if (end < 0) {
+                context.setErrorMessage("Expected 'EOF' but found '%s'".formatted(textLookahead(text, position)));
                 return end;
             }
             context.addField(SymbolField.TYPE, Symbol.EOF);

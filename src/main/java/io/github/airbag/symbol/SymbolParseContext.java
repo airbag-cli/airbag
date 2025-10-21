@@ -16,6 +16,7 @@ class SymbolParseContext {
     private final Map<SymbolField<?>, Object> fieldMap;
     private final CompositePrinterParser printerParser;
     private final Vocabulary vocabulary;
+    private String errorMessage;
 
     public SymbolParseContext(CompositePrinterParser printerParser, Vocabulary vocabulary) {
         this.printerParser = printerParser;
@@ -44,7 +45,7 @@ class SymbolParseContext {
     <T> void addField(SymbolField<T> field, T value) {
         Optional.ofNullable(fieldMap.put(field, value)).ifPresent(former -> {
             if (!former.equals(value)) {
-                throw new SymbolParseException("Cannot set the field %s with a different value".formatted(field.name()));
+                throw new SymbolParseException("Cannot set the field '%s' with a different value".formatted(field.name()));
             }
         });
     }
@@ -75,4 +76,11 @@ class SymbolParseContext {
         builder.resolve(field, (T) value);
     }
 
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
+    }
 }

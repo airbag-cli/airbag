@@ -12,16 +12,20 @@ public class SymbolParseException extends SymbolException {
         super(message);
     }
 
-    public SymbolParseException(String input, int position) {
-        super(String.format("Failed to parse symbol at position %d in input: \"%s\"", position, input));
+    public SymbolParseException(String input, int position, String message) {
+        super(constructMessage(input, position, message));
         this.input = input;
         this.position = position;
     }
 
-    public SymbolParseException(String input, int position, String message) {
-        super(message);
-        this.input = input;
-        this.position = position;
+    private static String constructMessage(String input, int position, String message) {
+        String markedInput = new StringBuilder(input).insert(position, ">>" + "").toString();
+        return """
+                Parse failed at index %d:
+                %s
+
+                %s
+                """.formatted(position, message, markedInput);
     }
 
     /**
