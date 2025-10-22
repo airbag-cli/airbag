@@ -2,7 +2,7 @@ package io.github.airbag.symbol;
 
 import java.text.ParsePosition;
 
-public class SymbolParsePosition extends ParsePosition {
+public class FormatterParsePosition extends ParsePosition {
 
     private String message;
 
@@ -11,7 +11,7 @@ public class SymbolParsePosition extends ParsePosition {
      *
      * @param index initial index
      */
-    public SymbolParsePosition(int index) {
+    public FormatterParsePosition(int index) {
         super(index);
     }
 

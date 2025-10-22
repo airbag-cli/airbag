@@ -329,7 +329,7 @@ public class SymbolFormatter {
      *
      * @param symbol The symbol to format.
      * @return The formatted string.
-     * @throws SymbolException if the symbol cannot be formatted.
+     * @throws SymbolFormatterException if the symbol cannot be formatted.
      */
     public String format(Symbol symbol) {
         SymbolFormatContext ctx = new SymbolFormatContext(symbol, vocabulary);
@@ -343,7 +343,7 @@ public class SymbolFormatter {
             buf.setLength(0);
         }
         if (!success) {
-            throw new SymbolException("Failed to format symbol %s".formatted(symbol));
+            throw new SymbolFormatterException("Failed to format symbol %s".formatted(symbol));
         }
         return buf.toString();
     }
@@ -356,16 +356,16 @@ public class SymbolFormatter {
      * complete and standalone representation of a single symbol.
      * <p>
      * For more lenient parsing of a symbol from the beginning of a string, or for parsing
-     * multiple tokens from a single string, use {@link #parse(CharSequence, SymbolParsePosition)}.
+     * multiple tokens from a single string, use {@link #parse(CharSequence, FormatterParsePosition)}.
      *
      * @param input The char sequence to parse. Must not be null.
      * @return The parsed symbol.
      * @throws SymbolParseException if the string cannot be parsed or is not fully consumed.
-     * @see #parse(CharSequence, SymbolParsePosition)
+     * @see #parse(CharSequence, FormatterParsePosition)
      */
     public Symbol parse(CharSequence input) {
         Objects.requireNonNull(input);
-        SymbolParsePosition position = new SymbolParsePosition(0);
+        FormatterParsePosition position = new FormatterParsePosition(0);
         Symbol token = parse(input, position);
         if (token == null) {
             throw new SymbolParseException(input.toString(),
@@ -401,12 +401,12 @@ public class SymbolFormatter {
      * single input string.
      *
      * @param input    The char sequence from which to parse a symbol. Must not be null.
-     * @param position The {@link SymbolParsePosition} object that tracks the current parsing
+     * @param position The {@link FormatterParsePosition} object that tracks the current parsing
      *                 position and error location. Must not be null.
      * @return The parsed {@link Symbol}, or {@code null} if parsing fails.
      * @see #parse(CharSequence)
      */
-    public Symbol parse(CharSequence input, SymbolParsePosition position) {
+    public Symbol parse(CharSequence input, FormatterParsePosition position) {
         Objects.requireNonNull(position, "position");
         Objects.requireNonNull(input, "input");
         int initial = position.getIndex();
@@ -421,11 +421,18 @@ public class SymbolFormatter {
                 position.setErrorIndex(-1); // Clear error index on success
                 return ctx.resolveFields();
             } else {
-                if (!errorSet || current < maxError) {
+                if (!errorSet) {
                     maxError = current;
                     position.setMessage(ctx.getErrorMessage());
                     position.setErrorIndex(~current);
                     errorSet = true;
+                } else if (current < maxError) {
+                    maxError = current;
+                    position.setMessage(ctx.getErrorMessage());
+                    position.setErrorIndex(~current);
+                } else if (current == maxError) {
+                    position.setMessage(position.getMessage()
+                            .concat("%n%s".formatted(ctx.getErrorMessage())));
                 }
             }
         }
@@ -433,6 +440,7 @@ public class SymbolFormatter {
         // All parsers failed return null
         return null;
     }
+
     public SymbolFormatter withVocabulary(Vocabulary vocabulary) {
         if (Objects.equals(vocabulary, this.vocabulary)) {
             return this;

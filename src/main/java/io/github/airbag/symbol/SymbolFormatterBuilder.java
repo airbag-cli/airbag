@@ -3,7 +3,6 @@ package io.github.airbag.symbol;
 import org.antlr.v4.runtime.Vocabulary;
 
 import java.util.*;
-import java.util.stream.Stream;
 
 /**
  * Builder for creating {@link SymbolFormatter} instances.
@@ -179,7 +178,7 @@ public class SymbolFormatterBuilder {
      * This component provides a strict mapping between a symbol's type and its symbolic name
      * as defined in the ANTLR {@link Vocabulary}.
      * <p>
-     * <b>Formatting:</b> It will throw a {@link SymbolException} if the vocabulary is missing or
+     * <b>Formatting:</b> It will throw a {@link SymbolFormatterException} if the vocabulary is missing or
      * if the symbol's type does not have a symbolic name. This is often the case for tokens
      * representing literals (e.g., keywords, operators like {@code '='}), which have a literal
      * name but not a symbolic one.
@@ -203,7 +202,7 @@ public class SymbolFormatterBuilder {
      * typically enclosed in single quotes (e.g., {@code '='}).
      * <p>
      * <b>Formatting:</b> The literal name from the vocabulary (including the single quotes)
-     * is appended to the output. It will throw a {@link SymbolException} if the vocabulary
+     * is appended to the output. It will throw a {@link SymbolFormatterException} if the vocabulary
      * is missing or if the symbol's type does not have a literal name. This is often the
      * case for tokens with symbolic names like {@code ID} or {@code INT}.
      * <p>
@@ -540,8 +539,8 @@ public class SymbolFormatterBuilder {
                             i++;
                         }
                         if (i >= pattern.length()) {
-                            throw new SymbolException("Unclosed quoted literal in pattern: " +
-                                                      pattern);
+                            throw new SymbolFormatterException("Unclosed quoted literal in pattern: " +
+                                                               pattern);
                         }
                         String literal = pattern.substring(contentStart, i);
                         if (!literal.isEmpty()) {
@@ -551,8 +550,8 @@ public class SymbolFormatterBuilder {
                     case '\\' -> {
                         i++;
                         if (i >= pattern.length()) {
-                            throw new SymbolException("Invalid escape sequence at end of pattern: " +
-                                                      pattern);
+                            throw new SymbolFormatterException("Invalid escape sequence at end of pattern: " +
+                                                               pattern);
                         }
                         literalBuf.append(pattern.charAt(i));
                     }

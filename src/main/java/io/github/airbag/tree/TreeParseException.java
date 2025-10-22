@@ -1,18 +1,18 @@
-package io.github.airbag.symbol;
+package io.github.airbag.tree;
 
 /**
- * An exception that is thrown when a symbol cannot be parsed.
+ * An exception that is thrown when a tree cannot be parsed.
  */
-public class SymbolParseException extends SymbolFormatterException {
+public class TreeParseException extends TreeFormatterException {
 
     private String input;
     private int position;
 
-    public SymbolParseException(String message) {
+    public TreeParseException(String message) {
         super(message);
     }
 
-    public SymbolParseException(String input, int position, String message) {
+    public TreeParseException(String input, int position, String message) {
         super(constructMessage(input, position, message));
         this.input = input;
         this.position = position;

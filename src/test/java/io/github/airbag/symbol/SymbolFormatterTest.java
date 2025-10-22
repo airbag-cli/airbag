@@ -100,7 +100,7 @@ public class SymbolFormatterTest {
         void integerFormatterStrict() {
             SymbolFormatter indexFormatter = new SymbolFormatterBuilder().appendInteger(SymbolField.INDEX,
                     true).toFormatter();
-            assertThrows(SymbolException.class, () -> indexFormatter.format(DEFAULT));
+            assertThrows(SymbolFormatterException.class, () -> indexFormatter.format(DEFAULT));
             assertEquals("0", indexFormatter.format(SYMBOL1));
         }
 
@@ -192,7 +192,7 @@ public class SymbolFormatterTest {
         void symbolicFormatterFail() {
             SymbolFormatter formatter = new SymbolFormatterBuilder().appendSymbolicType()
                     .toFormatter();
-            assertThrows(SymbolException.class, () -> formatter.format(SYMBOL1));
+            assertThrows(SymbolFormatterException.class, () -> formatter.format(SYMBOL1));
         }
 
         @Test
@@ -211,7 +211,7 @@ public class SymbolFormatterTest {
                     .appendLiteral("type: ")
                     .appendSymbolicType()
                     .toFormatter();
-            assertThrows(SymbolException.class, () -> formatter.format(SYMBOL1));
+            assertThrows(SymbolFormatterException.class, () -> formatter.format(SYMBOL1));
         }
 
         @Test
@@ -228,7 +228,7 @@ public class SymbolFormatterTest {
             SymbolFormatter formatter = new SymbolFormatterBuilder()
                     .appendLiteralType()
                     .toFormatter();
-            assertThrows(SymbolException.class, () -> formatter.format(SYMBOL2));
+            assertThrows(SymbolFormatterException.class, () -> formatter.format(SYMBOL2));
         }
 
         @Test
@@ -237,7 +237,7 @@ public class SymbolFormatterTest {
                     .appendLiteralType()
                     .toFormatter()
                     .withVocabulary(ExpressionLexer.VOCABULARY);
-            assertThrows(SymbolException.class, () -> formatter.format(SYMBOL1));
+            assertThrows(SymbolFormatterException.class, () -> formatter.format(SYMBOL1));
         }
 
         @Test
@@ -246,7 +246,7 @@ public class SymbolFormatterTest {
                     .appendSymbolicType()
                     .toFormatter()
                     .withVocabulary(ExpressionLexer.VOCABULARY);
-            assertThrows(SymbolException.class, () -> formatter.format(SYMBOL2));
+            assertThrows(SymbolFormatterException.class, () -> formatter.format(SYMBOL2));
         }
 
         @Test
@@ -307,7 +307,7 @@ public class SymbolFormatterTest {
             Symbol eofSymbol = Symbol.of().type(Symbol.EOF).text("<EOF>").get();
             assertEquals("EOF", formatter.format(eofSymbol));
             Symbol notEofSymbol = Symbol.of().type(1).get();
-            assertThrows(SymbolException.class, () -> formatter.format(notEofSymbol));
+            assertThrows(SymbolFormatterException.class, () -> formatter.format(notEofSymbol));
         }
     }
 
@@ -625,7 +625,7 @@ public class SymbolFormatterTest {
             SymbolFormatter partialMatch = SymbolFormatter.ofPattern("\\'a\\' \\'b\\'");
             SymbolFormatter noMatch = SymbolFormatter.ofPattern("'x' 'y'");
             SymbolFormatter formatter = partialMatch.withAlternative(noMatch);
-            SymbolParsePosition position = new SymbolParsePosition(0);
+            FormatterParsePosition position = new FormatterParsePosition(0);
             assertNull(formatter.parse("'a' 'c'", position));
             assertEquals(5, position.getErrorIndex());
         }

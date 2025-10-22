@@ -12,6 +12,8 @@ class RootParseContext implements NodeParseContext{
     private final SymbolFormatter symbolFormatter;
     private final Recognizer<?,?> recognizer;
     private NodeParseContext root;
+    private int maxError;
+    private String errorMessage;
 
     RootParseContext(SymbolFormatter symbolFormatter, Recognizer<?, ?> recognizer) {
         this.symbolFormatter = symbolFormatter;
@@ -58,6 +60,23 @@ class RootParseContext implements NodeParseContext{
     @Override
     public int depth() {
         return -1;
+    }
+
+    public int getMaxError() {
+        return maxError;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public void recordError(int errorIndex, String message) {
+        if (errorIndex > maxError) {
+            maxError = errorIndex;
+            errorMessage = message;
+        } else if (errorIndex == maxError){
+            errorMessage = errorMessage.concat("%n%s".formatted(message));
+        }
     }
 
     class Rule implements NodeParseContext {

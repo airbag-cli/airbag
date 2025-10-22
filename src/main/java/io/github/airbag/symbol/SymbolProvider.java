@@ -3,7 +3,6 @@ package io.github.airbag.symbol;
 import org.antlr.v4.runtime.*;
 
 import java.lang.reflect.InvocationTargetException;
-import java.text.ParsePosition;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -114,7 +113,7 @@ public class SymbolProvider {
      * @see SymbolFormatter#SIMPLE
      */
     public List<Symbol> fromSpec(String input) {
-        SymbolParsePosition position = new SymbolParsePosition(0);
+        FormatterParsePosition position = new FormatterParsePosition(0);
         List<Symbol> symbols = new ArrayList<>();
         int index = 0;
         while (position.getIndex() < input.length()) {
