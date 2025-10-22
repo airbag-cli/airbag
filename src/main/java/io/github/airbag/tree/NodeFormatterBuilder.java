@@ -3,6 +3,7 @@ package io.github.airbag.tree;
 import io.github.airbag.symbol.Symbol;
 import io.github.airbag.symbol.SymbolFormatter;
 import io.github.airbag.symbol.SymbolFormatterBuilder;
+import io.github.airbag.symbol.SymbolParsePosition;
 
 import java.text.ParsePosition;
 import java.util.ArrayList;
@@ -314,7 +315,7 @@ public class NodeFormatterBuilder {
 
         @Override
         public int parse(NodeParseContext ctx, CharSequence text, int position) {
-            ParsePosition parsePosition = new ParsePosition(position);
+            SymbolParsePosition parsePosition = new SymbolParsePosition(position);
             SymbolFormatter symbolFormatter = ctx.symbolFormatter();
             Symbol symbol = symbolFormatter.parse(text, parsePosition);
             if (parsePosition.getErrorIndex() > 0) {

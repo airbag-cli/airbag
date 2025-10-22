@@ -114,7 +114,7 @@ public class SymbolProvider {
      * @see SymbolFormatter#SIMPLE
      */
     public List<Symbol> fromSpec(String input) {
-        ParsePosition position = new ParsePosition(0);
+        SymbolParsePosition position = new SymbolParsePosition(0);
         List<Symbol> symbols = new ArrayList<>();
         int index = 0;
         while (position.getIndex() < input.length()) {
@@ -127,9 +127,7 @@ public class SymbolProvider {
             Symbol parsedSymbol = formatter.parse(input, position);
 
             if (parsedSymbol == null) {
-                throw new IllegalArgumentException("Cannot parse input spec '%s' at index %d".formatted(
-                        input,
-                        position.getErrorIndex()));
+                throw new SymbolParseException(input, position.getIndex(), position.getMessage());
             }
 
             // Safely create a new token to set the index if not set

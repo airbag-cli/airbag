@@ -423,7 +423,13 @@ public class SymbolFormatterTest {
         void symbolicFormatterException() {
             SymbolFormatter formatter = new SymbolFormatterBuilder().appendSymbolicType()
                     .toFormatter();
-            assertThrows(SymbolParseException.class, () -> formatter.parse("ID"));
+            var e = assertThrows(SymbolParseException.class, () -> formatter.parse("ID"));
+            assertEquals("""
+                    Parse failed at index 0:
+                    No vocabulary set
+                    
+                    >>ID
+                    """, e.getMessage());
         }
 
         @Test
@@ -443,7 +449,13 @@ public class SymbolFormatterTest {
                     .appendLiteral("type: ")
                     .appendSymbolicType()
                     .toFormatter();
-            assertThrows(SymbolParseException.class, () -> formatter.parse("type: ID"));
+            var e = assertThrows(SymbolParseException.class, () -> formatter.parse("type: ID"));
+            assertEquals("""
+                    Parse failed at index 6:
+                    No vocabulary set
+                    
+                    type: >>ID
+                    """, e.getMessage());
         }
 
         @Test
@@ -453,7 +465,13 @@ public class SymbolFormatterTest {
                     .appendSymbolicType()
                     .toFormatter()
                     .withVocabulary(ExpressionLexer.VOCABULARY);
-            assertThrows(SymbolParseException.class, () -> formatter.parse("typo: ID"));
+            var e = assertThrows(SymbolParseException.class, () -> formatter.parse("typo: ID"));
+            assertEquals("""
+                    Parse failed at index 0:
+                    Expected literal 'type: ' but found 'typo: ID'
+                    
+                    >>typo: ID
+                    """, e.getMessage());
         }
 
         @Test
@@ -463,21 +481,39 @@ public class SymbolFormatterTest {
                     .appendSymbolicType()
                     .toFormatter()
                     .withVocabulary(ExpressionLexer.VOCABULARY);
-            assertThrows(SymbolParseException.class, () -> formatter.parse("type: INVALID"));
+            var e = assertThrows(SymbolParseException.class, () -> formatter.parse("type: INVALID"));
+            assertEquals("""
+                    Parse failed at index 6:
+                    Unrecognized symbolic type name starting with 'INVALID'
+                    
+                    type: >>INVALID
+                    """, e.getMessage());
         }
 
         @Test
         void invalidNegative() {
             SymbolFormatter formatter = new SymbolFormatterBuilder().appendInteger(SymbolField.TYPE)
                     .toFormatter();
-            assertThrows(SymbolParseException.class, () -> formatter.parse("-"));
+            var e = assertThrows(SymbolParseException.class, () -> formatter.parse("-"));
+            assertEquals("""
+                    Parse failed at index 0:
+                    Expected an integer for field 'type' but found '-'
+                    
+                    >>-
+                    """, e.getMessage());
         }
 
         @Test
         void multipleDashes() {
             SymbolFormatter formatter = new SymbolFormatterBuilder().appendInteger(SymbolField.TYPE)
                     .toFormatter();
-            assertThrows(SymbolParseException.class, () -> formatter.parse("--10"));
+            var e = assertThrows(SymbolParseException.class, () -> formatter.parse("--10"));
+            assertEquals("""
+                Parse failed at index 0:
+                Expected an integer for field 'type' but found '--10'
+
+                >>--10
+                """, e.getMessage());
         }
 
         @Test
@@ -495,7 +531,13 @@ public class SymbolFormatterTest {
             SymbolFormatter formatter = new SymbolFormatterBuilder()
                     .appendLiteralType()
                     .toFormatter();
-            assertThrows(SymbolParseException.class, () -> formatter.parse("'='"));
+            var e = assertThrows(SymbolParseException.class, () -> formatter.parse("'='"));
+            assertEquals("""
+                    Parse failed at index 0:
+                    No vocabulary set
+                    
+                    >>'='
+                    """, e.getMessage());
         }
 
         @Test
@@ -579,11 +621,36 @@ public class SymbolFormatterTest {
         }
 
         @Test
+        void parseWithAlternativesShouldReturnFurthestError() {
+            SymbolFormatter partialMatch = SymbolFormatter.ofPattern("\\'a\\' \\'b\\'");
+            SymbolFormatter noMatch = SymbolFormatter.ofPattern("'x' 'y'");
+            SymbolFormatter formatter = partialMatch.withAlternative(noMatch);
+            SymbolParsePosition position = new SymbolParsePosition(0);
+            assertNull(formatter.parse("'a' 'c'", position));
+            assertEquals(5, position.getErrorIndex());
+        }
+
+        @Test
         void conflictingFieldThrowsException() {
             SymbolFormatter formatter = SymbolFormatter.ofPattern("X[l]")
                     .withVocabulary(VOCABULARY);
             String conflictingString = "assign'='";
-            assertThrows(SymbolParseException.class, () -> formatter.parse(conflictingString));
+            var e = assertThrows(SymbolParseException.class, () -> formatter.parse(conflictingString));
+            assertEquals("""
+                    Cannot set the field 'text' with a different value""", e.getMessage());
+        }
+
+        @Test
+        void negativeNumberWithNonDigit() {
+            SymbolFormatter formatter = new SymbolFormatterBuilder().appendInteger(SymbolField.TYPE)
+                    .toFormatter();
+            var e = assertThrows(SymbolParseException.class, () -> formatter.parse("-a10"));
+            assertEquals("""
+                    Parse failed at index 0:
+                    Expected an integer for field 'type' but found '-a10'
+                    
+                    >>-a10
+                    """, e.getMessage());
         }
     }
 }

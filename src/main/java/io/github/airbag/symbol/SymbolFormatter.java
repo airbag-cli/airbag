@@ -81,12 +81,14 @@ public class SymbolFormatter {
      * A formatter for the symbol's symbolic name and text (e.g., "(ID 'myVar')").
      */
     private static final SymbolFormatter SYMBOLIC = new SymbolFormatterBuilder().appendLiteral("(")
+            .appendWhitespace()
             .appendType(TypeFormat.SYMBOLIC_FIRST)
             .startOptional()
             .appendLiteral(":")
             .appendInteger(SymbolField.CHANNEL, true)
             .endOptional()
-            .appendLiteral(" '")
+            .appendWhitespace(" ")
+            .appendLiteral("'")
             .appendText(new TextOption().withDefaultValue("")
                     .withEscapeChar('\\')
                     .withEscapeMap(Map.ofEntries(entry('\n', 'n'),
@@ -94,7 +96,9 @@ public class SymbolFormatter {
                             entry('\t', 't'),
                             entry('\\', '\\'),
                             entry('\'', '\''))))
-            .appendLiteral("')")
+            .appendLiteral("'")
+            .appendWhitespace()
+            .appendLiteral(")")
             .toFormatter();
 
     /**
@@ -313,7 +317,8 @@ public class SymbolFormatter {
             if (formatter == null) {
                 formatter = new SymbolFormatterBuilder().appendPattern(singlePattern).toFormatter();
             } else {
-                formatter = formatter.withAlternative(new SymbolFormatterBuilder().appendPattern(singlePattern).toFormatter());
+                formatter = formatter.withAlternative(new SymbolFormatterBuilder().appendPattern(
+                        singlePattern).toFormatter());
             }
         }
         return formatter;
@@ -351,23 +356,28 @@ public class SymbolFormatter {
      * complete and standalone representation of a single symbol.
      * <p>
      * For more lenient parsing of a symbol from the beginning of a string, or for parsing
-     * multiple tokens from a single string, use {@link #parse(CharSequence, ParsePosition)}.
+     * multiple tokens from a single string, use {@link #parse(CharSequence, SymbolParsePosition)}.
      *
      * @param input The char sequence to parse. Must not be null.
      * @return The parsed symbol.
      * @throws SymbolParseException if the string cannot be parsed or is not fully consumed.
-     * @see #parse(CharSequence, ParsePosition)
+     * @see #parse(CharSequence, SymbolParsePosition)
      */
     public Symbol parse(CharSequence input) {
         Objects.requireNonNull(input);
-        ParsePosition position = new ParsePosition(0);
+        SymbolParsePosition position = new SymbolParsePosition(0);
         Symbol token = parse(input, position);
         if (token == null) {
-            throw new SymbolParseException(input.toString(), position.getErrorIndex());
+            throw new SymbolParseException(input.toString(),
+                    position.getErrorIndex(),
+                    position.getMessage());
         }
         if (position.getIndex() != input.length()) {
-            String message = "Input '%s' has trailing unparsed text at position %d".formatted(input,
-                    position.getIndex());
+            int index = position.getIndex();
+            String message = "Input '%s>>%s' has trailing unparsed text at position %d".formatted(
+                    input.subSequence(0, index),
+                    input.subSequence(index, input.length()),
+                    index);
             throw new SymbolParseException(input.toString(), position.getIndex(), message);
         }
         return token;
@@ -391,48 +401,38 @@ public class SymbolFormatter {
      * single input string.
      *
      * @param input    The char sequence from which to parse a symbol. Must not be null.
-     * @param position The {@link ParsePosition} object that tracks the current parsing
+     * @param position The {@link SymbolParsePosition} object that tracks the current parsing
      *                 position and error location. Must not be null.
      * @return The parsed {@link Symbol}, or {@code null} if parsing fails.
      * @see #parse(CharSequence)
      */
-    public Symbol parse(CharSequence input, ParsePosition position) {
+    public Symbol parse(CharSequence input, SymbolParsePosition position) {
         Objects.requireNonNull(position, "position");
         Objects.requireNonNull(input, "input");
-        SymbolParseContext ctx;
         int initial = position.getIndex();
-        int lastError = -1;
+        int maxError = -1;
+        boolean errorSet = false;
 
         for (var parser : printerParsers) {
-            ctx = new SymbolParseContext(parser, vocabulary);
+            SymbolParseContext ctx = new SymbolParseContext(parser, vocabulary);
             int current = parser.parse(ctx, input, initial);
             if (current >= 0) {
                 position.setIndex(current);
                 position.setErrorIndex(-1); // Clear error index on success
                 return ctx.resolveFields();
             } else {
-                lastError = current; // Record the failure position
+                if (!errorSet || current < maxError) {
+                    maxError = current;
+                    position.setMessage(ctx.getErrorMessage());
+                    position.setErrorIndex(~current);
+                    errorSet = true;
+                }
             }
         }
 
-        // All parsers failed, set the error index and return null
-        position.setErrorIndex(~lastError);
+        // All parsers failed return null
         return null;
     }
-
-
-    /**
-     * Returns a new {@link SymbolFormatter} instance with the specified ANTLR vocabulary.
-     * <p>
-     * This method allows for configuring the vocabulary after the formatter has been built.
-     * Since {@link SymbolFormatter} is immutable, this method returns a new instance
-     * with the new vocabulary, or the current instance if the vocabulary is unchanged.
-     * The vocabulary is required for formatters that use {@link SymbolFormatterBuilder#appendSymbolicType()}
-     * or {@link SymbolFormatterBuilder#appendLiteralType()}.
-     *
-     * @param vocabulary The ANTLR vocabulary to use for formatting and parsing.
-     * @return A new formatter instance with the given vocabulary.
-     */
     public SymbolFormatter withVocabulary(Vocabulary vocabulary) {
         if (Objects.equals(vocabulary, this.vocabulary)) {
             return this;
@@ -471,6 +471,9 @@ public class SymbolFormatter {
         return fields;
     }
 
+    /**
+     * Prints this formatter pattern as string.
+     */
     @Override
     public String toString() {
         StringJoiner joiner = new StringJoiner(" | ");
