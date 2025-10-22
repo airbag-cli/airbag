@@ -639,5 +639,18 @@ public class SymbolFormatterTest {
             assertEquals("""
                     Cannot set the field 'text' with a different value""", e.getMessage());
         }
+
+        @Test
+        void negativeNumberWithNonDigit() {
+            SymbolFormatter formatter = new SymbolFormatterBuilder().appendInteger(SymbolField.TYPE)
+                    .toFormatter();
+            var e = assertThrows(SymbolParseException.class, () -> formatter.parse("-a10"));
+            assertEquals("""
+                    Parse failed at index 0:
+                    Expected an integer for field 'type' but found '-a10'
+                    
+                    >>-a10
+                    """, e.getMessage());
+        }
     }
 }

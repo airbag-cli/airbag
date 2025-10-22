@@ -81,12 +81,14 @@ public class SymbolFormatter {
      * A formatter for the symbol's symbolic name and text (e.g., "(ID 'myVar')").
      */
     private static final SymbolFormatter SYMBOLIC = new SymbolFormatterBuilder().appendLiteral("(")
+            .appendWhitespace()
             .appendType(TypeFormat.SYMBOLIC_FIRST)
             .startOptional()
             .appendLiteral(":")
             .appendInteger(SymbolField.CHANNEL, true)
             .endOptional()
-            .appendLiteral(" '")
+            .appendWhitespace(" ")
+            .appendLiteral("'")
             .appendText(new TextOption().withDefaultValue("")
                     .withEscapeChar('\\')
                     .withEscapeMap(Map.ofEntries(entry('\n', 'n'),
@@ -94,7 +96,9 @@ public class SymbolFormatter {
                             entry('\t', 't'),
                             entry('\\', '\\'),
                             entry('\'', '\''))))
-            .appendLiteral("')")
+            .appendLiteral("'")
+            .appendWhitespace()
+            .appendLiteral(")")
             .toFormatter();
 
     /**
@@ -467,6 +471,9 @@ public class SymbolFormatter {
         return fields;
     }
 
+    /**
+     * Prints this formatter pattern as string.
+     */
     @Override
     public String toString() {
         StringJoiner joiner = new StringJoiner(" | ");

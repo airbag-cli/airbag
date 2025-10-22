@@ -269,6 +269,75 @@ public class SymbolFormatterBuilder {
     }
 
     /**
+     * Appends a whitespace component that formats with a single space and parses any amount of whitespace.
+     * <p>
+     * This is a convenience method for {@code appendWhitespace(" ")}.
+     *
+     * <p><b>Formatting:</b></p>
+     * No whitespace is added while formatting
+     *
+     * <p><b>Parsing:</b></p>
+     * The parser will greedily consume any number of consecutive whitespace characters (zero or more)
+     * from the input. This component will always succeed. Therefore, this component must not be
+     * followed by a literal beginning a whitespace character.
+     *
+     * @return This builder.
+     * @see #appendWhitespace(String)
+     */
+    public SymbolFormatterBuilder appendWhitespace() {
+        return appendWhitespace("");
+    }
+
+    /**
+     * Appends a flexible whitespace component to the formatter.
+     * <p>
+     * This component provides a powerful way to handle spacing between other elements in the format.
+     * It allows the parser to be insensitive to variations in whitespace while enabling the formatter
+     * to produce a clean, consistent output with a preferred spacing.
+     *
+     * <p><b>Formatting:</b></p>
+     * The specified {@code whitespace} string is appended to the output. This allows you to define
+     * the canonical spacing for your format (e.g., a single space, a tab, or even an empty string).
+     *
+     * <p><b>Parsing:</b></p>
+     * The parser will greedily consume any number of consecutive whitespace characters (e.g., spaces, tabs, newlines)
+     * from the input string. The actual whitespace found in the input does not need to match the
+     * preferred {@code whitespace} string provided. This operation always succeeds, even if no
+     * whitespace is present. Therefore, this component must not be
+     * followed by a literal beginning a whitespace character.
+     *
+     * <p><b>Example:</b></p>
+     * <pre>{@code
+     * // Creates a formatter for a symbolic name in parentheses with one space of padding.
+     * SymbolFormatter formatter = new SymbolFormatterBuilder()
+     *     .appendLiteral("(")
+     *     .appendWhitespace(" ")
+     *     .appendSymbolicType()
+     *     .appendWhitespace(" ")
+     *     .appendLiteral(")")
+     *     .toFormatter();
+     *
+     * // This will correctly parse all of the following:
+     * formatter.parse("(ID)");
+     * formatter.parse("( ID)");
+     * formatter.parse("(ID   )");
+     *
+     * // And will always format the symbol back to a consistent string:
+     * // Returns "( ID )"
+     * formatter.format(someSymbol);
+     * }</pre>
+     *
+     * @param whitespace The preferred whitespace string to use during formatting. This string must
+     *                   only contain whitespace characters as defined by {@link Character#isWhitespace(char)}.
+     * @return This builder.
+     * @throws IllegalArgumentException if the {@code whitespace} string contains any non-whitespace characters.
+     */
+    public SymbolFormatterBuilder appendWhitespace(String whitespace) {
+        printerParsers.add(new WhitespacePrinterParser(whitespace));
+        return this;
+    }
+
+    /**
      * Appends a printer and parser to the formatter using a flexible pattern string.
      * <p>
      * This method allows for the creation of a formatter by defining a pattern string,
@@ -465,7 +534,7 @@ public class SymbolFormatterBuilder {
                 switch (c) {
                     case '\'' -> {
                         flushLiteralBuf(literalBuf);
-                        i++; // Skip opening '%'
+                        i++; // Skip opening '
                         int contentStart = i;
                         while (i < pattern.length() && pattern.charAt(i) != '\'') {
                             i++;
@@ -495,7 +564,19 @@ public class SymbolFormatterBuilder {
                         flushLiteralBuf(literalBuf);
                         endOptional();
                     }
-                    default -> literalBuf.append(c);
+                    default -> {
+                        if (Character.isWhitespace(c)) {
+                            flushLiteralBuf(literalBuf);
+                            int j = i;
+                            while (j < pattern.length() && Character.isWhitespace(pattern.charAt(j))) {
+                                j++;
+                            }
+                            appendWhitespace(pattern.substring(i, j));
+                            i = j - 1;
+                        } else {
+                            literalBuf.append(c);
+                        }
+                    }
                 }
             }
         }
@@ -957,7 +1038,8 @@ public class SymbolFormatterBuilder {
             while (position < text.length()) {
                 boolean match = false;
                 for (var successor : successors) {
-                    if (successor.peek(context, text, position) >= 0) {
+                    int successorEnd = successor.peek(context, text, position);
+                    if (successorEnd >= 0 && successorEnd != position) {
                         match = true;
                         break;
                     }
@@ -1034,7 +1116,8 @@ public class SymbolFormatterBuilder {
                 if (context.vocabulary() == null) {
                     context.setErrorMessage("No vocabulary set");
                 } else {
-                    context.setErrorMessage("Unrecognized symbolic type name starting with '%s'".formatted(textLookahead(text, position)));
+                    context.setErrorMessage("Unrecognized symbolic type name starting with '%s'".formatted(
+                            textLookahead(text, position)));
                 }
                 return endPosition;
             }
@@ -1106,7 +1189,8 @@ public class SymbolFormatterBuilder {
                 if (context.vocabulary() == null) {
                     context.setErrorMessage("No vocabulary set");
                 } else {
-                    context.setErrorMessage("Unrecognized literal type name starting with '%s'".formatted(textLookahead(text, position)));
+                    context.setErrorMessage("Unrecognized literal type name starting with '%s'".formatted(
+                            textLookahead(text, position)));
                 }
 
                 return endPosition;
@@ -1200,6 +1284,8 @@ public class SymbolFormatterBuilder {
                     return parser.parse(context, text, position);
                 }
             }
+            context.setErrorMessage("Unrecognized type information starting with '%s'".formatted(
+                    textLookahead(text, position)));
             return ~position;
         }
 
@@ -1242,7 +1328,8 @@ public class SymbolFormatterBuilder {
         public int parse(SymbolParseContext context, CharSequence text, int position) {
             int end = peek(context, text, position);
             if (end < 0) {
-                context.setErrorMessage("Expected 'EOF' but found '%s'".formatted(textLookahead(text, position)));
+                context.setErrorMessage("Expected 'EOF' but found '%s'".formatted(textLookahead(text,
+                        position)));
                 return end;
             }
             context.addField(SymbolField.TYPE, Symbol.EOF);
@@ -1263,6 +1350,42 @@ public class SymbolFormatterBuilder {
         @Override
         public String toString() {
             return "<EOF>";
+        }
+    }
+
+    static class WhitespacePrinterParser implements SymbolPrinterParser {
+
+        private final String whitespace;
+
+        public WhitespacePrinterParser(String whitespace) {
+            if (!whitespace.chars().allMatch(Character::isWhitespace)) {
+                throw new IllegalArgumentException("Can only append whitespace");
+            }
+            this.whitespace = whitespace;
+        }
+
+        @Override
+        public boolean format(SymbolFormatContext context, StringBuilder buf) {
+            buf.append(whitespace);
+            return true;
+        }
+
+        @Override
+        public int parse(SymbolParseContext context, CharSequence text, int position) {
+            return peek(context, text, position);
+        }
+
+        @Override
+        public int peek(SymbolParseContext context, CharSequence text, int position) {
+            while (position < text.length() && Character.isWhitespace(text.charAt(position))) {
+                position++;
+            }
+            return position;
+        }
+
+        @Override
+        public String toString() {
+            return whitespace;
         }
     }
 }
