@@ -194,6 +194,40 @@ public class NodeFormatterBuilder {
         return this;
     }
 
+    /**
+     * Appends a placeholder for child nodes with a separator defined by a nested formatter.
+     * <p>
+     * This is an advanced version of {@link #appendChildren(String)} that allows the separator
+     * between child nodes to be defined by its own {@link NodeFormatterBuilder}. This enables
+     * dynamic or complex separators, such as separators that include padding or other structured
+     * elements.
+     * <p>
+     * <b>Formatting:</b> When formatting, the {@link TreeFormatter} will recursively format the
+     * children of the current node. The provided nested formatter is used to generate the
+     * separator string that is inserted between each child's output.
+     * <p>
+     * <b>Parsing:</b> This component is <b>not supported</b> during parsing and will throw an
+     * {@link UnsupportedOperationException}.
+     *
+     * <p><b>Example: Children on new lines with indentation</b></p>
+     * <pre>{@code
+     * // Produces a format where each child is on a new line and indented.
+     * new TreeFormatterBuilder()
+     *     .onRule(nodeBuilder -> nodeBuilder
+     *         .appendRule()
+     *         .appendChildren(separator -> separator
+     *             .appendLiteral("
+")
+     *             .appendPadding("  ") // Indent each child
+     *         )
+     *     )
+     *     .toFormatter();
+     * }</pre>
+     *
+     * @param childSeparator A consumer that configures a {@link NodeFormatterBuilder} to define the separator.
+     * @return This builder.
+     * @throws UnsupportedOperationException during parsing.
+     */
     public NodeFormatterBuilder appendChildren(Consumer<NodeFormatterBuilder> childSeparator) {
         var builder = new NodeFormatterBuilder();
         childSeparator.accept(builder);
@@ -202,11 +236,59 @@ public class NodeFormatterBuilder {
         return this;
     }
 
+    /**
+     * Appends a flexible whitespace parser and a fixed (empty) whitespace formatter.
+     * <p>
+     * <b>Formatting:</b> This component appends nothing to the output. It is a no-op.
+     * <p>
+     * <b>Parsing:</b> This component consumes any contiguous sequence of whitespace characters
+     * (spaces, tabs, newlines) from the input string. It is useful for allowing for
+     * optional whitespace in a format without enforcing a specific structure.
+     *
+     * @return This builder.
+     */
+    public NodeFormatterBuilder appendWhitespace() {
+        return appendWhitespace("");
+    }
+
+    /**
+     * Appends a printer for a fixed whitespace string and a parser for flexible whitespace.
+     * <p>
+     * <b>Formatting:</b> Appends the specified whitespace string to the output. The provided
+     * string must only contain whitespace characters.
+     * <p>
+     * <b>Parsing:</b> This component consumes any contiguous sequence of whitespace characters
+     * from the input. The content of the {@code whitespace} parameter is ignored during
+     * parsing; this component acts as a flexible whitespace consumer.
+     *
+     * @param whitespace The string of whitespace characters to append during formatting.
+     * @return This builder.
+     * @throws IllegalArgumentException if the provided string contains non-whitespace characters.
+     */
     public NodeFormatterBuilder appendWhitespace(String whitespace) {
         printerParsers.add(new WhitespacePrinterParser(whitespace, false));
         return this;
     }
 
+    /**
+     * Appends a printer for depth-based indentation and a parser for flexible whitespace.
+     * <p>
+     * This component is used to create indented, human-readable output. The indentation
+     * level is determined by the node's depth in the tree.
+     * <p>
+     * <b>Formatting:</b> Appends the {@code indent} string repeated by the node's depth.
+     * For example, if {@code indent} is {@code "  "}, a node at depth 0 gets no indent,
+     * a node at depth 1 gets "  ", a node at depth 2 gets "    ", and so on.
+     * The provided string must only contain whitespace characters.
+     * <p>
+     * <b>Parsing:</b> This component consumes any contiguous sequence of whitespace characters
+     * from the input. The indentation structure is <b>not</b> enforced during parsing;
+     * this component acts as a flexible whitespace consumer, identical to {@link #appendWhitespace()}.
+     *
+     * @param indent The string to use for each level of indentation.
+     * @return This builder.
+     * @throws IllegalArgumentException if the provided string contains non-whitespace characters.
+     */
     public NodeFormatterBuilder appendIndent(String indent) {
         printerParsers.add(new WhitespacePrinterParser(indent, true));
         return this;

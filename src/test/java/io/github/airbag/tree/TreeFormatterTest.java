@@ -118,16 +118,17 @@ public class TreeFormatterTest {
 
     @Test
     void testExceptionParse() {
-        var e = assertThrows(TreeParseException.class, () -> FORMATTER.parse("(1 (2 (4 'My text') (4 'My text'))  (3 (4 'My text')))"));
+        var e = assertThrows(TreeParseException.class, () -> FORMATTER.parse("(1 (2 (4 'My text') (4 'My text')) a(3 (4 'My text')))"));
         assertEquals("""
                 Parse failed at index 35:
-                Expected 'EOF' but found ' (3 (4 'My'
+                Expected 'EOF' but found 'a(3'
                 No vocabulary set
-                Expected literal '(' but found ' (3 (4 'My'
-                Expected literal '(' but found ' (3 (4 'My'
-                Expected literal '(<error> ' but found ' (3 (4 'My'
+                Expected literal '(' but found 'a'
+                Expected literal '(' but found 'a(3 (4 'My'
+                Expected literal '(<error> ' but found 'a(3 (4 'My'
+                Expected literal ')' but found 'a(3 (4 'My'
                 
-                (1 (2 (4 'My text') (4 'My text')) >> (3 (4 'My text')))
+                (1 (2 (4 'My text') (4 'My text')) >>a(3 (4 'My text')))
                 """, e.getMessage());
     }
 

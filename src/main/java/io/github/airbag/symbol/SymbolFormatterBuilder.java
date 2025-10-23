@@ -814,7 +814,7 @@ public class SymbolFormatterBuilder {
                 context.setErrorMessage(
                         "Expected an integer for field '%s' but found '%s'".formatted(
                                 integerSymbolField.name(),
-                                textLookahead(text, position)));
+                                textLookahead(text, position, 3)));
                 return numberEnd;
             }
             context.addField(integerSymbolField,
@@ -871,11 +871,11 @@ public class SymbolFormatterBuilder {
         }
     }
 
-    private static String textLookahead(CharSequence text, int position) {
+    private static String textLookahead(CharSequence text, int position, int length) {
         if (position == text.length()) {
             return "<text end>";
         }
-        return text.subSequence(position, Math.min(text.length(), position + 10)).toString();
+        return text.subSequence(position, Math.min(text.length(), position + length)).toString();
     }
 
     static int findNumberEnd(CharSequence text, int position) {
@@ -908,7 +908,7 @@ public class SymbolFormatterBuilder {
             if (result < 0) {
                 context.setErrorMessage("Expected literal '%s' but found '%s'".formatted(
                                 literal,
-                                textLookahead(text, position))
+                                textLookahead(text, position, literal.length()))
                         .replace("\n", "\\n")
                         .replace("\t", "\\t")
                         .replace("\r", "\\r"));
@@ -993,7 +993,7 @@ public class SymbolFormatterBuilder {
             if (endPosition < 0) {
                 context.setErrorMessage(
                         "Invalid escape sequence found near '%s'".formatted(
-                                textLookahead(text, position)));
+                                textLookahead(text, position, 10)));
                 return endPosition;
             }
             StringBuilder buf = unescapeText(text, position, endPosition);
@@ -1116,7 +1116,7 @@ public class SymbolFormatterBuilder {
                     context.setErrorMessage("No vocabulary set");
                 } else {
                     context.setErrorMessage("Unrecognized symbolic type name starting with '%s'".formatted(
-                            textLookahead(text, position)));
+                            textLookahead(text, position, 5)));
                 }
                 return endPosition;
             }
@@ -1189,7 +1189,7 @@ public class SymbolFormatterBuilder {
                     context.setErrorMessage("No vocabulary set");
                 } else {
                     context.setErrorMessage("Unrecognized literal type name starting with '%s'".formatted(
-                            textLookahead(text, position)));
+                            textLookahead(text, position, 5)));
                 }
 
                 return endPosition;
@@ -1284,7 +1284,7 @@ public class SymbolFormatterBuilder {
                 }
             }
             context.setErrorMessage("Unrecognized type information starting with '%s'".formatted(
-                    textLookahead(text, position)));
+                    textLookahead(text, position, 5)));
             return ~position;
         }
 
@@ -1328,7 +1328,7 @@ public class SymbolFormatterBuilder {
             int end = peek(context, text, position);
             if (end < 0) {
                 context.setErrorMessage("Expected 'EOF' but found '%s'".formatted(textLookahead(text,
-                        position)));
+                        position, 3)));
                 return end;
             }
             context.addField(SymbolField.TYPE, Symbol.EOF);

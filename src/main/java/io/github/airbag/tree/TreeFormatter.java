@@ -74,9 +74,11 @@ public class TreeFormatter {
      */
     public static final TreeFormatter SIMPLE = new TreeFormatterBuilder().onRule(onRule -> onRule.appendLiteral(
                             "(")
+                    .appendWhitespace()
                     .appendRule()
-                    .appendLiteral(" ")
-                    .appendChildren(" ")
+                    .appendWhitespace(" ")
+                    .appendChildren(sep -> sep.appendWhitespace(" "))
+                    .appendWhitespace()
                     .appendLiteral(")"))
             .onTerminal(NodeFormatterBuilder::appendSymbol)
             .onError(onError -> onError.appendLiteral("(<error> ")

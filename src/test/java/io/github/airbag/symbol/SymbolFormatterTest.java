@@ -468,7 +468,7 @@ public class SymbolFormatterTest {
             var e = assertThrows(SymbolParseException.class, () -> formatter.parse("typo: ID"));
             assertEquals("""
                     Parse failed at index 0:
-                    Expected literal 'type: ' but found 'typo: ID'
+                    Expected literal 'type: ' but found 'typo: '
                     
                     >>typo: ID
                     """, e.getMessage());
@@ -484,7 +484,7 @@ public class SymbolFormatterTest {
             var e = assertThrows(SymbolParseException.class, () -> formatter.parse("type: INVALID"));
             assertEquals("""
                     Parse failed at index 6:
-                    Unrecognized symbolic type name starting with 'INVALID'
+                    Unrecognized symbolic type name starting with 'INVAL'
                     
                     type: >>INVALID
                     """, e.getMessage());
@@ -510,7 +510,7 @@ public class SymbolFormatterTest {
             var e = assertThrows(SymbolParseException.class, () -> formatter.parse("--10"));
             assertEquals("""
                 Parse failed at index 0:
-                Expected an integer for field 'type' but found '--10'
+                Expected an integer for field 'type' but found '--1'
 
                 >>--10
                 """, e.getMessage());
@@ -647,7 +647,7 @@ public class SymbolFormatterTest {
             var e = assertThrows(SymbolParseException.class, () -> formatter.parse("-a10"));
             assertEquals("""
                     Parse failed at index 0:
-                    Expected an integer for field 'type' but found '-a10'
+                    Expected an integer for field 'type' but found '-a1'
                     
                     >>-a10
                     """, e.getMessage());

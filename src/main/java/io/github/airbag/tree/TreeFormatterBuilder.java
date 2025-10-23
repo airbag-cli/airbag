@@ -223,11 +223,11 @@ public class TreeFormatterBuilder {
 
         @Override
         public int parse(NodeParseContext ctx, CharSequence text, int position) {
-            int result;
+            int result = position;
             do {
                 position = treePrinterParser.parse(ctx, text, position);
                 if (position < 0) {
-                    return position;
+                    return result;
                 }
                 result = position;
                 position = separator.parse(ctx, text, position);
