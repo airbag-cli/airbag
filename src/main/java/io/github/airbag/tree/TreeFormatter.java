@@ -81,8 +81,12 @@ public class TreeFormatter {
                     .appendWhitespace()
                     .appendLiteral(")"))
             .onTerminal(NodeFormatterBuilder::appendSymbol)
-            .onError(onError -> onError.appendLiteral("(<error> ")
+            .onError(onError -> onError.appendLiteral("(")
+                    .appendWhitespace()
+                    .appendLiteral("<error>")
+                    .appendWhitespace(" ")
                     .appendSymbol()
+                    .appendWhitespace()
                     .appendLiteral(")"))
             .toFormatter();
 
@@ -163,7 +167,7 @@ public class TreeFormatter {
         int result = treePrinterParser.parse(rootCtx, text, position.getIndex());
         if (result < 0) {
             position.setErrorIndex(rootCtx.getMaxError());
-            position.setMessage(rootCtx.getErrorMessage());
+            position.setMessage(rootCtx.getErrorMessages());
             return null;
         }
         position.setIndex(result);

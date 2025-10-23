@@ -395,10 +395,6 @@ public class NodeFormatterBuilder {
         return text.subSequence(position, Math.min(text.length(), position + lookahead)).toString();
     }
 
-    private static String textLookahead(CharSequence text, int position) {
-        return textLookahead(text, position, 10);
-    }
-
     static class LiteralPrinterParser implements NodePrinterParser {
 
         private final String literal;
@@ -422,7 +418,7 @@ public class NodeFormatterBuilder {
                 ctx.root()
                         .recordError(position,
                                 escapeText("Expected literal '%s' but found '%s'".formatted(literal,
-                                        textLookahead(text, position))));
+                                        textLookahead(text, position, literal.length()))));
                 return ~position;
             }
             return positionEnd;
@@ -460,7 +456,11 @@ public class NodeFormatterBuilder {
             SymbolFormatter symbolFormatter = ctx.symbolFormatter();
             Symbol symbol = symbolFormatter.parse(text, parsePosition);
             if (parsePosition.getErrorIndex() > 0) {
-                ctx.root().recordError(parsePosition.getErrorIndex(), parsePosition.getMessage());
+                String[] messages = parsePosition.getMessage().split("\n");
+                int index = parsePosition.getIndex();
+                for (var message : messages) {
+                    ctx.root().recordError(index, message);
+                }
                 return ~parsePosition.getErrorIndex();
             }
             if (ctx instanceof RootParseContext.Terminal terminalCtx) {
@@ -495,7 +495,7 @@ public class NodeFormatterBuilder {
                 ctx.root()
                         .recordError(~numberEnd,
                                 "Expected an integer for a rule index but found '%s'".formatted(
-                                        textLookahead(text, position)));
+                                        textLookahead(text, position, 3)));
                 return numberEnd;
             }
             int ruleIndex = Integer.parseInt(text.subSequence(position, numberEnd).toString());
@@ -557,7 +557,7 @@ public class NodeFormatterBuilder {
                         .recordError(position,
                                 "Unrecognized rule name starting with '%s'".formatted(textLookahead(
                                         text,
-                                        position)));
+                                        position, 5)));
                 return ~position;
             }
             if (ctx instanceof RootParseContext.Rule ruleContext) {

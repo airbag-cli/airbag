@@ -122,11 +122,9 @@ public class TreeFormatterTest {
         assertEquals("""
                 Parse failed at index 35:
                 Expected 'EOF' but found 'a(3'
-                No vocabulary set
                 Expected literal '(' but found 'a'
-                Expected literal '(' but found 'a(3 (4 'My'
-                Expected literal '(<error> ' but found 'a(3 (4 'My'
-                Expected literal ')' but found 'a(3 (4 'My'
+                Expected literal ')' but found 'a'
+                No vocabulary set
                 
                 (1 (2 (4 'My text') (4 'My text')) >>a(3 (4 'My text')))
                 """, e.getMessage());
