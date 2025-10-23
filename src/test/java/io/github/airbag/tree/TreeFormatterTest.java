@@ -1,15 +1,15 @@
-package io.github.airbag.symbol;
+package io.github.airbag.tree;
 
 import io.github.airbag.gen.ExpressionLexer;
 import io.github.airbag.gen.ExpressionParser;
-import io.github.airbag.tree.*;
+import io.github.airbag.symbol.Symbol;
+import io.github.airbag.symbol.SymbolFormatter;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class TreeFormatterTest {
 
@@ -114,6 +114,20 @@ public class TreeFormatterTest {
         DerivationTree actual = FORMATTER.parse("(1 (2 (4 'My text') (4 'My text')) (3 (4 'My text')))");
         assertEquals(2, actual.getChild(0).size());
         assertEquals(1, actual.getChild(1).size());
+    }
+
+    @Test
+    void testExceptionParse() {
+        var e = assertThrows(TreeParseException.class, () -> FORMATTER.parse("(1 (2 (4 'My text') (4 'My text')) a(3 (4 'My text')))"));
+        assertEquals("""
+                Parse failed at index 35:
+                Expected 'EOF' but found 'a(3'
+                Expected literal '(' but found 'a'
+                Expected literal ')' but found 'a'
+                No vocabulary set
+                
+                (1 (2 (4 'My text') (4 'My text')) >>a(3 (4 'My text')))
+                """, e.getMessage());
     }
 
     @Test

@@ -2,10 +2,8 @@ package io.github.airbag.tree;
 
 import io.github.airbag.symbol.Symbol;
 import io.github.airbag.symbol.SymbolFormatter;
-import io.github.airbag.symbol.SymbolFormatterBuilder;
-import io.github.airbag.symbol.SymbolParsePosition;
+import io.github.airbag.symbol.FormatterParsePosition;
 
-import java.text.ParsePosition;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -197,6 +195,106 @@ public class NodeFormatterBuilder {
     }
 
     /**
+     * Appends a placeholder for child nodes with a separator defined by a nested formatter.
+     * <p>
+     * This is an advanced version of {@link #appendChildren(String)} that allows the separator
+     * between child nodes to be defined by its own {@link NodeFormatterBuilder}. This enables
+     * dynamic or complex separators, such as separators that include padding or other structured
+     * elements.
+     * <p>
+     * <b>Formatting:</b> When formatting, the {@link TreeFormatter} will recursively format the
+     * children of the current node. The provided nested formatter is used to generate the
+     * separator string that is inserted between each child's output.
+     * <p>
+     * <b>Parsing:</b> This component is <b>not supported</b> during parsing and will throw an
+     * {@link UnsupportedOperationException}.
+     *
+     * <p><b>Example: Children on new lines with indentation</b></p>
+     * <pre>{@code
+     * // Produces a format where each child is on a new line and indented.
+     * new TreeFormatterBuilder()
+     *     .onRule(nodeBuilder -> nodeBuilder
+     *         .appendRule()
+     *         .appendChildren(separator -> separator
+     *             .appendLiteral("
+")
+     *             .appendPadding("  ") // Indent each child
+     *         )
+     *     )
+     *     .toFormatter();
+     * }</pre>
+     *
+     * @param childSeparator A consumer that configures a {@link NodeFormatterBuilder} to define the separator.
+     * @return This builder.
+     * @throws UnsupportedOperationException during parsing.
+     */
+    public NodeFormatterBuilder appendChildren(Consumer<NodeFormatterBuilder> childSeparator) {
+        var builder = new NodeFormatterBuilder();
+        childSeparator.accept(builder);
+        printerParsers.add(new ChildrenPrinterParser(new TreeFormatterBuilder.CompositePrinterParser(
+                builder.printerParsers())));
+        return this;
+    }
+
+    /**
+     * Appends a flexible whitespace parser and a fixed (empty) whitespace formatter.
+     * <p>
+     * <b>Formatting:</b> This component appends nothing to the output. It is a no-op.
+     * <p>
+     * <b>Parsing:</b> This component consumes any contiguous sequence of whitespace characters
+     * (spaces, tabs, newlines) from the input string. It is useful for allowing for
+     * optional whitespace in a format without enforcing a specific structure.
+     *
+     * @return This builder.
+     */
+    public NodeFormatterBuilder appendWhitespace() {
+        return appendWhitespace("");
+    }
+
+    /**
+     * Appends a printer for a fixed whitespace string and a parser for flexible whitespace.
+     * <p>
+     * <b>Formatting:</b> Appends the specified whitespace string to the output. The provided
+     * string must only contain whitespace characters.
+     * <p>
+     * <b>Parsing:</b> This component consumes any contiguous sequence of whitespace characters
+     * from the input. The content of the {@code whitespace} parameter is ignored during
+     * parsing; this component acts as a flexible whitespace consumer.
+     *
+     * @param whitespace The string of whitespace characters to append during formatting.
+     * @return This builder.
+     * @throws IllegalArgumentException if the provided string contains non-whitespace characters.
+     */
+    public NodeFormatterBuilder appendWhitespace(String whitespace) {
+        printerParsers.add(new WhitespacePrinterParser(whitespace, false));
+        return this;
+    }
+
+    /**
+     * Appends a printer for depth-based indentation and a parser for flexible whitespace.
+     * <p>
+     * This component is used to create indented, human-readable output. The indentation
+     * level is determined by the node's depth in the tree.
+     * <p>
+     * <b>Formatting:</b> Appends the {@code indent} string repeated by the node's depth.
+     * For example, if {@code indent} is {@code "  "}, a node at depth 0 gets no indent,
+     * a node at depth 1 gets "  ", a node at depth 2 gets "    ", and so on.
+     * The provided string must only contain whitespace characters.
+     * <p>
+     * <b>Parsing:</b> This component consumes any contiguous sequence of whitespace characters
+     * from the input. The indentation structure is <b>not</b> enforced during parsing;
+     * this component acts as a flexible whitespace consumer, identical to {@link #appendWhitespace()}.
+     *
+     * @param indent The string to use for each level of indentation.
+     * @return This builder.
+     * @throws IllegalArgumentException if the provided string contains non-whitespace characters.
+     */
+    public NodeFormatterBuilder appendIndent(String indent) {
+        printerParsers.add(new WhitespacePrinterParser(indent, true));
+        return this;
+    }
+
+    /**
      * Appends a padding string that is dynamically calculated based on the node's depth in the tree.
      * <p>
      * This component is typically used to create indented, human-readable representations of a
@@ -254,10 +352,32 @@ public class NodeFormatterBuilder {
         return printerParsers.toArray(new NodePrinterParser[0]);
     }
 
+    /**
+     * The internal interface for parsing and formatting a single {@link DerivationTree} node.
+     * <p>
+     * This interface is the building block for the composite {@link TreeFormatter}.
+     * It defines the dual functionality of formatting (printing) a node's components
+     * into a string and parsing an input character sequence to extract node information.
+     */
     interface NodePrinterParser {
 
+        /**
+         * Formats a value from a {@link NodeFormatContext} into a string buffer.
+         *
+         * @param ctx the context holding the node and other values to be formatted.
+         * @param buf the buffer to append the formatted text to.
+         * @return {@code true} if the formatting was successful, {@code false} otherwise.
+         */
         boolean format(NodeFormatContext ctx, StringBuilder buf);
 
+        /**
+         * Parses a text string, consuming characters and updating the {@link NodeParseContext}.
+         *
+         * @param ctx      the context to store the parsed values.
+         * @param text     the text to parse.
+         * @param position the position to start parsing from.
+         * @return the new position after a successful parse, or a negative value if parsing fails.
+         */
         int parse(NodeParseContext ctx, CharSequence text, int position);
     }
 
@@ -266,6 +386,13 @@ public class NodeFormatterBuilder {
         if (position > length || position < 0) {
             throw new IndexOutOfBoundsException();
         }
+    }
+
+    private static String textLookahead(CharSequence text, int position, int lookahead) {
+        if (position == text.length()) {
+            return "<text end>";
+        }
+        return text.subSequence(position, Math.min(text.length(), position + lookahead)).toString();
     }
 
     static class LiteralPrinterParser implements NodePrinterParser {
@@ -288,10 +415,20 @@ public class NodeFormatterBuilder {
             int positionEnd = position + literal.length();
             if (positionEnd > text.length() ||
                 !literal.contentEquals(text.subSequence(position, positionEnd))) {
+                ctx.root()
+                        .recordError(position,
+                                escapeText("Expected literal '%s' but found '%s'".formatted(literal,
+                                        textLookahead(text, position, literal.length()))));
                 return ~position;
             }
             return positionEnd;
         }
+    }
+
+    private static String escapeText(String text) {
+        text = text.replace("\n", "\\n");
+        text = text.replace("\t", "\\t");
+        return text.replace("\r", "\\r");
     }
 
     static class SymbolPrinterParser implements NodePrinterParser {
@@ -315,10 +452,15 @@ public class NodeFormatterBuilder {
 
         @Override
         public int parse(NodeParseContext ctx, CharSequence text, int position) {
-            SymbolParsePosition parsePosition = new SymbolParsePosition(position);
+            FormatterParsePosition parsePosition = new FormatterParsePosition(position);
             SymbolFormatter symbolFormatter = ctx.symbolFormatter();
             Symbol symbol = symbolFormatter.parse(text, parsePosition);
             if (parsePosition.getErrorIndex() > 0) {
+                String[] messages = parsePosition.getMessage().split("\n");
+                int index = parsePosition.getIndex();
+                for (var message : messages) {
+                    ctx.root().recordError(index, message);
+                }
                 return ~parsePosition.getErrorIndex();
             }
             if (ctx instanceof RootParseContext.Terminal terminalCtx) {
@@ -350,6 +492,10 @@ public class NodeFormatterBuilder {
         public int parse(NodeParseContext ctx, CharSequence text, int position) {
             int numberEnd = peek(text, position);
             if (numberEnd < 0) {
+                ctx.root()
+                        .recordError(~numberEnd,
+                                "Expected an integer for a rule index but found '%s'".formatted(
+                                        textLookahead(text, position, 3)));
                 return numberEnd;
             }
             int ruleIndex = Integer.parseInt(text.subSequence(position, numberEnd).toString());
@@ -407,6 +553,11 @@ public class NodeFormatterBuilder {
                     ctx.recognizer().getRuleNames();
             int index = findRuleIndex(text, ruleNames, position);
             if (index < 0) {
+                ctx.root()
+                        .recordError(position,
+                                "Unrecognized rule name starting with '%s'".formatted(textLookahead(
+                                        text,
+                                        position, 5)));
                 return ~position;
             }
             if (ctx instanceof RootParseContext.Rule ruleContext) {
@@ -464,7 +615,7 @@ public class NodeFormatterBuilder {
         }
     }
 
-    record ChildrenPrinterParser(LiteralPrinterParser separator) implements NodePrinterParser {
+    record ChildrenPrinterParser(NodePrinterParser separator) implements NodePrinterParser {
 
         @Override
         public boolean format(NodeFormatContext ctx, StringBuilder buf) {
@@ -498,9 +649,44 @@ public class NodeFormatterBuilder {
             int positionEnd = position + literal.length();
             if (positionEnd > text.length() ||
                 !literal.contentEquals(text.subSequence(position, positionEnd))) {
+                ctx.root()
+                        .recordError(position,
+                                escapeText("Expected padding literal '%s' but found '%s'".formatted(
+                                        literal,
+                                        textLookahead(text,
+                                                position,
+                                                Math.max(10, literal.length() + 4)))));
                 return ~position;
             }
             return positionEnd;
+        }
+    }
+
+    static class WhitespacePrinterParser implements NodePrinterParser {
+
+        private final String whitespace;
+        private final boolean isIndented;
+
+        public WhitespacePrinterParser(String whitespace, boolean indented) {
+            if (!whitespace.chars().allMatch(Character::isWhitespace)) {
+                throw new IllegalArgumentException("Can only append whitespace");
+            }
+            this.whitespace = whitespace;
+            this.isIndented = indented;
+        }
+
+        @Override
+        public boolean format(NodeFormatContext context, StringBuilder buf) {
+            buf.append(isIndented ? whitespace.repeat(context.node().depth()) : whitespace);
+            return true;
+        }
+
+        @Override
+        public int parse(NodeParseContext context, CharSequence text, int position) {
+            while (position < text.length() && Character.isWhitespace(text.charAt(position))) {
+                position++;
+            }
+            return position;
         }
     }
 }

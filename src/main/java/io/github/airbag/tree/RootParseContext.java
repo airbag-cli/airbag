@@ -4,14 +4,15 @@ import io.github.airbag.symbol.Symbol;
 import io.github.airbag.symbol.SymbolFormatter;
 import org.antlr.v4.runtime.Recognizer;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 class RootParseContext implements NodeParseContext{
 
     private final SymbolFormatter symbolFormatter;
     private final Recognizer<?,?> recognizer;
     private NodeParseContext root;
+    private int maxError;
+    private final Set<String> errorMessages = new TreeSet<>();
 
     RootParseContext(SymbolFormatter symbolFormatter, Recognizer<?, ?> recognizer) {
         this.symbolFormatter = symbolFormatter;
@@ -58,6 +59,26 @@ class RootParseContext implements NodeParseContext{
     @Override
     public int depth() {
         return -1;
+    }
+
+    public int getMaxError() {
+        return maxError;
+    }
+
+    public String getErrorMessages() {
+        StringJoiner joiner = new StringJoiner("%n".formatted());
+        errorMessages.forEach(joiner::add);
+        return joiner.toString();
+    }
+
+    public void recordError(int errorIndex, String message) {
+        if (errorIndex > maxError) {
+            maxError = errorIndex;
+            errorMessages.clear();
+            errorMessages.add(message);
+        } else if (errorIndex == maxError){
+            errorMessages.add(message);
+        }
     }
 
     class Rule implements NodeParseContext {

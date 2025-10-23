@@ -149,7 +149,7 @@ public class TreeFormatterBuilder {
 
             for (int i = 0; i < rulePrinterParsers.length; i++) {
                 if (rulePrinterParsers[i] instanceof NodeFormatterBuilder.ChildrenPrinterParser(
-                        LiteralPrinterParser separator
+                        NodePrinterParser separator
                 )) {
                     rulePrinterParsers[i] = new ChildrenPrinterParser(this, separator);
                 }
@@ -196,9 +196,9 @@ public class TreeFormatterBuilder {
     static class ChildrenPrinterParser implements NodePrinterParser {
 
         private final TreePrinterParser treePrinterParser;
-        private final LiteralPrinterParser separator;
+        private final NodePrinterParser separator;
 
-        ChildrenPrinterParser(TreePrinterParser treePrinterParser, LiteralPrinterParser separator) {
+        ChildrenPrinterParser(TreePrinterParser treePrinterParser, NodePrinterParser separator) {
             this.treePrinterParser = treePrinterParser;
             this.separator = separator;
         }
@@ -223,9 +223,12 @@ public class TreeFormatterBuilder {
 
         @Override
         public int parse(NodeParseContext ctx, CharSequence text, int position) {
-            int result;
+            int result = position;
             do {
                 position = treePrinterParser.parse(ctx, text, position);
+                if (position < 0) {
+                    return result;
+                }
                 result = position;
                 position = separator.parse(ctx, text, position);
             } while (position < text.length() && position > 0);
@@ -237,7 +240,7 @@ public class TreeFormatterBuilder {
 
         private final NodePrinterParser[] printerParsers;
 
-        private CompositePrinterParser(NodePrinterParser[] printerParsers) {
+        CompositePrinterParser(NodePrinterParser[] printerParsers) {
             this.printerParsers = printerParsers;
         }
 

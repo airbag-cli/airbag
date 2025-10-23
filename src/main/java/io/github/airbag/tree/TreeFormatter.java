@@ -1,9 +1,6 @@
 package io.github.airbag.tree;
 
-import io.github.airbag.symbol.SymbolFormatter;
-import io.github.airbag.symbol.SymbolFormatterBuilder;
-import io.github.airbag.symbol.TextOption;
-import io.github.airbag.symbol.TypeFormat;
+import io.github.airbag.symbol.*;
 import io.github.airbag.tree.TreeFormatterBuilder.TreePrinterParser;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Vocabulary;
@@ -77,13 +74,19 @@ public class TreeFormatter {
      */
     public static final TreeFormatter SIMPLE = new TreeFormatterBuilder().onRule(onRule -> onRule.appendLiteral(
                             "(")
+                    .appendWhitespace()
                     .appendRule()
-                    .appendLiteral(" ")
-                    .appendChildren(" ")
+                    .appendWhitespace(" ")
+                    .appendChildren(sep -> sep.appendWhitespace(" "))
+                    .appendWhitespace()
                     .appendLiteral(")"))
             .onTerminal(NodeFormatterBuilder::appendSymbol)
-            .onError(onError -> onError.appendLiteral("(<error> ")
+            .onError(onError -> onError.appendLiteral("(")
+                    .appendWhitespace()
+                    .appendLiteral("<error>")
+                    .appendWhitespace(" ")
                     .appendSymbol()
+                    .appendWhitespace()
                     .appendLiteral(")"))
             .toFormatter();
 
@@ -127,16 +130,18 @@ public class TreeFormatter {
      *
      * @param text The character sequence to parse.
      * @return The parsed {@link DerivationTree}.
-     * @throws RuntimeException if parsing fails or the entire input is not consumed.
+     * @throws TreeParseException if parsing fails or the entire input is not consumed.
      */
     public DerivationTree parse(CharSequence text) {
-        ParsePosition parsePosition = new ParsePosition(0);
+        FormatterParsePosition parsePosition = new FormatterParsePosition(0);
         DerivationTree tree = parse(text, parsePosition);
         if (parsePosition.getErrorIndex() >= 0) {
-            throw new RuntimeException("Cannot parse text %s".formatted(text));
+            throw new TreeParseException(text.toString(),
+                    parsePosition.getErrorIndex(),
+                    parsePosition.getMessage());
         }
         if (parsePosition.getIndex() != text.length()) {
-            throw new RuntimeException("Text has unparsed trainling text at %d".formatted(
+            throw new TreeParseException("Text has unparsed trailing text at %d".formatted(
                     parsePosition.getIndex()));
         }
         return tree;
@@ -149,19 +154,20 @@ public class TreeFormatter {
      * text, updating the {@link ParsePosition} to indicate success or failure.
      *
      * @param text     The character sequence to parse. Must not be null.
-     * @param position The {@link ParsePosition} object. On input, {@code getIndex()} is the
+     * @param position The {@link FormatterParsePosition} object. On input, {@code getIndex()} is the
      *                 starting position. On success, {@code getIndex()} is updated to the
      *                 position after the parsed text. On failure, {@code getErrorIndex()}
      *                 is set to the position where the error occurred, and the method returns {@code null}.
      * @return The parsed {@link DerivationTree}, or {@code null} if parsing fails.
      */
-    public DerivationTree parse(CharSequence text, ParsePosition position) {
+    public DerivationTree parse(CharSequence text, FormatterParsePosition position) {
         Objects.requireNonNull(text, "text");
         Objects.requireNonNull(position, "position");
         RootParseContext rootCtx = new RootParseContext(symbolFormatter, recognizer);
         int result = treePrinterParser.parse(rootCtx, text, position.getIndex());
         if (result < 0) {
-            position.setErrorIndex(~result);
+            position.setErrorIndex(rootCtx.getMaxError());
+            position.setMessage(rootCtx.getErrorMessages());
             return null;
         }
         position.setIndex(result);
