@@ -76,4 +76,39 @@ public class QueryTest {
         var expected = treeProvider.fromSpec("(INT '5')");
         airbag.assertTree(expected, trees.getFirst());
     }
+
+    @Test
+    void testWildcardQuery() {
+        Query query = queryProvider.compile("/expr/*");
+        var trees = query.evaluate(tree);
+        assertEquals(3, trees.size());
+        airbag.assertTree(treeProvider.fromSpec("(expr (INT '5'))"), trees.get(0));
+        airbag.assertTree(treeProvider.fromSpec("'*'"), trees.get(1));
+        airbag.assertTree(treeProvider.fromSpec("(expr '(' (expr (expr (INT '6')) '+' (expr (ID 'x'))) ')')"), trees.get(2));
+    }
+
+    @Test
+    void testAnywhereWildcardQuery() {
+        Query query = queryProvider.compile("//*/INT");
+        var trees = query.evaluate(tree);
+        assertEquals(2, trees.size());
+        airbag.assertTree(treeProvider.fromSpec("(INT '5')"), trees.get(0));
+        airbag.assertTree(treeProvider.fromSpec("(INT '6')"), trees.get(1));
+    }
+
+    @Test
+    void testLiteralQuery() {
+        Query query = queryProvider.compile("/expr/expr/expr/'+'");
+        var trees = query.evaluate(tree);
+        assertEquals(1, trees.size());
+        airbag.assertTree(treeProvider.fromSpec("'+'"), trees.getFirst());
+    }
+
+    @Test
+    void testAnywhereLiteralQuery() {
+        Query query = queryProvider.compile("//'*'");
+        var trees = query.evaluate(tree);
+        assertEquals(1, trees.size());
+        airbag.assertTree(treeProvider.fromSpec("'*'"), trees.getFirst());
+    }
 }
