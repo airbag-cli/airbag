@@ -5,6 +5,7 @@ import io.github.airbag.symbol.SymbolField;
 import io.github.airbag.symbol.SymbolFormatter;
 import io.github.airbag.symbol.SymbolProvider;
 import io.github.airbag.tree.DerivationTree;
+import io.github.airbag.tree.TreeFormatter;
 import io.github.airbag.tree.TreeProvider;
 import io.github.airbag.tree.Validator;
 import io.github.airbag.util.Utils;
@@ -152,8 +153,17 @@ public class Airbag {
                 .getFormatter()
                 .getSymbolFormatter();
         Validator validator = new Validator(SymbolField.equalizer(formatter.getFields()));
+        if (expected == null || actual == null) {
+            TreeFormatter treeFormatter = treeProvider.getFormatter();
+            String expectedString = expected == null ? null : treeFormatter.format(expected);
+            String actualString = actual == null ? null : treeFormatter.format(actual);
+            throw new AssertionFailedError("Cannot compare with null", expectedString, actualString);
+        }
         if (!validator.validate(expected, actual)) {
-            throw new AssertionFailedError("Derivation trees are not matching", expected, actual);
+            TreeFormatter treeFormatter = treeProvider.getFormatter();
+            throw new AssertionFailedError("Derivation trees are not matching",
+                    treeFormatter.format(expected),
+                    treeFormatter.format(actual));
         }
     }
 
