@@ -1,0 +1,13 @@
+ANYWHERE=1
+ROOT=2
+WILDCARD=3
+BANG=4
+INT=5
+ID=6
+STRING=7
+TOKEN=8
+RULE=9
+'//'=1
+'/'=2
+'*'=3
+'!'=4

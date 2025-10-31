@@ -1,14 +1,27 @@
 lexer grammar QueryLexer;
 
-tokens { TOKEN_REF, RULE_REF }
+tokens { TOKEN, RULE, TYPE, INDEX }
 
-ANYWHERE : '//' ;
-ROOT     : '/' ;
-WILDCARD : '*' ;
-BANG     : '!' ;
+ANYWHERE     : '//' ;
+ROOT         : '/' ;
+WILDCARD     : '*' ;
+BANG         : '!';
 
-INT: '-'?[1-9] Digit*;
-ID: NameStartChar NameChar*;
+INT: '-'?[1-9] Digit* {
+    if ( _input.LA(1) == EOF ) {
+        setType(TYPE);
+    } else {
+        setType(INDEX);
+    }
+};
+
+ID: NameStartChar NameChar* {
+    if (Character.isUpperCase(getText().charAt(0))) {
+        setType(TOKEN);
+    } else {
+        setType(RULE);
+    }
+};
 
 fragment
 NameChar    :   NameStartChar

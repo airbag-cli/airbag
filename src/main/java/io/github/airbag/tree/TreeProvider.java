@@ -68,7 +68,6 @@ public class TreeProvider {
         try {
             Parser p = parserClass.getConstructor(TokenStream.class).newInstance((TokenStream) null);
             p.removeErrorListeners();
-            p.setErrorHandler(new BailErrorStrategy());
             return p;
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
                  NoSuchMethodException e) {
@@ -130,6 +129,9 @@ public class TreeProvider {
      * @throws RuntimeException      if the string cannot be parsed by the configured formatter.
      */
     public DerivationTree fromSpec(String stringTree) {
+        if (stringTree.isBlank()) {
+            return null;
+        }
         return formatter.parse(stringTree);
     }
 

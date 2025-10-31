@@ -23,16 +23,34 @@ public class QueryLexerTest {
     @Test
     void testQuery() {
         List<Symbol> expected = provider.fromSpec(
-                "'/' (ID 'expr') '/' (INT '10') '/' (ID 'expr40') '//' '*' '/' EOF");
+                "'/' (RULE 'expr') '/' (INDEX '10') '/' (RULE 'expr40') '//' '*' '/' EOF");
         List<Symbol> actual = provider.fromInput("/expr/10/expr40//*/");
         airbag.assertSymbolList(expected, actual);
+
     }
 
     @Test
     void testInvertedQuery() {
         List<Symbol> expected = provider.fromSpec(
-                "'!' '/' (ID 'expr') '/' (STRING '\\'60\\'') '/' EOF");
-        List<Symbol> actual = provider.fromInput("!/expr/'60'/");
+                "'!' '/' (RULE 'expr') '!' '/' (STRING '\\'60\\'') '/' (TOKEN 'TOKEN') EOF");
+        List<Symbol> actual = provider.fromInput("!/expr!/'60'/TOKEN");
         airbag.assertSymbolList(expected, actual);
+
+    }
+
+    @Test
+    void testIntAsRule() {
+        List<Symbol> expected = provider.fromSpec("'/' (RULE 'expr') '/' (INDEX '4') '/' EOF");
+        List<Symbol> actual = provider.fromInput("/expr/4/");
+        airbag.assertSymbolList(expected, actual);
+
+    }
+
+    @Test
+    void testIntAsToken() {
+        List<Symbol> expected = provider.fromSpec("'/' (RULE 'expr') '/' (TYPE '4') EOF");
+        List<Symbol> actual = provider.fromInput("/expr/4");
+        airbag.assertSymbolList(expected, actual);
+
     }
 }

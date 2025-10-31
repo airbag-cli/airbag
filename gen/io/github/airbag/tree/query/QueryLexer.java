@@ -1,4 +1,4 @@
-// Generated from QueryLexer.g4 by ANTLR 4.13.2
+// Generated from /home/agoss/Code/airbag/src/main/java/io/github/airbag/tree/query/QueryLexer.g4 by ANTLR 4.13.2
 package io.github.airbag.tree.query;
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.CharStream;
