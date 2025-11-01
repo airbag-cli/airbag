@@ -3,6 +3,7 @@ package io.github.airbag.tree;
 import io.github.airbag.symbol.Symbol;
 import io.github.airbag.symbol.SymbolFormatter;
 import io.github.airbag.symbol.FormatterParsePosition;
+import org.antlr.v4.runtime.Parser;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -548,10 +549,7 @@ public class NodeFormatterBuilder {
         @Override
         public int parse(NodeParseContext ctx, CharSequence text, int position) {
             validatePosition(text, position);
-            String[] ruleNames = ctx.recognizer() == null ?
-                    new String[0] :
-                    ctx.recognizer().getRuleNames();
-            int index = findRuleIndex(text, ruleNames, position);
+            int index = findRuleIndex(text, ctx.parser(), position);
             if (index < 0) {
                 ctx.root()
                         .recordError(position,
@@ -563,12 +561,16 @@ public class NodeFormatterBuilder {
             if (ctx instanceof RootParseContext.Rule ruleContext) {
                 ruleContext.setIndex(index);
             }
-            return position + ruleNames[index].length();
+            return position + ctx.parser().getRuleNames()[index].length();
         }
 
-        private int findRuleIndex(CharSequence text, String[] ruleNames, int position) {
+        private int findRuleIndex(CharSequence text, Parser parser, int position) {
+            if (parser == null) {
+                return -1;
+            }
             int index = -1;
             int maxLength = 0;
+            String[] ruleNames = parser.getRuleNames();
             for (int i = 0; i < ruleNames.length; i++) {
                 String ruleName = ruleNames[i];
                 if (ruleName.length() > maxLength &&

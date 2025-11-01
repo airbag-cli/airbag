@@ -2,6 +2,7 @@ package io.github.airbag.tree;
 
 import io.github.airbag.symbol.*;
 import io.github.airbag.tree.TreeFormatterBuilder.TreePrinterParser;
+import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Vocabulary;
 
@@ -31,7 +32,7 @@ import java.util.Objects;
  * <h3>Customization</h3>
  * Once a formatter is created, it can be further customized. The
  * {@link #withSymbolFormatter(SymbolFormatter)} method allows you to control how terminal
- * symbols are formatted, while {@link #withRecognizer(Recognizer)} provides the necessary
+ * symbols are formatted, while {@link #withParser(Parser)} provides the necessary
  * context (like rule and token names) from an ANTLR parser or lexer.
  *
  * @see TreeFormatterBuilder
@@ -42,7 +43,7 @@ public class TreeFormatter {
 
     private final TreePrinterParser treePrinterParser;
     private final SymbolFormatter symbolFormatter;
-    private final Recognizer<?, ?> recognizer;
+    private final Parser parser;
 
     /**
      * A formatter that produces a LISP-style S-expression format, similar to the output of
@@ -92,15 +93,15 @@ public class TreeFormatter {
 
     TreeFormatter(TreePrinterParser treePrinterParser) {
         this.symbolFormatter = SymbolFormatter.SIMPLE;
-        this.recognizer = null;
+        this.parser = null;
         this.treePrinterParser = treePrinterParser;
     }
 
     TreeFormatter(SymbolFormatter symbolFormatter,
-                  Recognizer<?, ?> recognizer,
+                  Parser parser,
                   TreePrinterParser treePrinterParser) {
         this.symbolFormatter = symbolFormatter;
-        this.recognizer = recognizer;
+        this.parser = parser;
         this.treePrinterParser = treePrinterParser;
     }
 
@@ -113,7 +114,7 @@ public class TreeFormatter {
      *                          for a node type was not defined).
      */
     public String format(DerivationTree tree) {
-        NodeFormatContext ctx = new NodeFormatContext(symbolFormatter, recognizer);
+        NodeFormatContext ctx = new NodeFormatContext(symbolFormatter, parser);
         ctx.setNode(tree);
         StringBuilder buf = new StringBuilder();
         if (!treePrinterParser.format(ctx, buf)) {
@@ -163,7 +164,7 @@ public class TreeFormatter {
     public DerivationTree parse(CharSequence text, FormatterParsePosition position) {
         Objects.requireNonNull(text, "text");
         Objects.requireNonNull(position, "position");
-        RootParseContext rootCtx = new RootParseContext(symbolFormatter, recognizer);
+        RootParseContext rootCtx = new RootParseContext(symbolFormatter, parser);
         int result = treePrinterParser.parse(rootCtx, text, position.getIndex());
         if (result < 0) {
             position.setErrorIndex(rootCtx.getMaxError());
@@ -186,12 +187,12 @@ public class TreeFormatter {
      */
     public TreeFormatter withSymbolFormatter(SymbolFormatter formatter) {
         return new TreeFormatter(formatter.withVocabulary(getVocabulary()),
-                recognizer,
+                parser,
                 treePrinterParser);
     }
 
     private Vocabulary getVocabulary() {
-        return recognizer == null ? null : recognizer.getVocabulary();
+        return parser == null ? null : parser.getVocabulary();
     }
 
     /**
@@ -201,15 +202,14 @@ public class TreeFormatter {
      * to rule names and token types to symbolic or literal names. Setting a recognizer is
      * essential for formats that use names instead of integer indices (e.g., {@code "expr"} instead of {@code 0}).
      *
-     * @param recognizer The ANTLR recognizer (e.g., a {@code Parser} instance) to provide context.
      * @return A new, configured {@link TreeFormatter} instance.
      */
-    public TreeFormatter withRecognizer(Recognizer<?, ?> recognizer) {
-        if (recognizer == null) {
+    public TreeFormatter withParser(Parser parser) {
+        if (parser == null) {
             return new TreeFormatter(symbolFormatter.withVocabulary(null), null, treePrinterParser);
         }
-        return new TreeFormatter(symbolFormatter.withVocabulary(recognizer.getVocabulary()),
-                recognizer,
+        return new TreeFormatter(symbolFormatter.withVocabulary(parser.getVocabulary()),
+                parser,
                 treePrinterParser);
     }
 

@@ -1,11 +1,11 @@
 package io.github.airbag.tree;
 
 import io.github.airbag.symbol.SymbolFormatter;
-import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.Parser;
 
 interface NodeParseContext {
     SymbolFormatter symbolFormatter();
-    Recognizer<?,?> recognizer();
+    Parser parser();
     RootParseContext root();
     int depth();
     void addChildContext(NodeParseContext childCtx);

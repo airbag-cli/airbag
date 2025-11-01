@@ -1,18 +1,18 @@
 package io.github.airbag.tree;
 
 import io.github.airbag.symbol.SymbolFormatter;
-import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.Parser;
 
 public class NodeFormatContext {
 
     //Later final
     private DerivationTree node;
     private final SymbolFormatter symbolFormatter;
-    private final Recognizer<?,?> recognizer;
+    private final Parser parser;
 
-    public NodeFormatContext(SymbolFormatter symbolFormatter, Recognizer<?, ?> recognizer) {
+    public NodeFormatContext(SymbolFormatter symbolFormatter, Parser parser) {
         this.symbolFormatter = symbolFormatter;
-        this.recognizer = recognizer;
+        this.parser = parser;
     }
 
     public SymbolFormatter symbolFormatter() {
@@ -27,7 +27,7 @@ public class NodeFormatContext {
         this.node = node;
     }
 
-    public Recognizer<?, ?> recognizer() {
-        return recognizer;
+    public Parser recognizer() {
+        return parser;
     }
 }

@@ -136,7 +136,7 @@ public class TreeFormatterTest {
         ExpressionParser parser = new ExpressionParser(new CommonTokenStream(lexer));
         ParseTree tree = parser.prog();
         assertEquals("(prog (stat x = (expr 5) \\n) <EOF>)", tree.toStringTree(parser));
-        TreeFormatter formatter = TreeFormatter.ANTLR.withRecognizer(parser);
+        TreeFormatter formatter = TreeFormatter.ANTLR.withParser(parser);
         assertEquals("(prog (stat x = (expr 5) \\n) <EOF>)", formatter.format(DerivationTree.from(tree)));
     }
 

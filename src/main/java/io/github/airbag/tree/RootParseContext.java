@@ -2,6 +2,7 @@ package io.github.airbag.tree;
 
 import io.github.airbag.symbol.Symbol;
 import io.github.airbag.symbol.SymbolFormatter;
+import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.Recognizer;
 
 import java.util.*;
@@ -9,12 +10,12 @@ import java.util.*;
 class RootParseContext implements NodeParseContext{
 
     private final SymbolFormatter symbolFormatter;
-    private final Recognizer<?,?> recognizer;
+    private final Parser recognizer;
     private NodeParseContext root;
     private int maxError;
     private final Set<String> errorMessages = new TreeSet<>();
 
-    RootParseContext(SymbolFormatter symbolFormatter, Recognizer<?, ?> recognizer) {
+    RootParseContext(SymbolFormatter symbolFormatter, Parser recognizer) {
         this.symbolFormatter = symbolFormatter;
         this.recognizer = recognizer;
     }
@@ -25,7 +26,7 @@ class RootParseContext implements NodeParseContext{
     }
 
     @Override
-    public Recognizer<?, ?> recognizer() {
+    public Parser parser() {
         return recognizer;
     }
 
@@ -105,7 +106,7 @@ class RootParseContext implements NodeParseContext{
         }
 
         @Override
-        public Recognizer<?, ?> recognizer() {
+        public Parser parser() {
             return recognizer;
         }
 
@@ -162,7 +163,7 @@ class RootParseContext implements NodeParseContext{
         }
 
         @Override
-        public Recognizer<?, ?> recognizer() {
+        public Parser parser() {
             return recognizer;
         }
 
@@ -215,7 +216,7 @@ class RootParseContext implements NodeParseContext{
         }
 
         @Override
-        public Recognizer<?, ?> recognizer() {
+        public Parser parser() {
             return recognizer;
         }
 
