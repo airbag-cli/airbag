@@ -125,11 +125,7 @@ public class Airbag {
         SymbolFormatter formatter = symbolProvider.getFormatter();
         BiPredicate<Symbol, Symbol> equalizer = SymbolField.equalizer(formatter.getFields());
         if (!Utils.listEquals(expected, actual, equalizer)) {
-            List<String> expectedLines = expected.stream().map(formatter::format).toList();
-            List<String> actualLines = actual.stream().map(formatter::format).toList();
-            throw new AssertionFailedError("Symbols lists are not equal",
-                    expectedLines,
-                    actualLines);
+            throw new SymbolAssertionFailedError(formatter, expected, actual);
         }
     }
 
@@ -157,7 +153,9 @@ public class Airbag {
             TreeFormatter treeFormatter = treeProvider.getFormatter();
             String expectedString = expected == null ? null : treeFormatter.format(expected);
             String actualString = actual == null ? null : treeFormatter.format(actual);
-            throw new AssertionFailedError("Cannot compare with null", expectedString, actualString);
+            throw new AssertionFailedError("Cannot compare with null",
+                    expectedString,
+                    actualString);
         }
         if (!validator.validate(expected, actual)) {
             TreeFormatter treeFormatter = treeProvider.getFormatter();
