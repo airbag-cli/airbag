@@ -1,11 +1,13 @@
 package io.github.airbag.tree;
 
 import io.github.airbag.symbol.*;
+import io.github.airbag.tree.NodeFormatterBuilder.NodePrinterParser;
 import io.github.airbag.tree.TreeFormatterBuilder.TreePrinterParser;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Vocabulary;
 
 import java.text.ParsePosition;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -123,6 +125,29 @@ public class TreeFormatter {
     }
 
     /**
+     * Formats only the root node of the given {@link DerivationTree}, excluding its children.
+     * <p>
+     * This method is useful when you need a string representation of a specific node
+     * without the complexity of the entire subtree. It uses the same formatting rules
+     * as the {@link #format(DerivationTree)} method but stops after processing the top-level node.
+     * For example, if a rule node is formatted as {@code "(<rule> ...)"}, this method
+     * would return {@code "(<rule>)"}, omitting the children.
+     *
+     * @param node The {@link DerivationTree} whose root node is to be formatted. Must not be null.
+     * @return The formatted string representation of the node.
+     * @throws RuntimeException if formatting fails.
+     */
+    public String formatNode(DerivationTree node) {
+        NodeFormatContext ctx = new NodeFormatContext(symbolFormatter, recognizer, true);
+        ctx.setNode(node);
+        StringBuilder buf = new StringBuilder();
+        if (!treePrinterParser.format(ctx, buf)) {
+            throw new RuntimeException("Cannot format %s".formatted(node));
+        }
+        return buf.toString();
+    }
+
+    /**
      * Parses a character sequence into a {@link DerivationTree}.
      * <p>
      * This method expects to consume the entire input string. If any part of the string
@@ -216,4 +241,5 @@ public class TreeFormatter {
     public SymbolFormatter getSymbolFormatter() {
         return symbolFormatter;
     }
+
 }

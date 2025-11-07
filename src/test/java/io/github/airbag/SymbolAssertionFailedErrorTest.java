@@ -75,4 +75,80 @@ public class SymbolAssertionFailedErrorTest {
                 """;
         assertEquals(expectedMessage, error.getMessage());
     }
+
+    @Test
+    void testConstructorWithInsertion() {
+        List<Symbol> expectedList = List.of(
+                Symbol.of().text("a").type(1).get()
+        );
+
+        List<Symbol> actualList = List.of(
+                Symbol.of().text("a").type(1).get(),
+                Symbol.of().text("b").type(1).get()
+        );
+
+        SymbolAssertionFailedError error = new SymbolAssertionFailedError(SymbolFormatter.SIMPLE, expectedList, actualList);
+
+        String expectedMessage = """
+                The expected symbol list does not match the actual:
+
+                +-------+-------+----------+---------+
+                | index | delta | expected | actual  |
+                +-------+-------+----------+---------+
+                |   0   |       | (1 'a')  | (1 'a') |
+                |   1   |   +   |          | (1 'b') |
+                +-------+-------+----------+---------+
+                """;
+        assertEquals(expectedMessage, error.getMessage());
+    }
+
+    @Test
+    void testConstructorWithDeletion() {
+        List<Symbol> expectedList = List.of(
+                Symbol.of().text("a").type(1).get(),
+                Symbol.of().text("b").type(1).get()
+        );
+
+        List<Symbol> actualList = List.of(
+                Symbol.of().text("a").type(1).get()
+        );
+
+        SymbolAssertionFailedError error = new SymbolAssertionFailedError(SymbolFormatter.SIMPLE, expectedList, actualList);
+
+        String expectedMessage = """
+                The expected symbol list does not match the actual:
+
+                +-------+-------+----------+---------+
+                | index | delta | expected | actual  |
+                +-------+-------+----------+---------+
+                |   0   |       | (1 'a')  | (1 'a') |
+                |   1   |   -   | (1 'b')  |         |
+                +-------+-------+----------+---------+
+                """;
+        assertEquals(expectedMessage, error.getMessage());
+    }
+
+    @Test
+    void testConstructorWithChange() {
+        List<Symbol> expectedList = List.of(
+                Symbol.of().text("a").type(1).get()
+        );
+
+        List<Symbol> actualList = List.of(
+                Symbol.of().text("b").type(1).get()
+        );
+
+        SymbolAssertionFailedError error = new SymbolAssertionFailedError(SymbolFormatter.SIMPLE, expectedList, actualList);
+
+        String expectedMessage = """
+                The expected symbol list does not match the actual:
+
+                +-------+-------+----------+---------+
+                | index | delta | expected | actual  |
+                +-------+-------+----------+---------+
+                |   0   |   ~   | (1 'a')  | (1 'b') |
+                +-------+-------+----------+---------+
+                """;
+        assertEquals(expectedMessage, error.getMessage());
+    }
 }

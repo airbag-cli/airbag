@@ -1,11 +1,10 @@
 package io.github.airbag.tree.query;
 
 import io.github.airbag.tree.DerivationTree;
+import io.github.airbag.tree.Trees;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.function.Predicate;
 
 public abstract class QueryElement {
@@ -21,29 +20,14 @@ public abstract class QueryElement {
     public Collection<DerivationTree> evaluate(DerivationTree t) {
         Collection<DerivationTree> collection = switch (navigator) {
             case ROOT -> Collections.singleton(t);
-            case DESCENDANTS -> getDescendants(false, t);
-            case ALL -> getDescendants(true, t);
+            case DESCENDANTS -> Trees.getDescendants(false, t);
+            case ALL -> Trees.getDescendants(true, t);
             case CHILDREN -> t.children();
         };
         return collection.stream().filter(filter()).toList();
     }
 
-    public static List<DerivationTree> getDescendants(boolean includeRoot, DerivationTree t) {
-        List<DerivationTree> accumulator = new ArrayList<>();
-        getDescendants(includeRoot, t, accumulator);
-        return accumulator;
-    }
 
-    public static void getDescendants(boolean includeRoot,
-                                      DerivationTree t,
-                                      List<DerivationTree> accumulator) {
-        if (includeRoot) {
-            accumulator.add(t);
-        }
-        for (var child : t.children()) {
-            getDescendants(true, child, accumulator);
-        }
-    }
 
     public enum Navigator {
         ROOT, ALL, CHILDREN, DESCENDANTS

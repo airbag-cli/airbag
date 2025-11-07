@@ -45,6 +45,11 @@ public sealed interface DerivationTree permits Node, DerivationTree.Rule, Deriva
 
     List<DerivationTree> children();
 
+    /**
+     * Checks for equal type and index.
+     */
+    boolean matches(DerivationTree other);
+
     default int size() {
         return children().size();
     }

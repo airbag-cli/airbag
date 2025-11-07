@@ -78,7 +78,7 @@ public class SymbolListDiffPrinter {
                     var source = patch.getSource();
                     int position = source.getPosition();
                     for (int i = 0; i < source.size(); i++) {
-                        var sourceLine = i < source.size() ? source.getLines().get(i) : null;
+                        var sourceLine = source.getLines().get(i);
                         tableRows.add(new TableRow(position + i,
                                 DeltaType.DELETE,
                                 sourceLine,
@@ -89,7 +89,7 @@ public class SymbolListDiffPrinter {
                     var target = patch.getTarget();
                     int position = target.getPosition();
                     for (int i = 0; i < target.size(); i++) {
-                        var targetLine = i < target.size() ? target.getLines().get(i) : null;
+                        var targetLine = target.getLines().get(i);
                         tableRows.add(new TableRow(position + i,
                                 DeltaType.INSERT,
                                 null,
@@ -101,8 +101,8 @@ public class SymbolListDiffPrinter {
                     var target = patch.getTarget();
                     int position = Math.min(source.getPosition(), target.getPosition());
                     for (int i = 0; i < Math.max(source.size(), target.size()); i++) {
-                        var sourceLine = i < source.size() ? source.getLines().get(i) : null;
-                        var targetLine = i < target.size() ? target.getLines().get(i) : null;
+                        var sourceLine = source.getLines().get(i);
+                        var targetLine = target.getLines().get(i);
                         tableRows.add(new TableRow(position + i,
                                 DeltaType.EQUAL,
                                 sourceLine,
