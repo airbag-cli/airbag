@@ -9,10 +9,18 @@ public class NodeFormatContext {
     private DerivationTree node;
     private final SymbolFormatter symbolFormatter;
     private final Recognizer<?,?> recognizer;
+    private final boolean doNotRecurse;
 
-    public NodeFormatContext(SymbolFormatter symbolFormatter, Recognizer<?, ?> recognizer) {
+
+
+    public NodeFormatContext(SymbolFormatter symbolFormatter, Recognizer<?, ?> recognizer, boolean doNotRecurse) {
         this.symbolFormatter = symbolFormatter;
         this.recognizer = recognizer;
+        this.doNotRecurse = doNotRecurse;
+    }
+
+    public NodeFormatContext(SymbolFormatter symbolFormatter, Recognizer<?,?> recognizer) {
+        this(symbolFormatter, recognizer, false);
     }
 
     public SymbolFormatter symbolFormatter() {
@@ -29,5 +37,9 @@ public class NodeFormatContext {
 
     public Recognizer<?, ?> recognizer() {
         return recognizer;
+    }
+
+    public boolean doNotRecurse() {
+        return doNotRecurse;
     }
 }

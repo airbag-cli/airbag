@@ -52,6 +52,7 @@ public class SymbolProvider {
         try {// Instantiate the lexer. ANTLR lexers require a CharStream, but we can pass null
             // for initialization and set the actual stream later for each tokenization operation.
             lexer = lexerClass.getConstructor(CharStream.class).newInstance((CharStream) null);
+            lexer.removeErrorListeners();
             formatter = SymbolFormatter.SIMPLE.withVocabulary(lexer.getVocabulary());
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
                  NoSuchMethodException e) {
