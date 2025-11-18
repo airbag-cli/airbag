@@ -216,4 +216,8 @@ public final class SymbolField<T> {
         return Set.of(TYPE, TEXT, INDEX, LINE, POSITION, START, STOP, CHANNEL);
     }
 
+    public static Set<SymbolField<?>> simple() {
+        return Set.of(TYPE, TEXT, INDEX, CHANNEL);
+    }
+
 }

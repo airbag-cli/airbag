@@ -47,6 +47,7 @@ public class Validator {
                     yield false;
                 }
             }
+            case DerivationTree.Pattern patternNode -> throw new RuntimeException(); //TODO
             case null -> throw new IllegalArgumentException();
         };
     }

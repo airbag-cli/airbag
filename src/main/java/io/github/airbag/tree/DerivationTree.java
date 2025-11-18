@@ -1,20 +1,19 @@
 package io.github.airbag.tree;
 
 import io.github.airbag.symbol.Symbol;
-import org.antlr.v4.runtime.DefaultErrorStrategy;
+import io.github.airbag.tree.pattern.TreePattern;
+import io.github.airbag.tree.pattern.TreePatternBuilder;
 import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.RuleNode;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
 
 
-public sealed interface DerivationTree permits Node, DerivationTree.Rule, DerivationTree.Terminal, DerivationTree.Error {
+public sealed interface DerivationTree permits Node, DerivationTree.Rule, DerivationTree.Terminal, DerivationTree.Error, DerivationTree.Pattern {
 
     static DerivationTree from(ParseTree parseTree) {
         return from(null, parseTree);
@@ -107,5 +106,10 @@ public sealed interface DerivationTree permits Node, DerivationTree.Rule, Deriva
     sealed interface Error extends DerivationTree permits Node.Error {
 
         Symbol symbol();
+    }
+
+    sealed interface Pattern extends DerivationTree permits Node.Pattern {
+
+        TreePattern getPattern();
     }
 }

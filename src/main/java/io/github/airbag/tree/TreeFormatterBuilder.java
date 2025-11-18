@@ -167,6 +167,7 @@ public class TreeFormatterBuilder {
                 case DerivationTree.Rule ignored -> rulePrinterParser.format(ctx, buf);
                 case DerivationTree.Terminal ignored -> terminalPrinterParser.format(ctx, buf);
                 case DerivationTree.Error ignored -> errorPrinterParser.format(ctx, buf);
+                case DerivationTree.Pattern ignored -> throw new RuntimeException(); //TODO
             };
         }
 
