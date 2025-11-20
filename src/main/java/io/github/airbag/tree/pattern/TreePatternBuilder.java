@@ -37,8 +37,18 @@ public class TreePatternBuilder {
         return this;
     }
 
+    public TreePatternBuilder appendRuleTag(int ruleIndex, String label) {
+        treePatternList.add(new RuleTagPatternElement(ruleIndex, label));
+        return this;
+    }
+
     public TreePatternBuilder appendSymbolTag(int symbolIndex) {
         treePatternList.add(new SymbolTagPatternElement(symbolIndex));
+        return this;
+    }
+
+    public TreePatternBuilder appendSymbolTag(int symbolIndex, String label) {
+        treePatternList.add(new SymbolTagPatternElement(symbolIndex, label));
         return this;
     }
 
@@ -69,6 +79,10 @@ public class TreePatternBuilder {
                 }
             }
             return true;
+        }
+
+        public TreePatternElement[] elements() {
+            return patternElements;
         }
     }
 
@@ -111,7 +125,7 @@ public class TreePatternBuilder {
 
         public RuleTagPatternElement(int ruleIndex, String tag) {
             this.ruleIndex = ruleIndex;
-            this.tag = tag;
+            this.tag = tag == null || tag.isEmpty() ? null : tag;
         }
 
         @Override
@@ -120,10 +134,18 @@ public class TreePatternBuilder {
                 case DerivationTree.Rule ruleNode -> ruleNode.index() == ruleIndex;
                 default -> false;
             };
-            if (result) {
+            if (result && tag != null) {
                 ctx.addLabel(tag, ctx.getTree());
             }
             return result;
+        }
+
+        public int type() {
+            return ruleIndex;
+        }
+
+        public String label() {
+            return tag;
         }
     }
 
@@ -133,22 +155,30 @@ public class TreePatternBuilder {
         private final String tag;
 
         public SymbolTagPatternElement(int symbolIndex) {
-            this(symbolIndex, "");
+            this(symbolIndex, null);
         }
 
         public SymbolTagPatternElement(int symbolIndex, String tag) {
             symbolPattern = new SymbolPatternElement(Symbol.of().type(symbolIndex).get(),
                     SymbolField.equalizer(Set.of(SymbolField.TYPE)));
-            this.tag = tag;
+            this.tag = tag == null || tag.isEmpty() ? null : tag;
         }
 
         @Override
         public boolean match(TreePatternContext ctx) {
             boolean result = symbolPattern.match(ctx);
-            if (result) {
+            if (result && tag != null) {
                 ctx.addLabel(tag, ctx.getTree());
             }
             return result;
+        }
+
+        public int type() {
+            return symbolPattern.getSymbol().type();
+        }
+
+        public String label() {
+            return tag;
         }
     }
 }

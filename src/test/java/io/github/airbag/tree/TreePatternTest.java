@@ -3,10 +3,12 @@ package io.github.airbag.tree;
 import io.github.airbag.Airbag;
 import io.github.airbag.gen.ExpressionLexer;
 import io.github.airbag.gen.ExpressionParser;
+import io.github.airbag.symbol.FormatterParsePosition;
 import io.github.airbag.symbol.SymbolFormatter;
 import io.github.airbag.tree.pattern.TreeMatchResult;
 import io.github.airbag.tree.pattern.TreePattern;
 import io.github.airbag.tree.pattern.TreePatternBuilder;
+import io.github.airbag.tree.pattern.TreePatternFormatter;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -74,11 +76,8 @@ public class TreePatternTest {
 
         DerivationTree t = treeFormatter.parse(
                 "(stat (ID 'a') '=' (expr (INT '5')) (NEWLINE '\\n'))");
-        TreePattern pattern = new TreePatternBuilder(ExpressionParser.RULE_stat).appendSymbolTag(ExpressionParser.ID)
-                .appendSymbol(symbolFormatter.parse("'='"))
-                .appendSymbolTag(ExpressionParser.INT)
-                .appendSymbol(symbolFormatter.parse("(NEWLINE '\\n')"))
-                .toPattern();
+        TreePatternFormatter formatter = new TreePatternFormatter().withSymbolFormatter(symbolFormatter).withRecognizer(new ExpressionParser(null));
+        TreePattern pattern = formatter.parse(ExpressionParser.RULE_stat, "<ID> '=' <INT> (NEWLINE '\\n')", new FormatterParsePosition(0));
         var result = pattern.match(t);
         assertTrue(result.succeeded());
         assertEquals("(stat (ID 'a') '=' (expr (INT '5')) (NEWLINE '\\n'))", treeFormatter.format(result.tree()));

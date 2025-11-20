@@ -32,3 +32,4 @@ To ensure consistency and maintainability, please follow these guidelines when i
 *   **Dependencies:** Manage dependencies using the `pom.xml` file.
 *   **Commit Messages:** Write clear and concise commit messages, describing the changes made.
 *   **Detailed Explanations:** Always explain code changes and new implementations. Provide a line-by-line breakdown if the changes are complex or non-trivial.
+*   **Explicit Requests:** Do not write to files or implement changes unless explicitly requested.

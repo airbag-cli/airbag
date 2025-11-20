@@ -1,5 +1,6 @@
 package io.github.airbag.symbol;
 
+import io.github.airbag.util.Utils;
 import org.antlr.v4.runtime.Vocabulary;
 
 import java.util.*;
@@ -539,8 +540,9 @@ public class SymbolFormatterBuilder {
                             i++;
                         }
                         if (i >= pattern.length()) {
-                            throw new SymbolFormatterException("Unclosed quoted literal in pattern: " +
-                                                               pattern);
+                            throw new SymbolFormatterException(
+                                    "Unclosed quoted literal in pattern: " +
+                                    pattern);
                         }
                         String literal = pattern.substring(contentStart, i);
                         if (!literal.isEmpty()) {
@@ -550,8 +552,9 @@ public class SymbolFormatterBuilder {
                     case '\\' -> {
                         i++;
                         if (i >= pattern.length()) {
-                            throw new SymbolFormatterException("Invalid escape sequence at end of pattern: " +
-                                                               pattern);
+                            throw new SymbolFormatterException(
+                                    "Invalid escape sequence at end of pattern: " +
+                                    pattern);
                         }
                         literalBuf.append(pattern.charAt(i));
                     }
@@ -567,7 +570,8 @@ public class SymbolFormatterBuilder {
                         if (Character.isWhitespace(c)) {
                             flushLiteralBuf(literalBuf);
                             int j = i;
-                            while (j < pattern.length() && Character.isWhitespace(pattern.charAt(j))) {
+                            while (j < pattern.length() &&
+                                   Character.isWhitespace(pattern.charAt(j))) {
                                 j++;
                             }
                             appendWhitespace(pattern.substring(i, j));
@@ -982,7 +986,11 @@ public class SymbolFormatterBuilder {
                 }
             }
             if (text.isEmpty()) {
-                buf.append(option.getDefaultValue());
+                if (option.failOnDefault()) {
+                    return false;
+                } else {
+                    buf.append(option.getDefaultValue());
+                }
             }
             return true;
         }
@@ -1066,11 +1074,34 @@ public class SymbolFormatterBuilder {
                     return i;
                 }
             }
-            throw new RuntimeException("Parser is not part of the chain");
+            return -1;
         }
 
         private SymbolPrinterParser[] getSuccessors(SymbolPrinterParser[] parserChain) {
             int parserIndex = findParserIndex(parserChain);
+            if (parserIndex == -1) {
+                //The TextPrinterParser must be part of an optional
+                for (int i = 0; i < parserChain.length; i++) {
+                    var parser = parserChain[i];
+                    if (parser instanceof CompositePrinterParser compositePrinterParser) {
+                        if (compositePrinterParser.isOptional()) {
+                            parserIndex = findParserIndex(compositePrinterParser.printerParsers);
+                            if (parserIndex >= 0) {
+                                var optionalSuccessors = splitChain(parserIndex, compositePrinterParser.printerParsers);
+                                var afterOptionalSuccessors = splitChain(i, parserChain);
+                                return Utils.concat(optionalSuccessors, afterOptionalSuccessors);
+                            }
+                        }
+                    }
+                }
+                throw new RuntimeException("Parser is not part of the chain");
+            } else {
+                return splitChain(parserIndex, parserChain);
+            }
+        }
+
+        private SymbolPrinterParser[] splitChain(int parserIndex,
+                                                 SymbolPrinterParser[] parserChain) {
             if (parserIndex < 0 || parserIndex == parserChain.length - 1) {
                 return new SymbolPrinterParser[0];
             }

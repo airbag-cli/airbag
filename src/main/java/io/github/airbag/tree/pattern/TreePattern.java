@@ -45,4 +45,8 @@ public class TreePattern {
         }
         return matches;
     }
+
+    TreePatternBuilder.TreePatternElement[] getElements() {
+        return compositePattern.elements();
+    }
 }
