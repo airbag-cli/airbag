@@ -4,7 +4,6 @@ import io.github.airbag.symbol.FormatterParsePosition;
 import io.github.airbag.symbol.Symbol;
 import io.github.airbag.symbol.SymbolField;
 import io.github.airbag.symbol.SymbolFormatter;
-import io.github.airbag.tree.DerivationTree;
 import io.github.airbag.tree.TreeParseException;
 import org.antlr.v4.runtime.Parser;
 

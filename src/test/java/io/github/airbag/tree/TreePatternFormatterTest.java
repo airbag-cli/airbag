@@ -58,7 +58,6 @@ public class TreePatternFormatterTest {
     @Test
     void parseSymbolicPattern() {
         String patternString = "<ID> '=' <expr> (NEWLINE '\\n')";
-        int rootIndex = ExpressionParser.RULE_stat;
 
         // Parse the pattern string
         FormatterParsePosition position = new FormatterParsePosition(0);
@@ -79,7 +78,6 @@ public class TreePatternFormatterTest {
     @Test
     void parseIntegerPattern() {
         String patternString = "<8/> (1 '=') <2> (10 '\\n')";
-        int rootIndex = ExpressionParser.RULE_stat;
 
         // Use a formatter without a recognizer
         var integerFormatter = treePatternFormatter.withRecognizer(null);
@@ -103,7 +101,6 @@ public class TreePatternFormatterTest {
     @Test
     void parseLabeledPattern() {
         String patternString = "<left:ID> '=' <right:expr> (NEWLINE '\\n')";
-        int rootIndex = ExpressionParser.RULE_stat;
 
         // Parse the pattern string
         FormatterParsePosition position = new FormatterParsePosition(0);
@@ -124,7 +121,6 @@ public class TreePatternFormatterTest {
     @Test
     void parseMixedPattern() {
         String patternString = "<ID> '+' <expr> <ruleName:stat> (NEWLINE '\\n')";
-        int rootIndex = ExpressionParser.RULE_stat;
 
         FormatterParsePosition position = new FormatterParsePosition(0);
         var parsedPattern = treePatternFormatter.parse(patternString, position);
@@ -143,7 +139,6 @@ public class TreePatternFormatterTest {
     @Test
     void parseWhitespaceVariations() {
         String patternString = " <ID>  '='   <expr> (NEWLINE   '\\n'  ) ";
-        int rootIndex = ExpressionParser.RULE_stat;
 
         FormatterParsePosition position = new FormatterParsePosition(0);
         var parsedPattern = treePatternFormatter.parse(patternString, position);
