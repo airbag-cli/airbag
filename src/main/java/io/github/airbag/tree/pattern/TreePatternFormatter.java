@@ -4,6 +4,8 @@ import io.github.airbag.symbol.FormatterParsePosition;
 import io.github.airbag.symbol.Symbol;
 import io.github.airbag.symbol.SymbolField;
 import io.github.airbag.symbol.SymbolFormatter;
+import io.github.airbag.tree.DerivationTree;
+import io.github.airbag.tree.TreeParseException;
 import org.antlr.v4.runtime.Parser;
 
 import java.util.Objects;
@@ -64,10 +66,25 @@ public class TreePatternFormatter {
         return joiner.toString();
     }
 
-    public TreePattern parse(int rootIndex, CharSequence text, FormatterParsePosition position) {
+    public TreePattern parse(CharSequence text) {
+        FormatterParsePosition parsePosition = new FormatterParsePosition(0);
+        TreePattern pattern = parse(text, parsePosition);
+        if (parsePosition.getErrorIndex() >= 0) {
+            throw new TreePatternException(text.toString(),
+                    parsePosition.getErrorIndex(),
+                    parsePosition.getMessage());
+        }
+        if (parsePosition.getIndex() != text.length()) {
+            throw new TreeParseException("Text has unparsed trailing text at %d".formatted(
+                    parsePosition.getIndex()));
+        }
+        return pattern;
+    }
+
+    public TreePattern parse(CharSequence text, FormatterParsePosition position) {
         Objects.requireNonNull(text, "text");
         Objects.requireNonNull(position, "position");
-        TreePatternBuilder patternBuilder = new TreePatternBuilder(rootIndex);
+        TreePatternBuilder patternBuilder = new TreePatternBuilder();
         while (position.getIndex() < text.length() && position.getErrorIndex() < 0) {
             Symbol symbol = symbolFormatter.parse(text, position);
             if (position.getErrorIndex() < 0) {

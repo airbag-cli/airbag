@@ -410,8 +410,8 @@ public class SymbolFormatter {
         Objects.requireNonNull(position, "position");
         Objects.requireNonNull(input, "input");
         int initial = position.getIndex();
-        int maxError = -1;
-        boolean errorSet = false;
+        int maxError = ~position.getErrorIndex();
+        boolean errorSet = position.getMessage() != null;
 
         for (var parser : printerParsers) {
             SymbolParseContext ctx = new SymbolParseContext(parser, vocabulary);

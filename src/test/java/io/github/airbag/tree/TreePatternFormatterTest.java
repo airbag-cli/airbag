@@ -26,7 +26,7 @@ public class TreePatternFormatterTest {
 
     @Test
     void formatSymbolicPattern() {
-        var pattern = new TreePatternBuilder(ExpressionParser.RULE_stat).appendSymbolTag(ExpressionParser.ID)
+        var pattern = new TreePatternBuilder().appendSymbolTag(ExpressionParser.ID)
                 .appendSymbol(symbolFormatter.parse("'='" ))
                 .appendRuleTag(ExpressionParser.RULE_expr)
                 .appendSymbol(symbolFormatter.parse("(NEWLINE '\\n')"))
@@ -36,7 +36,7 @@ public class TreePatternFormatterTest {
 
     @Test
     void formatIntegerPattern() {
-        var pattern = new TreePatternBuilder(ExpressionParser.RULE_stat).appendSymbolTag(ExpressionParser.ID)
+        var pattern = new TreePatternBuilder().appendSymbolTag(ExpressionParser.ID)
                 .appendSymbol(symbolFormatter.parse("'='" ))
                 .appendRuleTag(ExpressionParser.RULE_expr)
                 .appendSymbol(symbolFormatter.parse("(NEWLINE '\\n')"))
@@ -47,7 +47,7 @@ public class TreePatternFormatterTest {
 
     @Test
     void formatLabeledPattern() {
-        var pattern = new TreePatternBuilder(ExpressionParser.RULE_stat).appendSymbolTag(ExpressionParser.ID, "left")
+        var pattern = new TreePatternBuilder().appendSymbolTag(ExpressionParser.ID, "left")
                 .appendSymbol(symbolFormatter.parse("'='" ))
                 .appendRuleTag(ExpressionParser.RULE_expr, "right")
                 .appendSymbol(symbolFormatter.parse("(NEWLINE '\\n')"))
@@ -62,10 +62,10 @@ public class TreePatternFormatterTest {
 
         // Parse the pattern string
         FormatterParsePosition position = new FormatterParsePosition(0);
-        var parsedPattern = treePatternFormatter.parse(rootIndex, patternString, position);
+        var parsedPattern = treePatternFormatter.parse(patternString, position);
 
         // Build the expected pattern using TreePatternBuilder
-        var expectedPattern = new TreePatternBuilder(rootIndex)
+        var expectedPattern = new TreePatternBuilder()
                 .appendSymbolTag(ExpressionParser.ID)
                 .appendSymbol(symbolFormatter.parse("'='" ))
                 .appendRuleTag(ExpressionParser.RULE_expr)
@@ -86,10 +86,10 @@ public class TreePatternFormatterTest {
 
         // Parse the pattern string
         FormatterParsePosition position = new FormatterParsePosition(0);
-        var parsedPattern = integerFormatter.parse(rootIndex, patternString, position);
+        var parsedPattern = integerFormatter.parse(patternString, position);
 
         // Build the expected pattern using TreePatternBuilder
-        var expectedPattern = new TreePatternBuilder(rootIndex)
+        var expectedPattern = new TreePatternBuilder()
                 .appendSymbolTag(ExpressionParser.ID) // ID is 8
                 .appendSymbol(symbolFormatter.parse("'='" )) // '=' is 1
                 .appendRuleTag(ExpressionParser.RULE_expr) // expr is 2
@@ -107,10 +107,10 @@ public class TreePatternFormatterTest {
 
         // Parse the pattern string
         FormatterParsePosition position = new FormatterParsePosition(0);
-        var parsedPattern = treePatternFormatter.parse(rootIndex, patternString, position);
+        var parsedPattern = treePatternFormatter.parse(patternString, position);
 
         // Build the expected pattern using TreePatternBuilder
-        var expectedPattern = new TreePatternBuilder(rootIndex)
+        var expectedPattern = new TreePatternBuilder()
                 .appendSymbolTag(ExpressionParser.ID, "left")
                 .appendSymbol(symbolFormatter.parse("'='" ))
                 .appendRuleTag(ExpressionParser.RULE_expr, "right")
@@ -127,9 +127,9 @@ public class TreePatternFormatterTest {
         int rootIndex = ExpressionParser.RULE_stat;
 
         FormatterParsePosition position = new FormatterParsePosition(0);
-        var parsedPattern = treePatternFormatter.parse(rootIndex, patternString, position);
+        var parsedPattern = treePatternFormatter.parse(patternString, position);
 
-        var expectedPattern = new TreePatternBuilder(rootIndex)
+        var expectedPattern = new TreePatternBuilder()
                 .appendSymbolTag(ExpressionParser.ID)
                 .appendSymbol(symbolFormatter.parse("'+'"))
                 .appendRuleTag(ExpressionParser.RULE_expr)
@@ -146,9 +146,9 @@ public class TreePatternFormatterTest {
         int rootIndex = ExpressionParser.RULE_stat;
 
         FormatterParsePosition position = new FormatterParsePosition(0);
-        var parsedPattern = treePatternFormatter.parse(rootIndex, patternString, position);
+        var parsedPattern = treePatternFormatter.parse(patternString, position);
 
-        var expectedPattern = new TreePatternBuilder(rootIndex)
+        var expectedPattern = new TreePatternBuilder()
                 .appendSymbolTag(ExpressionParser.ID)
                 .appendSymbol(symbolFormatter.parse("'='" ))
                 .appendRuleTag(ExpressionParser.RULE_expr)

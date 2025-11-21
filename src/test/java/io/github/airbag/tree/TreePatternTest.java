@@ -5,6 +5,7 @@ import io.github.airbag.gen.ExpressionLexer;
 import io.github.airbag.gen.ExpressionParser;
 import io.github.airbag.symbol.FormatterParsePosition;
 import io.github.airbag.symbol.SymbolFormatter;
+import io.github.airbag.symbol.SymbolProvider;
 import io.github.airbag.tree.pattern.TreeMatchResult;
 import io.github.airbag.tree.pattern.TreePattern;
 import io.github.airbag.tree.pattern.TreePatternBuilder;
@@ -24,35 +25,25 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class TreePatternTest {
 
-    private final static ParseTreePatternMatcher MATCHER = new ParseTreePatternMatcher(new ExpressionLexer(
-            null), new ExpressionParser(null));
     private TreeFormatter treeFormatter;
-    private SymbolFormatter symbolFormatter;
-
-    private ExpressionParser createParser(String input) {
-        ExpressionLexer lexer = new ExpressionLexer(CharStreams.fromString(input));
-        return new ExpressionParser(new CommonTokenStream(lexer));
-    }
-
-    private ParseTree parseExpression(String input) {
-        return createParser(input).expr();
-    }
-
-    private ParseTree parseStat(String input) {
-        return createParser(input).stat();
-    }
+    private TreePatternFormatter patternFormatter;
+    private TreeProvider treeProvider;
+    private SymbolProvider symbolProvider;
 
     @BeforeEach
     void setup() {
         var airbag = Airbag.testGrammar("io.github.airbag.gen.Expression");
-        treeFormatter = airbag.getTreeProvider().getFormatter();
-        symbolFormatter = airbag.getSymbolProvider().getFormatter();
+        symbolProvider = airbag.getSymbolProvider();
+        treeProvider = airbag.getTreeProvider();
+        treeFormatter = treeProvider.getFormatter();
+        var symbolFormatter = airbag.getSymbolProvider().getFormatter();
+        patternFormatter = new TreePatternFormatter().withSymbolFormatter(symbolFormatter).withRecognizer(new ExpressionParser(null));
     }
 
     @Test
     void testMatchIntLiteral() {
         DerivationTree t = treeFormatter.parse("(expr (INT '123'))");
-        TreePattern pattern = new TreePatternBuilder(ExpressionParser.RULE_expr).appendSymbolTag(ExpressionParser.INT)
+        TreePattern pattern = new TreePatternBuilder().appendSymbolTag(ExpressionParser.INT)
                 .toPattern();
         TreeMatchResult result = pattern.match(t);
         assertTrue(result.succeeded());
@@ -62,7 +53,7 @@ public class TreePatternTest {
     @Test
     void testMatchId() {
         DerivationTree t = treeFormatter.parse("(expr (ID 'abc'))");
-        TreePattern pattern = new TreePatternBuilder(ExpressionParser.RULE_expr).appendSymbolTag(ExpressionParser.ID)
+        TreePattern pattern = new TreePatternBuilder().appendSymbolTag(ExpressionParser.ID)
                 .toPattern();
         TreeMatchResult result = pattern.match(t);
         assertTrue(result.succeeded());
@@ -71,13 +62,9 @@ public class TreePatternTest {
 
     @Test
     void testMatchAssignment() {
-
-//        ParseTreePattern pattern = MATCHER.compile("<ID> = <INT> \n", ExpressionParser.RULE_stat);
-
         DerivationTree t = treeFormatter.parse(
                 "(stat (ID 'a') '=' (expr (INT '5')) (NEWLINE '\\n'))");
-        TreePatternFormatter formatter = new TreePatternFormatter().withSymbolFormatter(symbolFormatter).withRecognizer(new ExpressionParser(null));
-        TreePattern pattern = formatter.parse(ExpressionParser.RULE_stat, "<ID> '=' <INT> (NEWLINE '\\n')", new FormatterParsePosition(0));
+        TreePattern pattern = patternFormatter.parse("<ID> '=' <INT> (NEWLINE '\\n')", new FormatterParsePosition(0));
         var result = pattern.match(t);
         assertTrue(result.succeeded());
         assertEquals("(stat (ID 'a') '=' (expr (INT '5')) (NEWLINE '\\n'))", treeFormatter.format(result.tree()));
@@ -85,69 +72,67 @@ public class TreePatternTest {
 
     @Test
     void testMatchAddition() {
-        ParseTree tree = parseExpression("a + b");
-        ParseTreePattern pattern = MATCHER.compile("<expr> + <expr>", ExpressionParser.RULE_expr);
-        ParseTreeMatch match = pattern.match(tree);
+        DerivationTree t = treeProvider.fromInput(symbolProvider.fromInput("a + b"), "expr");
+        TreePattern pattern = patternFormatter.parse("<expr> '+' <expr>");
+        TreeMatchResult match = pattern.match(t);
         assertTrue(match.succeeded());
     }
 
     @Test
     void testMatchSubtraction() {
-        ParseTree tree = parseExpression("a - b");
-        ParseTreePattern pattern = MATCHER.compile("<expr> - <expr>", ExpressionParser.RULE_expr);
-        ParseTreeMatch match = pattern.match(tree);
+        DerivationTree tree = treeProvider.fromInput(symbolProvider.fromInput("a - b"), "expr");
+        TreePattern pattern = patternFormatter.parse("<expr> '-' <expr>");
+        TreeMatchResult match = pattern.match(tree);
         assertTrue(match.succeeded());
     }
 
     @Test
     void testMatchMultiplication() {
-        ParseTree tree = parseExpression("a * b");
-        ParseTreePattern pattern = MATCHER.compile("<expr> * <expr>", ExpressionParser.RULE_expr);
-        ParseTreeMatch match = pattern.match(tree);
+        DerivationTree tree = treeProvider.fromInput(symbolProvider.fromInput("a * b"), "expr");
+        TreePattern pattern = patternFormatter.parse("<expr> '*' <expr>");
+        TreeMatchResult match = pattern.match(tree);
         assertTrue(match.succeeded());
     }
 
     @Test
     void testMatchDivision() {
-        ParseTree tree = parseExpression("a / b");
-        ParseTreePattern pattern = MATCHER.compile("<expr> / <expr>", ExpressionParser.RULE_expr);
-        ParseTreeMatch match = pattern.match(tree);
+        DerivationTree tree = treeProvider.fromInput(symbolProvider.fromInput("a / b"), "expr");
+        TreePattern pattern = patternFormatter.parse("<expr> '/' <expr>");
+        TreeMatchResult match = pattern.match(tree);
         assertTrue(match.succeeded());
     }
 
     @Test
     void testMatchParentheses() {
-        ParseTree tree = parseExpression("(a + b)");
-        ParseTreePattern pattern = MATCHER.compile("( <expr> )", ExpressionParser.RULE_expr);
-        ParseTreeMatch match = pattern.match(tree);
+        DerivationTree tree = treeProvider.fromInput(symbolProvider.fromInput("(a + b)"), "expr");
+        TreePattern pattern = patternFormatter.parse("'(' <expr> ')'");
+        TreeMatchResult match = pattern.match(tree);
         assertTrue(match.succeeded());
     }
 
     @Test
     void testMatchWithLabels() {
-        ParseTree tree = parseStat("a = 5\n");
-        ParseTreePattern pattern = MATCHER.compile("<lhs:ID> = <rhs:INT> \n",
-                ExpressionParser.RULE_stat);
-        ParseTreeMatch match = pattern.match(tree);
+        DerivationTree tree = treeProvider.fromInput(symbolProvider.fromInput("a = 5\n"), "stat");
+        TreePattern pattern = patternFormatter.parse("<lhs:ID> '=' <rhs:INT> (NEWLINE '\\n')");
+        TreeMatchResult match = pattern.match(tree);
         assertTrue(match.succeeded());
-        assertEquals("a", match.get("lhs").getText());
-        assertEquals("5", match.get("rhs").getText());
+        assertEquals("(ID 'a')", treeFormatter.format(match.getLabel("lhs")));
+        assertEquals("(expr (INT '5'))", treeFormatter.format(match.getLabel("rhs")));
     }
 
     @Test
     void testFindAll() {
-        ExpressionParser parser = createParser("a = 5\nb = 10\n");
-        ParseTree tree = parser.prog(); // Still matching against prog for findAll
-        ParseTreePattern pattern = MATCHER.compile("<ID> = <INT> \n", ExpressionParser.RULE_stat);
-        List<ParseTreeMatch> matches = pattern.findAll(tree, "//stat");
+        DerivationTree tree = treeProvider.fromInput(symbolProvider.fromInput("a = 5\nb = 10\n"), "prog");
+        TreePattern pattern = patternFormatter.parse("<ID> '=' <INT> (NEWLINE '\\n')");
+        List<DerivationTree> matches = pattern.findAll(tree);
         assertEquals(2, matches.size());
     }
 
     @Test
     void testNoMatch() {
-        ParseTree tree = parseStat("a = 5\n");
-        ParseTreePattern pattern = MATCHER.compile("<ID> = <ID> \n", ExpressionParser.RULE_stat);
-        ParseTreeMatch match = pattern.match(tree);
+        DerivationTree tree = treeProvider.fromInput(symbolProvider.fromInput("a = 5\n"), "stat");
+        TreePattern pattern = patternFormatter.parse("<ID> '=' <ID> (NEWLINE '\\n')");
+        TreeMatchResult match = pattern.match(tree);
         assertFalse(match.succeeded());
     }
 }

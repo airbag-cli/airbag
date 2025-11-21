@@ -13,14 +13,9 @@ import java.util.function.BiPredicate;
 public class TreePatternBuilder {
 
     private final List<TreePatternElement> treePatternList = new ArrayList<>();
-    private final int rootIndex;
-
-    public TreePatternBuilder(int rootIndex) {
-        this.rootIndex = rootIndex;
-    }
 
     public TreePattern toPattern() {
-        return new TreePattern(rootIndex ,new CompositePatternElement(treePatternList.toArray(new TreePatternElement[0])));
+        return new TreePattern(new CompositePatternElement(treePatternList.toArray(new TreePatternElement[0])));
     }
 
     public TreePatternBuilder appendSymbol(Symbol symbol) {

@@ -10,16 +10,10 @@ import java.util.List;
 
 public class TreePattern {
 
-    private final int rootIndex;
     private final CompositePatternElement compositePattern;
 
-    TreePattern(int rootIndex, CompositePatternElement compositePatternElement) {
-        this.rootIndex = rootIndex;
+    TreePattern(CompositePatternElement compositePatternElement) {
         this.compositePattern = compositePatternElement;
-    }
-
-    public int index() {
-        return rootIndex;
     }
 
     public boolean matches(DerivationTree t) {
@@ -28,9 +22,6 @@ public class TreePattern {
 
     public TreeMatchResult match(DerivationTree t) {
         TreePatternContext ctx = new TreePatternContext(t);
-        if (!(t.index() == rootIndex)) {
-            return new TreeMatchResult(false, t, Collections.emptyMap());
-        }
         boolean success = compositePattern.match(ctx);
         return new TreeMatchResult(success, t, ctx.getLabels());
     }
