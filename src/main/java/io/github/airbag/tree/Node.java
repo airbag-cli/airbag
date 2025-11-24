@@ -174,19 +174,26 @@ public abstract sealed class Node implements DerivationTree permits Node.Rule, N
 
     public final static class Pattern extends Node implements DerivationTree.Pattern {
 
+        private final TreePattern pattern;
+
         /**
          * Constructs a new node and links it to its Terminal.
          *
          * @param parent The Terminal node. If null, this node is considered the root.
          * @param index  The index for this node.
          */
-        Pattern(DerivationTree parent, int index) {
+        Pattern(DerivationTree parent, int index, TreePattern pattern) {
             super(parent, index);
+            this.pattern = pattern;
+        }
+
+        public static Node.Pattern attachTo(DerivationTree parent,int index, TreePattern pattern) {
+            return new Node.Pattern(parent, index, pattern);
         }
 
         @Override
         public TreePattern getPattern() {
-            throw new UnsupportedOperationException();
+            return pattern;
         }
     }
 

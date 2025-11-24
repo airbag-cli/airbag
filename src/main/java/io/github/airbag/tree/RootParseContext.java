@@ -2,6 +2,8 @@ package io.github.airbag.tree;
 
 import io.github.airbag.symbol.Symbol;
 import io.github.airbag.symbol.SymbolFormatter;
+import io.github.airbag.tree.pattern.TreePattern;
+import io.github.airbag.tree.pattern.TreePatternFormatter;
 import org.antlr.v4.runtime.Recognizer;
 
 import java.util.*;
@@ -9,13 +11,15 @@ import java.util.*;
 class RootParseContext implements NodeParseContext{
 
     private final SymbolFormatter symbolFormatter;
+    private final TreePatternFormatter patternFormatter;
     private final Recognizer<?,?> recognizer;
     private NodeParseContext root;
     private int maxError;
     private final Set<String> errorMessages = new TreeSet<>();
 
-    RootParseContext(SymbolFormatter symbolFormatter, Recognizer<?, ?> recognizer) {
+    RootParseContext(SymbolFormatter symbolFormatter, TreePatternFormatter patternFormatter, Recognizer<?, ?> recognizer) {
         this.symbolFormatter = symbolFormatter;
+        this.patternFormatter = patternFormatter;
         this.recognizer = recognizer;
     }
 
@@ -81,6 +85,11 @@ class RootParseContext implements NodeParseContext{
         }
     }
 
+    @Override
+    public TreePatternFormatter patternFormatter() {
+        return patternFormatter;
+    }
+
     class Rule implements NodeParseContext {
 
         private int index;
@@ -102,6 +111,11 @@ class RootParseContext implements NodeParseContext{
         @Override
         public SymbolFormatter symbolFormatter() {
             return symbolFormatter;
+        }
+
+        @Override
+        public TreePatternFormatter patternFormatter() {
+            return patternFormatter;
         }
 
         @Override
@@ -161,6 +175,12 @@ class RootParseContext implements NodeParseContext{
             return symbolFormatter;
         }
 
+
+        @Override
+        public TreePatternFormatter patternFormatter() {
+            return patternFormatter;
+        }
+
         @Override
         public Recognizer<?, ?> recognizer() {
             return recognizer;
@@ -214,6 +234,12 @@ class RootParseContext implements NodeParseContext{
             return symbolFormatter;
         }
 
+
+        @Override
+        public TreePatternFormatter patternFormatter() {
+            return patternFormatter;
+        }
+
         @Override
         public Recognizer<?, ?> recognizer() {
             return recognizer;
@@ -242,6 +268,65 @@ class RootParseContext implements NodeParseContext{
         @Override
         public int depth() {
             return 1 + parent.depth();
+        }
+    }
+
+    class Pattern implements NodeParseContext {
+
+        private final NodeParseContext parent;
+        private int index;
+        private TreePattern pattern;
+
+        Pattern(NodeParseContext parent) {
+            this.parent = parent;
+        }
+
+        @Override
+        public SymbolFormatter symbolFormatter() {
+            return symbolFormatter;
+        }
+
+        @Override
+        public TreePatternFormatter patternFormatter() {
+            return patternFormatter;
+        }
+
+        @Override
+        public Recognizer<?, ?> recognizer() {
+            return recognizer;
+        }
+
+        @Override
+        public RootParseContext root() {
+            return RootParseContext.this.root();
+        }
+
+        @Override
+        public int depth() {
+            return 1 + parent.depth();
+        }
+
+        @Override
+        public void addChildContext(NodeParseContext childCtx) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public DerivationTree resolve(DerivationTree parent) {
+            return Node.Pattern.attachTo(parent ,index, pattern);
+        }
+
+        @Override
+        public NodeParseContext getParent() {
+            return parent;
+        }
+
+        public void setIndex(int index) {
+            this.index = index;
+        }
+
+        public void setPattern(TreePattern pattern) {
+            this.pattern = pattern;
         }
     }
 }

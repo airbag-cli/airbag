@@ -3,6 +3,8 @@ package io.github.airbag.tree;
 import io.github.airbag.symbol.*;
 import io.github.airbag.tree.NodeFormatterBuilder.NodePrinterParser;
 import io.github.airbag.tree.TreeFormatterBuilder.TreePrinterParser;
+import io.github.airbag.tree.pattern.TreePatternFormatter;
+import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Vocabulary;
 
@@ -33,7 +35,7 @@ import java.util.Objects;
  * <h3>Customization</h3>
  * Once a formatter is created, it can be further customized. The
  * {@link #withSymbolFormatter(SymbolFormatter)} method allows you to control how terminal
- * symbols are formatted, while {@link #withRecognizer(Recognizer)} provides the necessary
+ * symbols are formatted, while {@link #withRecognizer(Parser)} provides the necessary
  * context (like rule and token names) from an ANTLR parser or lexer.
  *
  * @see TreeFormatterBuilder
@@ -41,10 +43,6 @@ import java.util.Objects;
  * @see SymbolFormatter
  */
 public class TreeFormatter {
-
-    private final TreePrinterParser treePrinterParser;
-    private final SymbolFormatter symbolFormatter;
-    private final Recognizer<?, ?> recognizer;
 
     /**
      * A formatter that produces a LISP-style S-expression format, similar to the output of
@@ -83,6 +81,17 @@ public class TreeFormatter {
                     .appendWhitespace()
                     .appendLiteral(")"))
             .onTerminal(NodeFormatterBuilder::appendSymbol)
+            .onPattern(onPattern -> onPattern.appendLiteral("(")
+                    .appendWhitespace()
+                    .appendLiteral("<")
+                    .appendRule()
+                    .appendLiteral(">")
+                    .appendWhitespace(" ")
+                    .appendLiteral("(")
+                    .appendPattern()
+                    .appendLiteral(")")
+                    .appendWhitespace()
+                    .appendLiteral(")"))
             .onError(onError -> onError.appendLiteral("(")
                     .appendWhitespace()
                     .appendLiteral("<error>")
@@ -92,16 +101,24 @@ public class TreeFormatter {
                     .appendLiteral(")"))
             .toFormatter();
 
+    private final TreePrinterParser treePrinterParser;
+    private final SymbolFormatter symbolFormatter;
+    private final Parser recognizer;
+    private final TreePatternFormatter patternFormatter;
+
     TreeFormatter(TreePrinterParser treePrinterParser) {
         this.symbolFormatter = SymbolFormatter.SIMPLE;
+        this.patternFormatter = TreePatternFormatter.SIMPLE;
         this.recognizer = null;
         this.treePrinterParser = treePrinterParser;
     }
 
     TreeFormatter(SymbolFormatter symbolFormatter,
-                  Recognizer<?, ?> recognizer,
+                  TreePatternFormatter patternFormatter,
+                  Parser recognizer,
                   TreePrinterParser treePrinterParser) {
         this.symbolFormatter = symbolFormatter;
+        this.patternFormatter = patternFormatter;
         this.recognizer = recognizer;
         this.treePrinterParser = treePrinterParser;
     }
@@ -115,7 +132,7 @@ public class TreeFormatter {
      *                          for a node type was not defined).
      */
     public String format(DerivationTree tree) {
-        NodeFormatContext ctx = new NodeFormatContext(symbolFormatter, recognizer);
+        NodeFormatContext ctx = new NodeFormatContext(symbolFormatter, patternFormatter, recognizer);
         ctx.setNode(tree);
         StringBuilder buf = new StringBuilder();
         if (!treePrinterParser.format(ctx, buf)) {
@@ -138,7 +155,7 @@ public class TreeFormatter {
      * @throws RuntimeException if formatting fails.
      */
     public String formatNode(DerivationTree node) {
-        NodeFormatContext ctx = new NodeFormatContext(symbolFormatter, recognizer, true);
+        NodeFormatContext ctx = new NodeFormatContext(symbolFormatter, patternFormatter, recognizer, true);
         ctx.setNode(node);
         StringBuilder buf = new StringBuilder();
         if (!treePrinterParser.format(ctx, buf)) {
@@ -188,7 +205,7 @@ public class TreeFormatter {
     public DerivationTree parse(CharSequence text, FormatterParsePosition position) {
         Objects.requireNonNull(text, "text");
         Objects.requireNonNull(position, "position");
-        RootParseContext rootCtx = new RootParseContext(symbolFormatter, recognizer);
+        RootParseContext rootCtx = new RootParseContext(symbolFormatter, patternFormatter, recognizer);
         int result = treePrinterParser.parse(rootCtx, text, position.getIndex());
         if (result < 0) {
             position.setErrorIndex(rootCtx.getMaxError());
@@ -211,6 +228,7 @@ public class TreeFormatter {
      */
     public TreeFormatter withSymbolFormatter(SymbolFormatter formatter) {
         return new TreeFormatter(formatter.withVocabulary(getVocabulary()),
+                patternFormatter.withSymbolFormatter(symbolFormatter),
                 recognizer,
                 treePrinterParser);
     }
@@ -229,11 +247,12 @@ public class TreeFormatter {
      * @param recognizer The ANTLR recognizer (e.g., a {@code Parser} instance) to provide context.
      * @return A new, configured {@link TreeFormatter} instance.
      */
-    public TreeFormatter withRecognizer(Recognizer<?, ?> recognizer) {
+    public TreeFormatter withRecognizer(Parser recognizer) {
         if (recognizer == null) {
-            return new TreeFormatter(symbolFormatter.withVocabulary(null), null, treePrinterParser);
+            return new TreeFormatter(symbolFormatter.withVocabulary(null), patternFormatter.withRecognizer(null), null, treePrinterParser);
         }
         return new TreeFormatter(symbolFormatter.withVocabulary(recognizer.getVocabulary()),
+                patternFormatter.withRecognizer(recognizer),
                 recognizer,
                 treePrinterParser);
     }

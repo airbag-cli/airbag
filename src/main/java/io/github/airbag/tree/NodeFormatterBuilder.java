@@ -3,6 +3,8 @@ package io.github.airbag.tree;
 import io.github.airbag.symbol.Symbol;
 import io.github.airbag.symbol.SymbolFormatter;
 import io.github.airbag.symbol.FormatterParsePosition;
+import io.github.airbag.tree.pattern.TreePattern;
+import io.github.airbag.tree.pattern.TreePatternFormatter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -348,6 +350,11 @@ public class NodeFormatterBuilder {
         return appendPadding(" ".repeat(padSize));
     }
 
+    public NodeFormatterBuilder appendPattern() {
+        printerParsers.add(new PatternPrinterParser());
+        return this;
+    }
+
     NodePrinterParser[] printerParsers() {
         return printerParsers.toArray(new NodePrinterParser[0]);
     }
@@ -484,6 +491,10 @@ public class NodeFormatterBuilder {
                     buf.append(ruleNode.index());
                     yield true;
                 }
+                case DerivationTree.Pattern patterNode -> {
+                    buf.append(patterNode.index());
+                    yield true;
+                }
                 case null, default -> false;
             };
         }
@@ -498,11 +509,14 @@ public class NodeFormatterBuilder {
                                         textLookahead(text, position, 3)));
                 return numberEnd;
             }
-            int ruleIndex = Integer.parseInt(text.subSequence(position, numberEnd).toString());
+            int index = Integer.parseInt(text.subSequence(position, numberEnd).toString());
             if (ctx instanceof RootParseContext.Rule ruleCtx) {
-                ruleCtx.setIndex(ruleIndex);
-            } else {
-                throw new RuntimeException("No rule context");
+                ruleCtx.setIndex(index);
+            } else if (ctx instanceof  RootParseContext.Pattern patternCtx) {
+                patternCtx.setIndex(index);
+            }
+            else {
+                throw new RuntimeException("No rule or pattern context");
             }
             return numberEnd;
         }
@@ -541,6 +555,16 @@ public class NodeFormatterBuilder {
                     buf.append(ruleNames[ruleNode.index()]);
                     yield true;
                 }
+                case DerivationTree.Pattern patternNode -> {
+                    String[] ruleNames = ctx.recognizer() == null ?
+                            new String[0] :
+                            ctx.recognizer().getRuleNames();
+                    if (patternNode.index() >= ruleNames.length) {
+                        yield false;
+                    }
+                    buf.append(ruleNames[patternNode.index()]);
+                    yield true;
+                }
                 case null, default -> false;
             };
         }
@@ -562,6 +586,9 @@ public class NodeFormatterBuilder {
             }
             if (ctx instanceof RootParseContext.Rule ruleContext) {
                 ruleContext.setIndex(index);
+            }
+            if (ctx instanceof RootParseContext.Pattern patternContext) {
+                patternContext.setIndex(index);
             }
             return position + ruleNames[index].length();
         }
@@ -687,6 +714,34 @@ public class NodeFormatterBuilder {
                 position++;
             }
             return position;
+        }
+    }
+
+    static class PatternPrinterParser implements NodePrinterParser {
+
+       @Override
+        public boolean format(NodeFormatContext ctx, StringBuilder buf) {
+            return switch (ctx.node()) {
+                case DerivationTree.Pattern patternNode -> {
+                    TreePatternFormatter formatter = ctx.patternFormatter();
+                    buf.append(formatter.format(patternNode.getPattern()));
+                    yield true;
+                }
+                default -> false;
+            };
+        }
+
+        @Override
+        public int parse(NodeParseContext ctx, CharSequence text, int position) {
+            FormatterParsePosition parsePosition = new FormatterParsePosition(position);
+            TreePatternFormatter patternFormatter = ctx.patternFormatter();
+            TreePattern pattern = patternFormatter.parse(text, parsePosition);
+            if (ctx instanceof RootParseContext.Pattern patternCtx) {
+                patternCtx.setPattern(pattern);
+            } else {
+                throw new RuntimeException("Wrong context type");
+            }
+            return parsePosition.getIndex();
         }
     }
 }

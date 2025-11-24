@@ -13,6 +13,8 @@ import java.util.StringJoiner;
 
 public class TreePatternFormatter {
 
+    public static TreePatternFormatter SIMPLE = new TreePatternFormatter();
+
     private final SymbolFormatter symbolFormatter;
     private final SymbolFormatter symbolTagFormatter;
     private final SymbolFormatter ruleTagFormatter;

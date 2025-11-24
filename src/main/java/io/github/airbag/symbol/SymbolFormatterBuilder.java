@@ -151,7 +151,7 @@ public class SymbolFormatterBuilder {
      * @return This builder.
      */
     public SymbolFormatterBuilder appendText() {
-        printerParsers.add(new TextPrinterParser());
+        printerParsers.add(new TextPrinterParser(TextOption.NOTHING));
         fields.add(SymbolField.TEXT);
         return this;
     }
@@ -964,10 +964,6 @@ public class SymbolFormatterBuilder {
     static class TextPrinterParser implements SymbolPrinterParser {
 
         private final TextOption option;
-
-        TextPrinterParser() {
-            this(TextOption.NOTHING);
-        }
 
         TextPrinterParser(TextOption option) {
             this.option = option;
