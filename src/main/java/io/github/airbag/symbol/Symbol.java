@@ -4,14 +4,16 @@ import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.Token;
 
 /**
- * An immutable representation of a lexical symbol, designed as a lightweight alternative
- * to ANTLR's {@link Token}.
+ * An immutable, lightweight representation of a lexical symbol, modeled after ANTLR's {@link Token}.
+ * It serves as a fundamental building block for {@link io.github.airbag.tree.DerivationTree},
+ * representing terminal and error nodes within the tree structure.
  * <p>
  * This record captures the essential attributes of a token—such as its type, text, and position
  * in the source—without maintaining references to the underlying {@link org.antlr.v4.runtime.CharStream}
- * or {@link org.antlr.v4.runtime.TokenSource}. This makes {@code Symbol} objects serializable,
- * long-lived, and suitable for use in contexts where the original input stream is no longer
- * available, such as in post-processing, analysis, or caching scenarios.
+ * or {@link org.antlr.v4.runtime.TokenSource}. This decoupling makes {@code Symbol} objects long-lived
+ * and suitable for use in contexts where the original input stream is no longer available, such as
+ * when building and manipulating derivation trees after the initial parse is complete or never existed
+ * in the first place when building from specification.
  * <p>
  * Each field in this record directly corresponds to a getter method on the {@link Token} interface,
  * providing a clean and predictable mapping.
@@ -71,8 +73,6 @@ public record Symbol(int index, int start, int stop, String text, int type, int 
 
     /**
      * Constructs a new {@code Symbol} by copying the attributes of an existing ANTLR {@link Token}.
-     * This provides a convenient way to convert a standard ANTLR token into a lightweight,
-     * immutable {@code Symbol}.
      *
      * @param token The ANTLR token from which to copy attributes. Must not be null.
      */
@@ -121,7 +121,11 @@ public record Symbol(int index, int start, int stop, String text, int type, int 
     }
 
     /**
-     * {@inheritDoc}
+     * Returns a standardized string representation of the symbol, formatted to mirror
+     * ANTLR's default token style (e.g., `[@index,start:stop='text',<type>,line:pos]`).
+     * <p>
+     * The formatting is handled by {@link SymbolFormatter#ANTLR}, ensuring a consistent
+     * and human-readable output suitable for debugging and logging.
      */
     @Override
     public String toString() {
