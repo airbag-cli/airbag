@@ -47,6 +47,14 @@ public class Validator {
                     yield false;
                 }
             }
+            case DerivationTree.Pattern patternNode -> {
+                if (t2 instanceof DerivationTree.Rule otherRule) {
+                    yield otherRule.index() == patternNode.index() &&
+                          patternNode.getPattern().matches(otherRule);
+                } else {
+                    throw new RuntimeException("Pattern must match a rule node");
+                }
+            }
             case null -> throw new IllegalArgumentException();
         };
     }

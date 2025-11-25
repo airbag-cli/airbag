@@ -652,5 +652,13 @@ public class SymbolFormatterTest {
                     >>-a10
                     """, e.getMessage());
         }
+
+        @Test
+        void textInOptional() {
+            SymbolFormatter formatter = SymbolFormatter.ofPattern("[x:]S");
+            Symbol symbol = assertDoesNotThrow(() -> formatter.parse("myText:5"));
+            assertEquals("myText", symbol.text());
+            assertEquals(5, symbol.type());
+        }
     }
 }

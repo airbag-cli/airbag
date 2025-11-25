@@ -1,5 +1,6 @@
 package io.github.airbag.tree;
 
+import io.github.airbag.Airbag;
 import io.github.airbag.gen.ExpressionLexer;
 import io.github.airbag.gen.ExpressionParser;
 import io.github.airbag.symbol.Symbol;
@@ -7,6 +8,7 @@ import io.github.airbag.symbol.SymbolFormatter;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -15,6 +17,12 @@ public class TreeFormatterTest {
 
     private static final Symbol SYMBOL = SymbolFormatter.SIMPLE.parse("(4 'My text')");
     private static final TreeFormatter FORMATTER = TreeFormatter.SIMPLE;
+    private Airbag airbag;
+
+    @BeforeEach
+    void setup() {
+        airbag = Airbag.testGrammar("io.github.airbag.gen.Expression");
+    }
 
     @Test
     void testFormatTerminalNode() {
@@ -110,15 +118,18 @@ public class TreeFormatterTest {
         Node.Terminal.attachTo(tree.getChild(0), SYMBOL);
         Node.Terminal.attachTo(tree.getChild(0), SYMBOL);
         Node.Terminal.attachTo(tree.getChild(1), SYMBOL);
-        assertEquals("(1 (2 (4 'My text') (4 'My text')) (3 (4 'My text')))", FORMATTER.format(tree));
-        DerivationTree actual = FORMATTER.parse("(1 (2 (4 'My text') (4 'My text')) (3 (4 'My text')))");
+        assertEquals("(1 (2 (4 'My text') (4 'My text')) (3 (4 'My text')))",
+                FORMATTER.format(tree));
+        DerivationTree actual = FORMATTER.parse(
+                "(1 (2 (4 'My text') (4 'My text')) (3 (4 'My text')))");
         assertEquals(2, actual.getChild(0).size());
         assertEquals(1, actual.getChild(1).size());
     }
 
     @Test
     void testExceptionParse() {
-        var e = assertThrows(TreeParseException.class, () -> FORMATTER.parse("(1 (2 (4 'My text') (4 'My text')) a(3 (4 'My text')))"));
+        var e = assertThrows(TreeParseException.class,
+                () -> FORMATTER.parse("(1 (2 (4 'My text') (4 'My text')) a(3 (4 'My text')))"));
         assertEquals("""
                 Parse failed at index 35:
                 Expected 'EOF' but found 'a(3'
@@ -137,7 +148,34 @@ public class TreeFormatterTest {
         ParseTree tree = parser.prog();
         assertEquals("(prog (stat x = (expr 5) \\n) <EOF>)", tree.toStringTree(parser));
         TreeFormatter formatter = TreeFormatter.ANTLR.withRecognizer(parser);
-        assertEquals("(prog (stat x = (expr 5) \\n) <EOF>)", formatter.format(DerivationTree.from(tree)));
+        assertEquals("(prog (stat x = (expr 5) \\n) <EOF>)",
+                formatter.format(DerivationTree.from(tree)));
+    }
+
+    @Test
+    void testFormatterWithPatternNode() {
+        var treeProvider = airbag.getTreeProvider();
+        var symbolProvider = airbag.getSymbolProvider();
+
+//        System.out.println(treeProvider.getFormatter()
+//                .format(treeProvider.fromInput(symbolProvider.fromInput(
+//                        """
+//                                x = 5
+//                                y = 10
+//                                7 * (x + y)
+//                                """), "prog")));
+
+        var tree = treeProvider.fromSpec("""
+                (prog
+                    (stat (ID 'x') '=' (expr (INT '5')) (NEWLINE '\\n'))
+                    (stat (ID 'y') '=' (expr (INT '10')) (NEWLINE '\\n'))
+                    (<stat> (<expr> '*' <expr> (NEWLINE '\\n')))
+                    EOF
+                )""");
+
+        assertEquals(
+                "(prog (stat (ID 'x') '=' (expr (INT '5')) (NEWLINE '\\n')) (stat (ID 'y') '=' (expr (INT '10')) (NEWLINE '\\n')) (<stat> (<expr> '*' <expr> (NEWLINE '\\n'))) EOF)",
+                treeProvider.getFormatter().format(tree));
     }
 
 }

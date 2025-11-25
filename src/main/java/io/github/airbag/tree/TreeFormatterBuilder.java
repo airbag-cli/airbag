@@ -75,6 +75,7 @@ public class TreeFormatterBuilder {
     private NodePrinterParser[] rulePrinterParsers;
     private NodePrinterParser[] terminalPrinterParsers;
     private NodePrinterParser[] errorPrinterParsers;
+    private NodePrinterParser[] patternPrinterParser;
 
     /**
      * Defines the format for {@link DerivationTree.Rule} nodes.
@@ -124,6 +125,13 @@ public class TreeFormatterBuilder {
         return this;
     }
 
+    public TreeFormatterBuilder onPattern(Consumer<NodeFormatterBuilder> onPattern) {
+        NodeFormatterBuilder builder = new NodeFormatterBuilder();
+        onPattern.accept(builder);
+        patternPrinterParser = builder.printerParsers();
+        return this;
+    }
+
     /**
      * Builds the immutable {@link TreeFormatter} from the configured node formats.
      * <p>
@@ -136,7 +144,8 @@ public class TreeFormatterBuilder {
     public TreeFormatter toFormatter() {
         return new TreeFormatter(new TreePrinterParser(rulePrinterParsers,
                 terminalPrinterParsers,
-                errorPrinterParsers));
+                errorPrinterParsers,
+                patternPrinterParser));
     }
 
     static class TreePrinterParser implements NodePrinterParser {
@@ -144,10 +153,12 @@ public class TreeFormatterBuilder {
         private final CompositePrinterParser rulePrinterParser;
         private final CompositePrinterParser terminalPrinterParser;
         private final CompositePrinterParser errorPrinterParser;
+        private final CompositePrinterParser patternPrinterParser;
 
         public TreePrinterParser(NodePrinterParser[] rulePrinterParsers,
                                  NodePrinterParser[] terminalPrinterParsers,
-                                 NodePrinterParser[] errorPrinterParsers) {
+                                 NodePrinterParser[] errorPrinterParsers,
+                                 NodePrinterParser[] patternPrinterParsers) {
 
             for (int i = 0; i < rulePrinterParsers.length; i++) {
                 if (rulePrinterParsers[i] instanceof NodeFormatterBuilder.ChildrenPrinterParser(
@@ -159,6 +170,7 @@ public class TreeFormatterBuilder {
             this.rulePrinterParser = new CompositePrinterParser(rulePrinterParsers);
             this.terminalPrinterParser = new CompositePrinterParser(terminalPrinterParsers);
             this.errorPrinterParser = new CompositePrinterParser(errorPrinterParsers);
+            this.patternPrinterParser = new CompositePrinterParser(patternPrinterParsers);
         }
 
         @Override
@@ -167,6 +179,7 @@ public class TreeFormatterBuilder {
                 case DerivationTree.Rule ignored -> rulePrinterParser.format(ctx, buf);
                 case DerivationTree.Terminal ignored -> terminalPrinterParser.format(ctx, buf);
                 case DerivationTree.Error ignored -> errorPrinterParser.format(ctx, buf);
+                case DerivationTree.Pattern ignored -> patternPrinterParser.format(ctx, buf);
             };
         }
 
@@ -183,6 +196,12 @@ public class TreeFormatterBuilder {
             result = rulePrinterParser.parse(ruleCtx, text, position);
             if (result > 0) {
                 ctx.addChildContext(ruleCtx);
+                return result;
+            }
+            RootParseContext.Pattern patternCtx = ctx.root().new Pattern(ctx);
+            result = patternPrinterParser.parse(patternCtx, text, position);
+            if (result > 0) {
+                ctx.addChildContext(patternCtx);
                 return result;
             }
             RootParseContext.Error errorCtx = ctx.root().new Error(ctx);

@@ -189,13 +189,13 @@ public class SymbolFormatter {
      * // the output would be: "ID:'user'"
      * }</pre>
      *
-     * <h3>Pattern Syntax</h3>
+     * <h3>TreePatternBuilder Syntax</h3>
      * The pattern allows you to specify which symbol fields to include, along with any
      * literal text, in the desired order.
      *
-     * <h3>Pattern Letters</h3>
+     * <h3>TreePatternBuilder Letters</h3>
      * The following pattern letters are available:
-     * <table border="1" cellpadding="5" summary="Pattern Letters">
+     * <table border="1" cellpadding="5" summary="TreePatternBuilder Letters">
      *   <tr><th>Letter(s)</th><th>Component</th><th>Description</th></tr>
      *   <tr>
      *     <td><b>I</b></td>
@@ -410,8 +410,8 @@ public class SymbolFormatter {
         Objects.requireNonNull(position, "position");
         Objects.requireNonNull(input, "input");
         int initial = position.getIndex();
-        int maxError = -1;
-        boolean errorSet = false;
+        int maxError = ~position.getErrorIndex();
+        boolean errorSet = position.getMessage() != null;
 
         for (var parser : printerParsers) {
             SymbolParseContext ctx = new SymbolParseContext(parser, vocabulary);

@@ -34,12 +34,14 @@ public class TextOption {
      */
     public static final TextOption NOTHING = new TextOption().withEscapeChar('\0')
             .withDefaultValue("")
+            .failOnDefault(true)
             .withEscapeMap(Collections.emptyMap());
 
     private String defaultValue;
     private char escapeChar;
     private Map<Character, Character> escapeMap;
     private Map<Character, Character> unescapeMap;
+    private boolean failOnDefault;
 
     /**
      * Creates a new {@link TextOption} with default settings.
@@ -54,6 +56,7 @@ public class TextOption {
                 entry('\t', 't'),
                 entry('\\', '\\')
         ));
+        failOnDefault(false);
         escapeChar = '\\';
     }
 
@@ -95,6 +98,11 @@ public class TextOption {
         return this;
     }
 
+    public TextOption failOnDefault(boolean failOnDefault) {
+        this.failOnDefault = failOnDefault;
+        return this;
+    }
+
     /**
      * @return the default value to be used when the text is not present.
      */
@@ -121,5 +129,9 @@ public class TextOption {
      */
     public Map<Character, Character> getUnescapeMap() {
         return unescapeMap;
+    }
+
+    public boolean failOnDefault() {
+        return failOnDefault;
     }
 }

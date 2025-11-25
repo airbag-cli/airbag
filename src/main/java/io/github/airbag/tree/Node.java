@@ -1,6 +1,8 @@
 package io.github.airbag.tree;
 
 import io.github.airbag.symbol.Symbol;
+import io.github.airbag.tree.pattern.TreePattern;
+import io.github.airbag.tree.pattern.TreePatternBuilder;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -11,7 +13,7 @@ import java.util.List;
  * An abstract base class for nodes in a {@link DerivationTree}. It provides the fundamental
  * implementation for Terminal-child relationships and tree structure.
  */
-public abstract sealed class Node implements DerivationTree permits Node.Rule, Node.Terminal, Node.Error {
+public abstract sealed class Node implements DerivationTree permits Node.Rule, Node.Terminal, Node.Error, Node.Pattern {
 
     /**
      * The index of this node. For a rule, it's the rule index; for a terminal, it's the token type.
@@ -167,6 +169,31 @@ public abstract sealed class Node implements DerivationTree permits Node.Rule, N
         @Override
         public boolean matches(DerivationTree other) {
             return other instanceof DerivationTree.Error && super.matches(other);
+        }
+    }
+
+    public final static class Pattern extends Node implements DerivationTree.Pattern {
+
+        private final TreePattern pattern;
+
+        /**
+         * Constructs a new node and links it to its Terminal.
+         *
+         * @param parent The Terminal node. If null, this node is considered the root.
+         * @param index  The index for this node.
+         */
+        Pattern(DerivationTree parent, int index, TreePattern pattern) {
+            super(parent, index);
+            this.pattern = pattern;
+        }
+
+        public static Node.Pattern attachTo(DerivationTree parent,int index, TreePattern pattern) {
+            return new Node.Pattern(parent, index, pattern);
+        }
+
+        @Override
+        public TreePattern getPattern() {
+            return pattern;
         }
     }
 

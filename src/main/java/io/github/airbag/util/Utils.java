@@ -1,5 +1,6 @@
 package io.github.airbag.util;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiPredicate;
 import java.util.stream.IntStream;
@@ -65,5 +66,11 @@ public class Utils {
         }
         return IntStream.range(0, list1.size())
                 .allMatch(i -> predicate.test(list1.get(i), list2.get(i)));
+    }
+
+    public static <T> T[] concat(T[] array1, T[] array2) {
+         T[] result = Arrays.copyOf(array1, array1.length + array2.length);
+         System.arraycopy(array2, 0, result, array1.length, array2.length);
+         return result;
     }
 }

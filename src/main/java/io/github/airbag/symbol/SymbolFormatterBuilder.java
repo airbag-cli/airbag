@@ -1,5 +1,6 @@
 package io.github.airbag.symbol;
 
+import io.github.airbag.util.Utils;
 import org.antlr.v4.runtime.Vocabulary;
 
 import java.util.*;
@@ -49,13 +50,13 @@ import java.util.*;
  * // The same formatter can also parse this string back into its components.
  * }</pre>
  *
- * <h3>Pattern-Based Formatting</h3>
+ * <h3>TreePatternBuilder-Based Formatting</h3>
  * For more complex or dynamic formatting needs, the {@link #appendPattern(String)}
  * method provides a concise and powerful alternative. It allows you to define the
  * entire format using a single pattern string, similar to date and time formatting
  * patterns. This is often more convenient than chaining multiple {@code append...} calls.
  *
- * <p><b>Example: Pattern-Based Formatter</b></p>
+ * <p><b>Example: TreePatternBuilder-Based Formatter</b></p>
  * <pre>{@code
  * // A pattern to replicate ANTLR's default Token.toString() format
  * String pattern = "\\[@N,B:E='X',<L>,R:P\\]";
@@ -150,7 +151,7 @@ public class SymbolFormatterBuilder {
      * @return This builder.
      */
     public SymbolFormatterBuilder appendText() {
-        printerParsers.add(new TextPrinterParser());
+        printerParsers.add(new TextPrinterParser(TextOption.NOTHING));
         fields.add(SymbolField.TEXT);
         return this;
     }
@@ -346,9 +347,9 @@ public class SymbolFormatterBuilder {
      * letters typically representing "strict" parsing and uppercase letters representing
      * "lenient" parsing.
      *
-     * <h3>Pattern Letters</h3>
+     * <h3>TreePatternBuilder Letters</h3>
      * The following pattern letters are available:
-     * <table border="1" cell-padding="5" summary="Pattern Letters">
+     * <table border="1" cell-padding="5" summary="TreePatternBuilder Letters">
      *   <tr><th>Letter(s)</th><th>Component</th><th>Description</th></tr>
      *   <tr>
      *     <td><b>I</b></td>
@@ -539,8 +540,9 @@ public class SymbolFormatterBuilder {
                             i++;
                         }
                         if (i >= pattern.length()) {
-                            throw new SymbolFormatterException("Unclosed quoted literal in pattern: " +
-                                                               pattern);
+                            throw new SymbolFormatterException(
+                                    "Unclosed quoted literal in pattern: " +
+                                    pattern);
                         }
                         String literal = pattern.substring(contentStart, i);
                         if (!literal.isEmpty()) {
@@ -550,8 +552,9 @@ public class SymbolFormatterBuilder {
                     case '\\' -> {
                         i++;
                         if (i >= pattern.length()) {
-                            throw new SymbolFormatterException("Invalid escape sequence at end of pattern: " +
-                                                               pattern);
+                            throw new SymbolFormatterException(
+                                    "Invalid escape sequence at end of pattern: " +
+                                    pattern);
                         }
                         literalBuf.append(pattern.charAt(i));
                     }
@@ -567,7 +570,8 @@ public class SymbolFormatterBuilder {
                         if (Character.isWhitespace(c)) {
                             flushLiteralBuf(literalBuf);
                             int j = i;
-                            while (j < pattern.length() && Character.isWhitespace(pattern.charAt(j))) {
+                            while (j < pattern.length() &&
+                                   Character.isWhitespace(pattern.charAt(j))) {
                                 j++;
                             }
                             appendWhitespace(pattern.substring(i, j));
@@ -961,10 +965,6 @@ public class SymbolFormatterBuilder {
 
         private final TextOption option;
 
-        TextPrinterParser() {
-            this(TextOption.NOTHING);
-        }
-
         TextPrinterParser(TextOption option) {
             this.option = option;
         }
@@ -982,7 +982,11 @@ public class SymbolFormatterBuilder {
                 }
             }
             if (text.isEmpty()) {
-                buf.append(option.getDefaultValue());
+                if (option.failOnDefault()) {
+                    return false;
+                } else {
+                    buf.append(option.getDefaultValue());
+                }
             }
             return true;
         }
@@ -1066,11 +1070,34 @@ public class SymbolFormatterBuilder {
                     return i;
                 }
             }
-            throw new RuntimeException("Parser is not part of the chain");
+            return -1;
         }
 
         private SymbolPrinterParser[] getSuccessors(SymbolPrinterParser[] parserChain) {
             int parserIndex = findParserIndex(parserChain);
+            if (parserIndex == -1) {
+                //The TextPrinterParser must be part of an optional
+                for (int i = 0; i < parserChain.length; i++) {
+                    var parser = parserChain[i];
+                    if (parser instanceof CompositePrinterParser compositePrinterParser) {
+                        if (compositePrinterParser.isOptional()) {
+                            parserIndex = findParserIndex(compositePrinterParser.printerParsers);
+                            if (parserIndex >= 0) {
+                                var optionalSuccessors = splitChain(parserIndex, compositePrinterParser.printerParsers);
+                                var afterOptionalSuccessors = splitChain(i, parserChain);
+                                return Utils.concat(optionalSuccessors, afterOptionalSuccessors);
+                            }
+                        }
+                    }
+                }
+                throw new RuntimeException("Parser is not part of the chain");
+            } else {
+                return splitChain(parserIndex, parserChain);
+            }
+        }
+
+        private SymbolPrinterParser[] splitChain(int parserIndex,
+                                                 SymbolPrinterParser[] parserChain) {
             if (parserIndex < 0 || parserIndex == parserChain.length - 1) {
                 return new SymbolPrinterParser[0];
             }
