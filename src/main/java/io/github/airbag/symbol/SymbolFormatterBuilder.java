@@ -4,6 +4,8 @@ import io.github.airbag.util.Utils;
 import org.antlr.v4.runtime.Vocabulary;
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Builder for creating {@link SymbolFormatter} instances.
@@ -85,11 +87,6 @@ public class SymbolFormatterBuilder {
     private final List<SymbolPrinterParser> printerParsers = new ArrayList<>();
 
     /**
-     * The list of symbol fields that are used by the printer/parsers.
-     */
-    private final Set<SymbolField<?>> fields = new HashSet<>();
-
-    /**
      * The start index of the optional section
      */
     private int optionalStart = -1;
@@ -120,7 +117,6 @@ public class SymbolFormatterBuilder {
      */
     public SymbolFormatterBuilder appendInteger(SymbolField<Integer> field, boolean isStrict) {
         printerParsers.add(new IntegerPrinterParser(field, isStrict));
-        fields.add(field);
         return this;
     }
 
@@ -152,7 +148,6 @@ public class SymbolFormatterBuilder {
      */
     public SymbolFormatterBuilder appendText() {
         printerParsers.add(new TextPrinterParser(TextOption.NOTHING));
-        fields.add(SymbolField.TEXT);
         return this;
     }
 
@@ -169,7 +164,6 @@ public class SymbolFormatterBuilder {
      */
     public SymbolFormatterBuilder appendText(TextOption option) {
         printerParsers.add(new TextPrinterParser(option));
-        fields.add(SymbolField.TEXT);
         return this;
     }
 
@@ -191,7 +185,6 @@ public class SymbolFormatterBuilder {
      */
     public SymbolFormatterBuilder appendSymbolicType() {
         printerParsers.add(new SymbolicTypePrinterParser());
-        fields.add(SymbolField.TYPE);
         return this;
     }
 
@@ -215,7 +208,6 @@ public class SymbolFormatterBuilder {
      */
     public SymbolFormatterBuilder appendLiteralType() {
         printerParsers.add(new LiteralTypePrinterParser());
-        fields.add(SymbolField.TYPE);
         return this;
     }
 
@@ -247,7 +239,6 @@ public class SymbolFormatterBuilder {
      */
     public SymbolFormatterBuilder appendType(TypeFormat format) {
         printerParsers.add(new TypePrinterParser(format));
-        fields.add(SymbolField.TYPE);
         return this;
     }
 
@@ -264,7 +255,6 @@ public class SymbolFormatterBuilder {
      */
     public SymbolFormatterBuilder appendEOF() {
         printerParsers.add(new EOFPrinterParser());
-        fields.add(SymbolField.TYPE);
         return this;
     }
 
@@ -654,7 +644,7 @@ public class SymbolFormatterBuilder {
      * @return The built symbol formatter.
      */
     public SymbolFormatter toFormatter() {
-        return new SymbolFormatter(new CompositePrinterParser(printerParsers, false), fields, null);
+        return new SymbolFormatter(new CompositePrinterParser(printerParsers, false), null);
     }
 
     /**
@@ -705,6 +695,13 @@ public class SymbolFormatterBuilder {
         default boolean isOptional() {
             return false;
         }
+
+        /**
+         * Return a set of all fields are parsed or printed with the printer-parser.
+         *
+         * @return a set of all fields are parsed or printed with the printer-parser.
+         */
+        Set<SymbolField<?>> fields();
 
     }
 
@@ -780,6 +777,11 @@ public class SymbolFormatterBuilder {
                 buf.append("]");
             }
             return buf.toString();
+        }
+
+        @Override
+        public Set<SymbolField<?>> fields() {
+            return Stream.of(printerParsers).flatMap(p -> p.fields().stream()).collect(Collectors.toSet());
         }
     }
 
@@ -866,6 +868,11 @@ public class SymbolFormatterBuilder {
                 default -> throw new RuntimeException();
             }
         }
+
+        @Override
+        public Set<SymbolField<?>> fields() {
+            return Set.of(integerSymbolField);
+        }
     }
 
     private static void validatePosition(CharSequence text, int position) {
@@ -930,6 +937,11 @@ public class SymbolFormatterBuilder {
                 return ~position;
             }
             return positionEnd;
+        }
+
+        @Override
+        public Set<SymbolField<?>> fields() {
+            return Set.of();
         }
 
         @Override
@@ -1064,6 +1076,11 @@ public class SymbolFormatterBuilder {
             return position;
         }
 
+        @Override
+        public Set<SymbolField<?>> fields() {
+            return Set.of(SymbolField.TEXT);
+        }
+
         private int findParserIndex(SymbolPrinterParser[] parserChain) {
             for (int i = 0; i < parserChain.length; i++) {
                 if (parserChain[i] == this) {
@@ -1083,7 +1100,8 @@ public class SymbolFormatterBuilder {
                         if (compositePrinterParser.isOptional()) {
                             parserIndex = findParserIndex(compositePrinterParser.printerParsers);
                             if (parserIndex >= 0) {
-                                var optionalSuccessors = splitChain(parserIndex, compositePrinterParser.printerParsers);
+                                var optionalSuccessors = splitChain(parserIndex,
+                                        compositePrinterParser.printerParsers);
                                 var afterOptionalSuccessors = splitChain(i, parserChain);
                                 return Utils.concat(optionalSuccessors, afterOptionalSuccessors);
                             }
@@ -1187,6 +1205,11 @@ public class SymbolFormatterBuilder {
         }
 
         @Override
+        public Set<SymbolField<?>> fields() {
+            return Set.of(SymbolField.TYPE);
+        }
+
+        @Override
         public String toString() {
             return "s";
         }
@@ -1265,6 +1288,11 @@ public class SymbolFormatterBuilder {
         public String toString() {
             return "l";
         }
+
+        @Override
+        public Set<SymbolField<?>> fields() {
+            return Set.of(SymbolField.TYPE);
+        }
     }
 
     static class TypePrinterParser implements SymbolPrinterParser {
@@ -1336,6 +1364,11 @@ public class SymbolFormatterBuilder {
                 case LITERAL_FIRST -> "L";
             };
         }
+
+        @Override
+        public Set<SymbolField<?>> fields() {
+            return Set.of(SymbolField.TYPE);
+        }
     }
 
     static class EOFPrinterParser implements SymbolPrinterParser {
@@ -1374,6 +1407,11 @@ public class SymbolFormatterBuilder {
         }
 
         @Override
+        public Set<SymbolField<?>> fields() {
+            return Set.of();
+        }
+
+        @Override
         public String toString() {
             return "<EOF>";
         }
@@ -1407,6 +1445,11 @@ public class SymbolFormatterBuilder {
                 position++;
             }
             return position;
+        }
+
+        @Override
+        public Set<SymbolField<?>> fields() {
+            return Set.of();
         }
 
         @Override

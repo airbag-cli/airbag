@@ -5,6 +5,7 @@ import org.antlr.v4.runtime.Vocabulary;
 
 import java.text.ParsePosition;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.util.Map.entry;
 
@@ -155,19 +156,18 @@ public class SymbolFormatter {
      * Constructs a new SymbolFormatter.
      *
      * @param printerParser The printer/parser to use for formatting and parsing.
-     * @param fields        The fields that are used by this formatter.
      */
     SymbolFormatter(CompositePrinterParser printerParser,
-                    Set<SymbolField<?>> fields,
                     Vocabulary vocabulary) {
-        this(List.of(printerParser), fields, vocabulary);
+        this(List.of(printerParser), vocabulary);
     }
 
     private SymbolFormatter(List<CompositePrinterParser> printerParsers,
-                            Set<SymbolField<?>> fields,
                             Vocabulary vocabulary) {
         this.printerParsers = printerParsers;
-        this.fields = Set.copyOf(fields);
+        this.fields = printerParsers.stream()
+                .flatMap(p -> p.fields().stream())
+                .collect(Collectors.toSet());
         this.vocabulary = vocabulary;
     }
 
@@ -445,7 +445,7 @@ public class SymbolFormatter {
         if (Objects.equals(vocabulary, this.vocabulary)) {
             return this;
         }
-        return new SymbolFormatter(printerParsers, fields, vocabulary);
+        return new SymbolFormatter(printerParsers, vocabulary);
     }
 
     /**
@@ -463,11 +463,9 @@ public class SymbolFormatter {
      */
     public SymbolFormatter withAlternative(SymbolFormatter alternative) {
         Vocabulary vocabulary = this.vocabulary == null ? alternative.vocabulary : this.vocabulary;
-        Set<SymbolField<?>> fields = new HashSet<>(getFields());
-        fields.addAll(alternative.getFields());
         List<CompositePrinterParser> printerParsers = new ArrayList<>(this.printerParsers);
         printerParsers.addAll(alternative.printerParsers);
-        return new SymbolFormatter(printerParsers, fields, vocabulary);
+        return new SymbolFormatter(printerParsers, vocabulary);
     }
 
     /**
