@@ -714,12 +714,12 @@ public class SymbolFormatterBuilder {
 
         private final boolean isOptional;
 
-        private CompositePrinterParser(List<SymbolPrinterParser> printerParsers,
-                                       boolean isOptional) {
+        CompositePrinterParser(List<SymbolPrinterParser> printerParsers,
+                               boolean isOptional) {
             this(printerParsers.toArray(new SymbolPrinterParser[0]), isOptional);
         }
 
-        private CompositePrinterParser(SymbolPrinterParser[] printerParsers, boolean isOptional) {
+        CompositePrinterParser(SymbolPrinterParser[] printerParsers, boolean isOptional) {
             this.printerParsers = printerParsers;
             this.isOptional = isOptional;
         }
@@ -821,8 +821,15 @@ public class SymbolFormatterBuilder {
                                 textLookahead(text, position, 3)));
                 return numberEnd;
             }
-            context.addField(integerSymbolField,
-                    Integer.valueOf(text.subSequence(position, numberEnd).toString()));
+            try {
+                context.addField(integerSymbolField,
+                        Integer.valueOf(text.subSequence(position, numberEnd).toString()));
+            } catch (NumberFormatException e) {
+                context.setErrorMessage("The value %s is out of range for field '%s'".formatted(
+                        text.subSequence(position, numberEnd).toString(),
+                        integerSymbolField.name()));
+                return ~position;
+            }
             return numberEnd;
         }
 
@@ -843,7 +850,7 @@ public class SymbolFormatterBuilder {
         public String toString() {
             switch (integerSymbolField.name()) {
                 case "type" -> {
-                    return "I";
+                    return isStrict ? "i" : "I";
                 }
                 case "index" -> {
                     return isStrict ? "n" : "N";
@@ -1083,7 +1090,8 @@ public class SymbolFormatterBuilder {
                         if (compositePrinterParser.isOptional()) {
                             parserIndex = findParserIndex(compositePrinterParser.printerParsers);
                             if (parserIndex >= 0) {
-                                var optionalSuccessors = splitChain(parserIndex, compositePrinterParser.printerParsers);
+                                var optionalSuccessors = splitChain(parserIndex,
+                                        compositePrinterParser.printerParsers);
                                 var afterOptionalSuccessors = splitChain(i, parserChain);
                                 return Utils.concat(optionalSuccessors, afterOptionalSuccessors);
                             }
