@@ -177,4 +177,115 @@ public class SymbolFormatterBuilderTest {
         }
 
     }
+
+    @Nested
+    class LiteralPrinterParserTest {
+
+        private static final SymbolFormatContext FORMAT_CTX = new SymbolFormatContext(null, null);
+        private static final SymbolParseContext PARSE_CTX = new SymbolParseContext(null, null);
+
+        @Test
+        void testFormat() {
+            var printer = new SymbolFormatterBuilder.LiteralPrinterParser("=>");
+            var buf = new StringBuilder();
+            assertTrue(printer.format(FORMAT_CTX, buf));
+            assertEquals("=>", buf.toString());
+        }
+
+        @Test
+        void testFormatEmpty() {
+            var printer = new SymbolFormatterBuilder.LiteralPrinterParser("");
+            var buf = new StringBuilder();
+            assertTrue(printer.format(FORMAT_CTX, buf));
+            assertTrue(buf.isEmpty());
+        }
+
+        @Test
+        void testPeekSuccess() {
+            var parser = new SymbolFormatterBuilder.LiteralPrinterParser("=>");
+            assertEquals(2, parser.peek(PARSE_CTX, "=> 123", 0));
+            assertEquals(5, parser.peek(PARSE_CTX, "abc=>123", 3));
+        }
+
+        @Test
+        void testPeekFailure() {
+            var parser = new SymbolFormatterBuilder.LiteralPrinterParser("=>");
+            assertEquals(~0, parser.peek(PARSE_CTX, "-> 123", 0));
+        }
+
+        @Test
+        void testPeekOutOfBounds() {
+            var parser = new SymbolFormatterBuilder.LiteralPrinterParser("=>");
+            assertEquals(~0, parser.peek(PARSE_CTX, "=", 0));
+            assertEquals(~1, parser.peek(PARSE_CTX, "a=", 1));
+        }
+
+        @Test
+        void testPeekAtEnd() {
+            var parser = new SymbolFormatterBuilder.LiteralPrinterParser("=>");
+            assertEquals(2, parser.peek(PARSE_CTX, "=>", 0));
+        }
+
+        @Test
+        void testPeekEmpty() {
+            var parser = new SymbolFormatterBuilder.LiteralPrinterParser("");
+            assertEquals(0, parser.peek(PARSE_CTX, "abc", 0));
+            assertEquals(3, parser.peek(PARSE_CTX, "abc", 3));
+        }
+
+        @Test
+        void testPeekInvalidPosition() {
+            var parser = new SymbolFormatterBuilder.LiteralPrinterParser("=>");
+            assertThrows(IndexOutOfBoundsException.class, () -> parser.peek(PARSE_CTX, "=>", -1));
+            assertThrows(IndexOutOfBoundsException.class, () -> parser.peek(PARSE_CTX, "=>", 3));
+        }
+
+        @Test
+        void testParseSuccess() {
+            var parser = new SymbolFormatterBuilder.LiteralPrinterParser("=>");
+            var ctx = new SymbolParseContext(null, null);
+            assertEquals(2, parser.parse(ctx, "=>123", 0));
+            assertNull(ctx.getErrorMessage());
+        }
+
+        @Test
+        void testParseFailure() {
+            var parser = new SymbolFormatterBuilder.LiteralPrinterParser("=>");
+            var ctx = new SymbolParseContext(null, null);
+            assertEquals(~0, parser.parse(ctx, "->123", 0));
+            assertEquals("Expected literal '=>' but found '->'", ctx.getErrorMessage());
+        }
+
+        @Test
+        void testParseFailureWithSpecialChars() {
+            var parser = new SymbolFormatterBuilder.LiteralPrinterParser("a\nb");
+            var ctx = new SymbolParseContext(null, null);
+            assertEquals(~0, parser.parse(ctx, "acb", 0));
+            assertEquals("Expected literal 'a\\nb' but found 'acb'", ctx.getErrorMessage());
+        }
+
+        @Test
+        void testParseEmpty() {
+            var parser = new SymbolFormatterBuilder.LiteralPrinterParser("");
+            var ctx = new SymbolParseContext(null, null);
+            assertEquals(0, parser.parse(ctx, "abc", 0));
+            assertNull(ctx.getErrorMessage());
+            assertEquals(3, parser.parse(ctx, "abc", 3));
+            assertNull(ctx.getErrorMessage());
+        }
+
+        @Test
+        void testToString() {
+            assertAll(
+                    () -> assertEquals("'abc'", new SymbolFormatterBuilder.LiteralPrinterParser("abc").toString()),
+                    () -> assertEquals("", new SymbolFormatterBuilder.LiteralPrinterParser("").toString()),
+                    () -> assertEquals("'a[b'", new SymbolFormatterBuilder.LiteralPrinterParser("a[b").toString()),
+                    () -> assertEquals("'a[b]c'", new SymbolFormatterBuilder.LiteralPrinterParser("a[b]c").toString()),
+                    () -> assertEquals("a\\'\\[\\b\\]", new SymbolFormatterBuilder.LiteralPrinterParser("a'[b]").toString()),
+                    () -> assertEquals("\\s", new SymbolFormatterBuilder.LiteralPrinterParser("s").toString()),
+                    () -> assertEquals("'[]'", new SymbolFormatterBuilder.LiteralPrinterParser("[]").toString()),
+                    () -> assertEquals("\\[", new SymbolFormatterBuilder.LiteralPrinterParser("[").toString())
+            );
+        }
+    }
 }
