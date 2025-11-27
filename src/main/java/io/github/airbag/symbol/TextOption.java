@@ -131,6 +131,11 @@ public class TextOption {
         return unescapeMap;
     }
 
+    /**
+     * Indicates that formating will fail, if the symbol hold the symbol default value.
+     *
+     * @return {@code true} if formating should fail on {@link SymbolField#TEXT} default value.
+     */
     public boolean failOnDefault() {
         return failOnDefault;
     }

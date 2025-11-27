@@ -1008,11 +1008,11 @@ public class SymbolFormatterBuilder {
                 return endPosition;
             }
             StringBuilder buf = unescapeText(text, position, endPosition);
-            String tokenText = buf.toString();
-            if (tokenText.equals(option.getDefaultValue())) {
-                tokenText = "";
+            String symbolText = buf.toString();
+            if (symbolText.equals(option.getDefaultValue())) {
+                symbolText = SymbolField.TEXT.getDefault();
             }
-            context.addField(SymbolField.TEXT, tokenText);
+            context.addField(SymbolField.TEXT, symbolText);
             return endPosition;
         }
 
@@ -1038,10 +1038,6 @@ public class SymbolFormatterBuilder {
             validatePosition(text, position);
             SymbolPrinterParser[] parserChain = context.printerParser().printerParsers;
             SymbolPrinterParser[] successors = getSuccessors(parserChain);
-
-            if (successors.length == 0) {
-                return text.length();
-            }
 
             var unescapeMap = option.getUnescapeMap();
             var escapeChar = option.getEscapeChar();
