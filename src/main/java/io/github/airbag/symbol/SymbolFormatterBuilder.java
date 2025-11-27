@@ -1407,6 +1407,7 @@ public class SymbolFormatterBuilder {
 
         @Override
         public int peek(SymbolParseContext context, CharSequence text, int position) {
+            validatePosition(text, position);
             while (position < text.length() && Character.isWhitespace(text.charAt(position))) {
                 position++;
             }

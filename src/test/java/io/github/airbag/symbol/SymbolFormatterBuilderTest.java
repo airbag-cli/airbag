@@ -760,4 +760,291 @@ public class SymbolFormatterBuilderTest {
             assertEquals("l", PARSER.toString());
         }
     }
+
+    @Nested
+    class TypePrinterParserTest {
+        private static final Vocabulary VOCABULARY;
+        private static final Symbol SYMBOL_SYM_ONLY = Symbol.of().type(1).get(); // Symbolic: A
+        private static final Symbol SYMBOL_BOTH = Symbol.of().type(2).get(); // Symbolic: B, Literal: 'b'
+        private static final Symbol SYMBOL_LIT_ONLY = Symbol.of().type(3).get(); // Literal: 'c'
+        private static final Symbol SYMBOL_NEITHER = Symbol.of().type(4).get(); // No symbolic or literal name
+
+        static {
+            String[] literalNames = {null, null, "'b'", "'c'", null, null};
+            String[] symbolicNames = {null, "A", "B", null, null, "123"};
+            VOCABULARY = new VocabularyImpl(literalNames, symbolicNames);
+        }
+
+        @Test
+        void testFormatIntegerOnly() {
+            var p = new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.INTEGER_ONLY);
+            var buf = new StringBuilder();
+            assertTrue(p.format(new SymbolFormatContext(SYMBOL_BOTH, VOCABULARY), buf));
+            assertEquals("2", buf.toString());
+        }
+
+        @Test
+        void testFormatSymbolicOnly() {
+            var p = new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.SYMBOLIC_ONLY);
+            var buf = new StringBuilder();
+
+            // Success
+            assertTrue(p.format(new SymbolFormatContext(SYMBOL_SYM_ONLY, VOCABULARY), buf));
+            assertEquals("A", buf.toString());
+
+            // Failure
+            buf.setLength(0);
+            assertFalse(p.format(new SymbolFormatContext(SYMBOL_LIT_ONLY, VOCABULARY), buf));
+            assertTrue(buf.isEmpty());
+        }
+
+        @Test
+        void testFormatLiteralOnly() {
+            var p = new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.LITERAL_ONLY);
+            var buf = new StringBuilder();
+
+            // Success
+            assertTrue(p.format(new SymbolFormatContext(SYMBOL_LIT_ONLY, VOCABULARY), buf));
+            assertEquals("'c'", buf.toString());
+
+            // Failure
+            buf.setLength(0);
+            assertFalse(p.format(new SymbolFormatContext(SYMBOL_SYM_ONLY, VOCABULARY), buf));
+            assertTrue(buf.isEmpty());
+        }
+
+        @Test
+        void testFormatSymbolicFirst() {
+            var p = new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.SYMBOLIC_FIRST);
+            var buf = new StringBuilder();
+
+            // Prefers symbolic
+            p.format(new SymbolFormatContext(SYMBOL_BOTH, VOCABULARY), buf);
+            assertEquals("B", buf.toString());
+            buf.setLength(0);
+
+            // Falls back to literal
+            p.format(new SymbolFormatContext(SYMBOL_LIT_ONLY, VOCABULARY), buf);
+            assertEquals("'c'", buf.toString());
+            buf.setLength(0);
+
+            // Falls back to integer
+            p.format(new SymbolFormatContext(SYMBOL_NEITHER, VOCABULARY), buf);
+            assertEquals("4", buf.toString());
+        }
+
+        @Test
+        void testFormatLiteralFirst() {
+            var p = new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.LITERAL_FIRST);
+            var buf = new StringBuilder();
+
+            // Prefers literal
+            p.format(new SymbolFormatContext(SYMBOL_BOTH, VOCABULARY), buf);
+            assertEquals("'b'", buf.toString());
+            buf.setLength(0);
+
+            // Falls back to symbolic
+            p.format(new SymbolFormatContext(SYMBOL_SYM_ONLY, VOCABULARY), buf);
+            assertEquals("A", buf.toString());
+            buf.setLength(0);
+
+            // Falls back to integer
+            p.format(new SymbolFormatContext(SYMBOL_NEITHER, VOCABULARY), buf);
+            assertEquals("4", buf.toString());
+        }
+
+        @Test
+        void testParseSymbolicFirst() {
+            var p = new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.SYMBOLIC_FIRST);
+            var ctx = new SymbolParseContext(null, VOCABULARY);
+
+            p.parse(ctx, "A", 0);
+            assertEquals(1, ctx.resolveFields().type());
+
+            ctx = new SymbolParseContext(null, VOCABULARY);
+            p.parse(ctx, "'c'", 0);
+            assertEquals(3, ctx.resolveFields().type());
+
+            ctx = new SymbolParseContext(null, VOCABULARY);
+            p.parse(ctx, "4", 0);
+            assertEquals(4, ctx.resolveFields().type());
+
+            // "123" is a symbolic name, should be parsed as such first
+            ctx = new SymbolParseContext(null, VOCABULARY);
+            p.parse(ctx, "123", 0);
+            assertEquals(5, ctx.resolveFields().type());
+        }
+
+        @Test
+        void testParseLiteralFirst() {
+            var p = new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.LITERAL_FIRST);
+            var ctx = new SymbolParseContext(null, VOCABULARY);
+
+            p.parse(ctx, "'b'", 0);
+            assertEquals(2, ctx.resolveFields().type());
+
+            ctx = new SymbolParseContext(null, VOCABULARY);
+            p.parse(ctx, "A", 0);
+            assertEquals(1, ctx.resolveFields().type());
+
+            ctx = new SymbolParseContext(null, VOCABULARY);
+            p.parse(ctx, "4", 0);
+            assertEquals(4, ctx.resolveFields().type());
+        }
+
+        @Test
+        void testParseFailure() {
+            var p = new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.SYMBOLIC_FIRST);
+            var ctx = new SymbolParseContext(null, VOCABULARY);
+            assertEquals(~0, p.parse(ctx, "unrecognized", 0));
+            assertEquals("Unrecognized type information starting with 'unrec'", ctx.getErrorMessage());
+        }
+
+        @Test
+        void testToString() {
+            assertEquals("i", new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.INTEGER_ONLY).toString());
+            assertEquals("s", new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.SYMBOLIC_ONLY).toString());
+            assertEquals("l", new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.LITERAL_ONLY).toString());
+            assertEquals("S", new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.SYMBOLIC_FIRST).toString());
+            assertEquals("L", new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.LITERAL_FIRST).toString());
+        }
+    }
+
+    @Nested
+    class EOFPrinterParserTest {
+        private static final SymbolFormatterBuilder.EOFPrinterParser PARSER = new SymbolFormatterBuilder.EOFPrinterParser();
+
+        @Test
+        void testFormatSuccess() {
+            Symbol symbol = Symbol.of().type(Symbol.EOF).get();
+            SymbolFormatContext ctx = new SymbolFormatContext(symbol, null);
+            StringBuilder buf = new StringBuilder();
+            assertTrue(PARSER.format(ctx, buf));
+            assertEquals("EOF", buf.toString());
+        }
+
+        @Test
+        void testFormatFailure() {
+            Symbol symbol = Symbol.of().type(1).get(); // Not EOF
+            SymbolFormatContext ctx = new SymbolFormatContext(symbol, null);
+            StringBuilder buf = new StringBuilder();
+            assertFalse(PARSER.format(ctx, buf));
+            assertTrue(buf.isEmpty());
+        }
+
+        @Test
+        void testPeekSuccess() {
+            SymbolParseContext ctx = new SymbolParseContext(null, null);
+            assertEquals(3, PARSER.peek(ctx, "EOF", 0));
+            assertEquals(5, PARSER.peek(ctx, "  EOF  ", 2));
+        }
+
+        @Test
+        void testPeekFailure() {
+            SymbolParseContext ctx = new SymbolParseContext(null, null);
+            assertEquals(~0, PARSER.peek(ctx, "EOX", 0));
+            assertEquals(~0, PARSER.peek(ctx, "EO", 0));
+            assertEquals(~0, PARSER.peek(ctx, "FOE", 0));
+            assertEquals(~0, PARSER.peek(ctx, "", 0));
+            assertEquals(~1, PARSER.peek(ctx, "AEO F", 1)); // Partial match
+        }
+
+        @Test
+        void testPeekOutOfBounds() {
+            SymbolParseContext ctx = new SymbolParseContext(null, null);
+            assertThrows(IndexOutOfBoundsException.class, () -> PARSER.peek(ctx, "EOF", -1));
+            assertThrows(IndexOutOfBoundsException.class, () -> PARSER.peek(ctx, "EOF", 4));
+        }
+
+        @Test
+        void testParseSuccess() {
+            SymbolParseContext ctx = new SymbolParseContext(null, null);
+            assertEquals(3, PARSER.parse(ctx, "EOF", 0));
+            Symbol result = ctx.resolveFields();
+            assertEquals(Symbol.EOF, result.type());
+            assertEquals("<EOF>", result.text());
+            assertNull(ctx.getErrorMessage());
+        }
+
+        @Test
+        void testParseFailure() {
+            SymbolParseContext ctx = new SymbolParseContext(null, null);
+            assertEquals(~0, PARSER.parse(ctx, "EOX", 0));
+            assertNotNull(ctx.getErrorMessage());
+            assertEquals("Expected 'EOF' but found 'EOX'", ctx.getErrorMessage());
+
+            ctx = new SymbolParseContext(null, null);
+            assertEquals(~0, PARSER.parse(ctx, "EO", 0));
+            assertNotNull(ctx.getErrorMessage());
+            assertEquals("Expected 'EOF' but found 'EO'", ctx.getErrorMessage());
+        }
+
+        @Test
+        void testToString() {
+            assertEquals("<EOF>", PARSER.toString());
+        }
+    }
+
+    @Nested
+    class WhitespacePrinterParserTest {
+
+        @Test
+        void testConstructorValidation() {
+            assertThrows(IllegalArgumentException.class,
+                    () -> new SymbolFormatterBuilder.WhitespacePrinterParser("a"));
+            assertDoesNotThrow(
+                    () -> new SymbolFormatterBuilder.WhitespacePrinterParser("   \t\n  "));
+            assertDoesNotThrow(() -> new SymbolFormatterBuilder.WhitespacePrinterParser(""));
+        }
+
+        @Test
+        void testFormat() {
+            var p = new SymbolFormatterBuilder.WhitespacePrinterParser("   \t\n  ");
+            var buf = new StringBuilder();
+            assertTrue(p.format(null, buf)); // Context can be null for this parser
+            assertEquals("   \t\n  ", buf.toString());
+
+            var pEmpty = new SymbolFormatterBuilder.WhitespacePrinterParser("");
+            var bufEmpty = new StringBuilder();
+            assertTrue(pEmpty.format(null, bufEmpty));
+            assertTrue(bufEmpty.isEmpty());
+        }
+
+        @Test
+        void testPeekAndParse() {
+            var p = new SymbolFormatterBuilder.WhitespacePrinterParser(""); // Whitespace content doesn't matter for parsing
+            var ctx = new SymbolParseContext(null, null);
+
+            // No whitespace
+            assertEquals(0, p.peek(ctx, "abc", 0));
+            assertEquals(0, p.parse(ctx, "abc", 0));
+
+            // Leading whitespace
+            assertEquals(3, p.peek(ctx, "   abc", 0));
+            assertEquals(3, p.parse(ctx, "   abc", 0));
+
+            // Mixed whitespace
+            assertEquals(4, p.peek(ctx, "\t \n abc", 0));
+            assertEquals(4, p.parse(ctx, "\t \n abc", 0));
+
+            // All whitespace
+            assertEquals(5, p.peek(ctx, " \t\n  ", 0));
+            assertEquals(5, p.parse(ctx, " \t\n  ", 0));
+
+            // End of string
+            assertEquals(3, p.peek(ctx, "   ", 0));
+            assertEquals(3, p.parse(ctx, "   ", 0));
+
+            // Invalid position
+            assertThrows(IndexOutOfBoundsException.class, () -> p.peek(ctx, " ", -1));
+            assertThrows(IndexOutOfBoundsException.class, () -> p.peek(ctx, " ", 2));
+        }
+
+        @Test
+        void testToString() {
+            assertEquals(" ", new SymbolFormatterBuilder.WhitespacePrinterParser(" ").toString());
+            assertEquals("\t\n", new SymbolFormatterBuilder.WhitespacePrinterParser("\t\n").toString());
+            assertEquals("", new SymbolFormatterBuilder.WhitespacePrinterParser("").toString());
+        }
+    }
 }
