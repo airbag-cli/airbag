@@ -634,4 +634,130 @@ public class SymbolFormatterBuilderTest {
             assertEquals("s", PARSER.toString());
         }
     }
+
+    @Nested
+    class LiteralTypePrinterParserTest {
+
+        private static final SymbolFormatterBuilder.LiteralTypePrinterParser PARSER = new SymbolFormatterBuilder.LiteralTypePrinterParser();
+        private static final Vocabulary VOCABULARY;
+
+        static {
+            String[] literalNames = {null, "'a'", "'b'", null, "'b'", "'longest_b'", "'long'"};
+            String[] symbolicNames = {null, "A", "B", "C", "B_ALIAS", "LONGEST_B_S", "LONG_S"};
+            VOCABULARY = new VocabularyImpl(literalNames, symbolicNames);
+            // 'a', A -> 1
+            // 'b', B -> 2
+            // C -> 3
+            // 'b', B_ALIAS -> 4
+            // 'longest_b', LONGEST_B_S -> 5
+            // 'long', LONG_S -> 6
+        }
+
+        @Test
+        void testFormatSuccess() {
+            Symbol symbol = Symbol.of().type(1).get(); // Type 1 is literal 'a'
+            SymbolFormatContext ctx = new SymbolFormatContext(symbol, VOCABULARY);
+            StringBuilder buf = new StringBuilder();
+            assertTrue(PARSER.format(ctx, buf));
+            assertEquals("'a'", buf.toString());
+        }
+
+        @Test
+        void testFormatNoVocabulary() {
+            Symbol symbol = Symbol.of().type(1).get();
+            SymbolFormatContext ctx = new SymbolFormatContext(symbol, null); // No vocabulary
+            StringBuilder buf = new StringBuilder();
+            assertFalse(PARSER.format(ctx, buf));
+            assertTrue(buf.isEmpty());
+        }
+
+        @Test
+        void testFormatNoLiteralName() {
+            Symbol symbol = Symbol.of().type(3).get(); // Type 3 has symbolic name C but no literal name
+            SymbolFormatContext ctx = new SymbolFormatContext(symbol, VOCABULARY);
+            StringBuilder buf = new StringBuilder();
+            assertFalse(PARSER.format(ctx, buf));
+            assertTrue(buf.isEmpty());
+        }
+
+        @Test
+        void testPeekSuccess() {
+            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            assertEquals("'a'".length(), PARSER.peek(ctx, "'a' rest of string", 0));
+            assertEquals(1 + "'b'".length(), PARSER.peek(ctx, " 'b' rest of string", 1));
+        }
+
+        @Test
+        void testPeekLongestMatch() {
+            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            assertEquals("'longest_b'".length(), PARSER.peek(ctx, "'longest_b'", 0));
+            assertEquals("'long'".length(), PARSER.peek(ctx, "'long'", 0));
+        }
+
+        @Test
+        void testPeekFailure() {
+            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            assertEquals(~0, PARSER.peek(ctx, "'d' rest of string", 0)); // 'd' is not in vocabulary
+        }
+
+        @Test
+        void testPeekNoVocabulary() {
+            SymbolParseContext ctx = new SymbolParseContext(null, null); // No vocabulary
+            assertEquals(~0, PARSER.peek(ctx, "'a'", 0));
+        }
+
+        @Test
+        void testPeekOutOfBounds() {
+            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            assertThrows(IndexOutOfBoundsException.class, () -> PARSER.peek(ctx, "'a'", -1));
+            assertThrows(IndexOutOfBoundsException.class, () -> PARSER.peek(ctx, "'a'", 4));
+        }
+
+        @Test
+        void testParseSuccess() {
+            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            assertEquals("'a'".length(), PARSER.parse(ctx, "'a' rest", 0));
+            Symbol result = ctx.resolveFields();
+            assertEquals(1, result.type());
+            assertEquals("a", result.text());
+            assertNull(ctx.getErrorMessage());
+        }
+
+        @Test
+        void testParseFailure() {
+            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            assertEquals(~0, PARSER.parse(ctx, "'d' rest", 0));
+            assertNotNull(ctx.getErrorMessage());
+            assertEquals("Unrecognized literal type name starting with ''d' r'", ctx.getErrorMessage());
+        }
+
+        @Test
+        void testParseNoVocabulary() {
+            SymbolParseContext ctx = new SymbolParseContext(null, null); // No vocabulary
+            assertEquals(~0, PARSER.parse(ctx, "'a' rest", 0));
+            assertNotNull(ctx.getErrorMessage());
+            assertEquals("No vocabulary set", ctx.getErrorMessage());
+        }
+
+        @Test
+        void testParseWithAmbiguousLiteralName() {
+            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            assertEquals("'b'".length(), PARSER.parse(ctx, "'b'", 0));
+            assertEquals(2, ctx.resolveFields().type()); // Should resolve to the first type (2) for "'b'"
+        }
+
+        @Test
+        void testParseLongestMatch() {
+            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            assertEquals("'longest_b'".length(), PARSER.parse(ctx, "'longest_b'", 0));
+            Symbol result = ctx.resolveFields();
+            assertEquals(5, result.type());
+            assertEquals("longest_b", result.text());
+        }
+
+        @Test
+        void testToString() {
+            assertEquals("l", PARSER.toString());
+        }
+    }
 }
