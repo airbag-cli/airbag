@@ -1047,4 +1047,157 @@ public class SymbolFormatterBuilderTest {
             assertEquals("", new SymbolFormatterBuilder.WhitespacePrinterParser("").toString());
         }
     }
+
+    @Nested
+    class CompositePrinterParserTest {
+
+        private final SymbolPrinterParser succeedingParser = new SymbolFormatterBuilder.LiteralPrinterParser(
+                "OK");
+        private final SymbolPrinterParser failingParser = new SymbolPrinterParser() {
+            @Override
+            public boolean format(SymbolFormatContext context, StringBuilder buf) {
+                return false;
+            }
+
+            @Override
+            public int parse(SymbolParseContext context, CharSequence text, int position) {
+                return ~position;
+            }
+
+            @Override
+            public int peek(SymbolParseContext context, CharSequence text, int position) {
+                return ~position;
+            }
+        };
+
+        @Test
+        void testFormatNonOptional() {
+            var composite = new SymbolFormatterBuilder.CompositePrinterParser(
+                    List.of(succeedingParser, succeedingParser),
+                    false);
+            var buf = new StringBuilder();
+            assertTrue(composite.format(null, buf));
+            assertEquals("OKOK", buf.toString());
+        }
+
+        @Test
+        void testFormatNonOptionalWithFailure() {
+            var composite = new SymbolFormatterBuilder.CompositePrinterParser(
+                    List.of(succeedingParser, failingParser),
+                    false);
+            var buf = new StringBuilder("Initial");
+            assertFalse(composite.format(null, buf));
+            assertEquals("Initial", buf.toString()); // Buffer should be reverted
+        }
+
+        @Test
+        void testFormatOptional() {
+            var composite = new SymbolFormatterBuilder.CompositePrinterParser(
+                    List.of(succeedingParser, succeedingParser),
+                    true);
+            var buf = new StringBuilder();
+            assertTrue(composite.format(null, buf));
+            assertEquals("OKOK", buf.toString());
+        }
+
+        @Test
+        void testFormatOptionalWithFailure() {
+            var composite = new SymbolFormatterBuilder.CompositePrinterParser(
+                    List.of(succeedingParser, failingParser),
+                    true);
+            var buf = new StringBuilder("Initial");
+            assertTrue(composite.format(null, buf)); // Optional composite returns true
+            assertEquals("Initial", buf.toString());     // Buffer should be reverted
+        }
+
+        @Test
+        void testParseNonOptional() {
+            var composite = new SymbolFormatterBuilder.CompositePrinterParser(
+                    List.of(succeedingParser, succeedingParser),
+                    false);
+            assertEquals(4, composite.parse(new SymbolParseContext(null, null), "OKOK", 0));
+            assertEquals(~2, composite.parse(new SymbolParseContext(null, null), "OKFAIL", 0));
+        }
+
+        @Test
+        void testParseOptional() {
+            var composite = new SymbolFormatterBuilder.CompositePrinterParser(
+                    List.of(succeedingParser, succeedingParser),
+                    true);
+            assertEquals(4, composite.parse(null, "OKOK", 0));
+            assertEquals(0, composite.parse(null, "FAILOK", 0)); // Skips optional part
+        }
+
+        @Test
+        void testToString() {
+            var nonOptional = new SymbolFormatterBuilder.CompositePrinterParser(
+                    List.of(succeedingParser),
+                    false);
+            assertEquals("OK", nonOptional.toString());
+
+            var optional = new SymbolFormatterBuilder.CompositePrinterParser(List.of(succeedingParser),
+                    true);
+            assertEquals("[OK]", optional.toString());
+        }
+    }
+
+    @Nested
+    class OptionalSectionTest {
+
+        @Test
+        void testNestedOptionalThrowsException() {
+            var builder = new SymbolFormatterBuilder();
+            builder.startOptional();
+            assertThrows(IllegalStateException.class, builder::startOptional);
+        }
+
+        @Test
+        void testEndWithoutStartThrowsException() {
+            var builder = new SymbolFormatterBuilder();
+            assertThrows(IllegalStateException.class, builder::endOptional);
+        }
+
+        @Test
+        void testFormatOptionalSection() {
+            // Strict channel 'c' is only printed if not default (0)
+            var vocab = new VocabularyImpl(new String[]{null, "ID"}, new String[]{null, "ID"});
+            var formatter = new SymbolFormatterBuilder().appendSymbolicType()
+                    .startOptional()
+                    .appendLiteral("[")
+                    .appendInteger(SymbolField.CHANNEL, true)
+                    .appendLiteral("]")
+                    .endOptional()
+                    .toFormatter().withVocabulary(vocab);
+
+            // Channel is default, should be omitted
+            var symbolDefaultChannel = Symbol.of().type(1).channel(0).get();
+            assertEquals("ID", formatter.format(symbolDefaultChannel));
+
+            // Channel is non-default, should be included
+            var symbolNonDefaultChannel = Symbol.of().type(1).channel(2).get();
+            assertEquals("ID[2]", formatter.format(symbolNonDefaultChannel));
+        }
+
+        @Test
+        void testParseOptionalSection() throws SymbolParseException {
+            var vocab = new VocabularyImpl(new String[]{null, "ID"}, new String[]{null, "ID"});
+            var formatter = new SymbolFormatterBuilder().appendSymbolicType()
+                    .startOptional()
+                    .appendLiteral(":")
+                    .appendInteger(SymbolField.LINE)
+                    .endOptional()
+                    .toFormatter().withVocabulary(vocab);
+
+            // With optional section present
+            Symbol symbol1 = formatter.parse("ID:123");
+            assertEquals(1, symbol1.type());
+            assertEquals(123, symbol1.line());
+
+            // Without optional section
+            Symbol symbol2 = formatter.parse("ID");
+            assertEquals(1, symbol2.type());
+            assertEquals(-1,
+                    symbol2.line()); // Default value for line because it was not parsed
+        }
+    }
 }
