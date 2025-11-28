@@ -493,6 +493,26 @@ public class SymbolFormatterBuilderTest {
             var printer = new TextPrinterParser(TextOption.ESCAPED);
             assertEquals("X", printer.toString());
         }
+
+        @Test
+        void testParseWithTextInsideOptionalGroup() throws SymbolParseException {
+            var formatter = new SymbolFormatterBuilder()
+                    .appendLiteral("START-")
+                    .startOptional()
+                    .appendText()
+                    .appendLiteral("-MIDDLE")
+                    .endOptional()
+                    .appendLiteral("-END")
+                    .toFormatter();
+
+            // Optional part is present
+            Symbol symbol1 = formatter.parse("START-text-MIDDLE-END");
+            assertEquals("text", symbol1.text());
+
+            // Optional part is absent
+            Symbol symbol2 = formatter.parse("START--END");
+            assertEquals(SymbolField.TEXT.getDefault(), symbol2.text());
+        }
     }
 
     @Nested
