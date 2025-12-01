@@ -13,6 +13,8 @@ import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.Parser;
 import org.opentest4j.AssertionFailedError;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiPredicate;
@@ -99,6 +101,18 @@ public class Airbag {
         }
     }
 
+    public static void assertSymbol(Symbol expected, Symbol actual, Collection<SymbolField<?>> fields) {
+        assertSymbol(expected, actual, SymbolFormatter.fromFields(fields));
+    }
+
+    public static void assertSymbol(Symbol expected, Symbol actual, SymbolField<?>... fields) {
+        assertSymbol(expected, actual, SymbolFormatter.fromFields(Arrays.asList(fields)));
+    }
+
+    public static void assertSymbol(Symbol expected, Symbol actual, SymbolFormatter formatter) {
+        assertSymbolList(List.of(expected), List.of(actual), formatter);
+    }
+
     /**
      * Asserts that the actual symbol matches the expected symbol.
      * If the symbols do not match, an {@link AssertionFailedError} is thrown with a detailed message comparing the two symbols.
@@ -112,17 +126,26 @@ public class Airbag {
         assertSymbolList(List.of(expected), List.of(actual));
     }
 
+    public void assertSymbolList(List<Symbol> expected,
+                                 List<Symbol> actual) {
+        SymbolFormatter formatter = symbolProvider.getFormatter();
+        assertSymbolList(expected, actual, formatter);
+    }
+
     /**
      * Asserts that the actual list of tokens matches the expected list.
      * If the lists do not match, an {@link AssertionFailedError} is thrown with a detailed message comparing the two lists.
      * The comparison is done using a "weak" equality check, which means that the token type and text must be the same, but other properties such as line and column numbers may differ.
      *
-     * @param expected The expected list of tokens. Must not be null.
-     * @param actual   The actual list of tokens to check against the expected list. Must not be null.
+     * @param expected  The expected list of tokens. Must not be null.
+     * @param actual    The actual list of tokens to check against the expected list. Must not be null.
+     * @param formatter The formatter for formatting and comparing symbols.
      * @throws AssertionFailedError if the actual list of tokens does not match the expected list.
      */
-    public void assertSymbolList(List<Symbol> expected, List<Symbol> actual) {
-        SymbolFormatter formatter = symbolProvider.getFormatter();
+    public static void assertSymbolList(List<Symbol> expected,
+                                        List<Symbol> actual,
+                                        SymbolFormatter formatter) {
+
         BiPredicate<Symbol, Symbol> equalizer = SymbolField.equalizer(formatter.getFields());
         if (!Utils.listEquals(expected, actual, equalizer)) {
             throw new SymbolAssertionFailedError(formatter, expected, actual);

@@ -654,6 +654,9 @@ public class SymbolFormatterBuilder {
      * @return The built symbol formatter.
      */
     public SymbolFormatter toFormatter() {
+        if (optionalStart != -1) {
+            throw new IllegalStateException("The formatter has an unclosed optional section");
+        }
         return new SymbolFormatter(new CompositePrinterParser(printerParsers, false), fields, null);
     }
 

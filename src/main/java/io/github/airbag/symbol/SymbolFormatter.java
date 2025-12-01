@@ -313,15 +313,42 @@ public class SymbolFormatter {
     public static SymbolFormatter ofPattern(String pattern) {
         String[] patterns = pattern.split("\\|");
         SymbolFormatter formatter = null;
-        for (String singlePattern : patterns) {
-            if (formatter == null) {
-                formatter = new SymbolFormatterBuilder().appendPattern(singlePattern).toFormatter();
+        try {
+            for (String singlePattern : patterns) {
+                if (formatter == null) {
+                    formatter = new SymbolFormatterBuilder().appendPattern(singlePattern)
+                            .toFormatter();
+                } else {
+                    formatter = formatter.withAlternative(new SymbolFormatterBuilder().appendPattern(
+                            singlePattern).toFormatter());
+                }
+            }
+        } catch (IllegalStateException e) {
+            throw new IllegalArgumentException("The pattern %s is invalid".formatted(pattern), e);
+        }
+
+        return formatter;
+    }
+
+    public static SymbolFormatter fromFields(Collection<SymbolField<?>> fields) {
+        SymbolFormatterBuilder builder = new SymbolFormatterBuilder();
+        for (var field : fields) {
+            if (field == SymbolField.TEXT) {
+                builder.appendLiteral("text: ")
+                        .appendText(TextOption.ESCAPED)
+                        .appendLiteral("%n".formatted());
+            } else if (field == SymbolField.TYPE) {
+                builder.appendLiteral("type: ")
+                        .appendType(TypeFormat.SYMBOLIC_FIRST)
+                        .appendLiteral("%n".formatted());
             } else {
-                formatter = formatter.withAlternative(new SymbolFormatterBuilder().appendPattern(
-                        singlePattern).toFormatter());
+                //noinspection unchecked
+                builder.appendLiteral("%s: ".formatted(field.name()))
+                        .appendInteger((SymbolField<Integer>) field)
+                        .appendLiteral("%n".formatted());
             }
         }
-        return formatter;
+        return builder.toFormatter();
     }
 
     /**
