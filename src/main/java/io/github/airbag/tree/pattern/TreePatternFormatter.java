@@ -32,7 +32,7 @@ public class TreePatternFormatter {
                                  String end) {
         if (parser != null) {
             this.symbolFormatter = symbolFormatter.withVocabulary(parser.getVocabulary());
-            var tagFormatter = SymbolFormatter.ofPattern("%s[x:]s%s".formatted(start, end));
+            var tagFormatter = SymbolFormatter.ofPattern("%s[x:]S%s".formatted(start, end));
             this.symbolTagFormatter = tagFormatter.withVocabulary(parser.getVocabulary());
             this.ruleTagFormatter = tagFormatter.withVocabulary(new RuleVocabulary(parser.getRuleNames()));
         } else {

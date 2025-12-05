@@ -8,6 +8,8 @@ import io.github.airbag.symbol.TypeFormat;
 import io.github.airbag.tree.NodeFormatterBuilder.IntegerRulePrinterParser;
 import io.github.airbag.tree.NodeFormatterBuilder.LiteralPrinterParser;
 import io.github.airbag.tree.NodeFormatterBuilder.StringRuleNamePrinterParser;
+import io.github.airbag.tree.pattern.TreePatternBuilder;
+import io.github.airbag.tree.pattern.TreePatternFormatter;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.VocabularyImpl;
 import org.junit.jupiter.api.Nested;
@@ -571,7 +573,8 @@ public class NodeFormatterBuilderTest {
             int parsedLength = input.length();
 
             assertEquals(parsedLength, parser.parse(terminalCtx, input + "remainder", 0));
-            DerivationTree.Terminal terminalNode = assertInstanceOf(DerivationTree.Terminal.class, terminalCtx.resolve(null));
+            DerivationTree.Terminal terminalNode = assertInstanceOf(DerivationTree.Terminal.class,
+                    terminalCtx.resolve(null));
             Symbol symbol = terminalNode.symbol();
             assertEquals(Symbol.EOF, symbol.type());
             assertEquals("<EOF>", symbol.text()); // Text will be "EOF" for EOF symbol
@@ -588,7 +591,8 @@ public class NodeFormatterBuilderTest {
             int parsedLength = input.length();
 
             assertEquals(parsedLength, parser.parse(errorCtx, input + "remainder", 0));
-            DerivationTree.Error errorNode = assertInstanceOf(DerivationTree.Error.class, errorCtx.resolve(null));
+            DerivationTree.Error errorNode = assertInstanceOf(DerivationTree.Error.class,
+                    errorCtx.resolve(null));
             assertEquals("error_text", errorNode.symbol().text());
             assertTrue(rootCtx.getErrorMessages().isEmpty());
         }
@@ -602,12 +606,10 @@ public class NodeFormatterBuilderTest {
             // Input does not match "FixedText" pattern
             assertEquals(~0, parser.parse(terminalCtx, "some invalid input", 0));
             assertFalse(rootCtx.getErrorMessages().isEmpty());
-            assertEquals(
-                    """
+            assertEquals("""
                     Expected 'EOF' but found 'som'
                     Expected literal '(' but found 's'
-                    No vocabulary set""",
-                    rootCtx.getErrorMessages());
+                    No vocabulary set""", rootCtx.getErrorMessages());
             assertEquals(0, rootCtx.getMaxError());
         }
 
@@ -617,7 +619,7 @@ public class NodeFormatterBuilderTest {
             var rootCtx = createCtx();
             var terminalCtx = rootCtx.new Terminal(rootCtx);
 
-            assertEquals(~0,parser.parse(terminalCtx, "input", 0));
+            assertEquals(~0, parser.parse(terminalCtx, "input", 0));
             assertEquals("No symbol formatter set.", rootCtx.getErrorMessages());
         }
 
@@ -652,12 +654,10 @@ public class NodeFormatterBuilderTest {
 
             assertEquals(~0, parser.parse(terminalCtx, "", 0));
             assertFalse(rootCtx.getErrorMessages().isEmpty());
-            assertEquals(
-                    """
-                        Expected 'EOF' but found '<text end>'
-                        Expected literal '(' but found '<text end>'
-                        No vocabulary set""",
-                    rootCtx.getErrorMessages());
+            assertEquals("""
+                    Expected 'EOF' but found '<text end>'
+                    Expected literal '(' but found '<text end>'
+                    No vocabulary set""", rootCtx.getErrorMessages());
             assertEquals(0, rootCtx.getMaxError());
         }
     }
@@ -827,20 +827,24 @@ public class NodeFormatterBuilderTest {
         @Test
         void testFormatThrowsUnsupportedOperationException() {
             var separatorPrinterParser = new LiteralPrinterParser(" ");
-            var childrenPrinterParser = new NodeFormatterBuilder.ChildrenPrinterParser(separatorPrinterParser);
+            var childrenPrinterParser = new NodeFormatterBuilder.ChildrenPrinterParser(
+                    separatorPrinterParser);
             var buf = new StringBuilder();
             var ctx = new NodeFormatContext(null, null, null);
 
-            assertThrows(UnsupportedOperationException.class, () -> childrenPrinterParser.format(ctx, buf));
+            assertThrows(UnsupportedOperationException.class,
+                    () -> childrenPrinterParser.format(ctx, buf));
         }
 
         @Test
         void testParseThrowsUnsupportedOperationException() {
             var separatorPrinterParser = new LiteralPrinterParser(" ");
-            var childrenPrinterParser = new NodeFormatterBuilder.ChildrenPrinterParser(separatorPrinterParser);
+            var childrenPrinterParser = new NodeFormatterBuilder.ChildrenPrinterParser(
+                    separatorPrinterParser);
             var ctx = createCtx();
 
-            assertThrows(UnsupportedOperationException.class, () -> childrenPrinterParser.parse(ctx, "any text", 0));
+            assertThrows(UnsupportedOperationException.class,
+                    () -> childrenPrinterParser.parse(ctx, "any text", 0));
         }
 
         @Test
@@ -860,7 +864,8 @@ public class NodeFormatterBuilderTest {
             assertDoesNotThrow(() -> new NodeFormatterBuilder.WhitespacePrinterParser(" ", false));
             assertDoesNotThrow(() -> new NodeFormatterBuilder.WhitespacePrinterParser("\t", false));
             assertDoesNotThrow(() -> new NodeFormatterBuilder.WhitespacePrinterParser("\n", false));
-            assertDoesNotThrow(() -> new NodeFormatterBuilder.WhitespacePrinterParser("  \t\n", false));
+            assertDoesNotThrow(() -> new NodeFormatterBuilder.WhitespacePrinterParser("  \t\n",
+                    false));
             assertDoesNotThrow(() -> new NodeFormatterBuilder.WhitespacePrinterParser("", false));
         }
 
@@ -896,7 +901,8 @@ public class NodeFormatterBuilderTest {
 
         @Test
         void testFormatIndentedWhitespace() {
-            var printer = new NodeFormatterBuilder.WhitespacePrinterParser("  ", true); // 2 spaces per indent
+            var printer = new NodeFormatterBuilder.WhitespacePrinterParser("  ",
+                    true); // 2 spaces per indent
             var buf = new StringBuilder();
             var ctx = new NodeFormatContext(null, null, null);
 
@@ -923,14 +929,16 @@ public class NodeFormatterBuilderTest {
 
         @Test
         void testParseConsumesWhitespace() {
-            var parser = new NodeFormatterBuilder.WhitespacePrinterParser("", false); // "ignored" will be ignored
+            var parser = new NodeFormatterBuilder.WhitespacePrinterParser("",
+                    false); // "ignored" will be ignored
             var ctx = createCtx();
 
             assertEquals(4, parser.parse(ctx, "  \t\nremainder", 0)); // consumes 5 whitespace chars
             assertTrue(ctx.getErrorMessages().isEmpty());
             assertEquals(0, ctx.getMaxError());
 
-            assertEquals(3, parser.parse(ctx, "abc", 3)); // no whitespace, should return current position
+            assertEquals(3,
+                    parser.parse(ctx, "abc", 3)); // no whitespace, should return current position
             assertTrue(ctx.getErrorMessages().isEmpty());
         }
 
@@ -942,14 +950,12 @@ public class NodeFormatterBuilderTest {
             assertEquals(3, parser.parse(ctx, "   abc", 0));
             assertTrue(ctx.getErrorMessages().isEmpty());
             assertEquals(0, ctx.getMaxError());
-            assertEquals('a', "   abc".charAt(3));
         }
 
         @Test
         void testParseEmptyString() {
             var parser = new NodeFormatterBuilder.WhitespacePrinterParser("", false);
             var ctx = createCtx();
-
             assertEquals(0, parser.parse(ctx, "", 0));
             assertTrue(ctx.getErrorMessages().isEmpty());
             assertEquals(0, ctx.getMaxError());
@@ -959,7 +965,6 @@ public class NodeFormatterBuilderTest {
         void testParseNoWhitespace() {
             var parser = new NodeFormatterBuilder.WhitespacePrinterParser("", false);
             var ctx = createCtx();
-
             assertEquals(0, parser.parse(ctx, "abc", 0));
             assertTrue(ctx.getErrorMessages().isEmpty());
             assertEquals(0, ctx.getMaxError());
@@ -969,7 +974,6 @@ public class NodeFormatterBuilderTest {
         void testParseAtEndOfInput() {
             var parser = new NodeFormatterBuilder.WhitespacePrinterParser("", false);
             var ctx = createCtx();
-
             assertEquals(4, parser.parse(ctx, "  \t\n", 0));
             assertTrue(ctx.getErrorMessages().isEmpty());
             assertEquals(0, ctx.getMaxError());
@@ -979,20 +983,128 @@ public class NodeFormatterBuilderTest {
         void testParseWithOffset() {
             var parser = new NodeFormatterBuilder.WhitespacePrinterParser("", false);
             var ctx = createCtx();
-
             assertEquals(7, parser.parse(ctx, "abc  \t\nxyz", 3)); // starts at ' ' (index 3)
             assertTrue(ctx.getErrorMessages().isEmpty());
             assertEquals(0, ctx.getMaxError());
-            assertEquals('x', "abc  \t\nxyz".charAt(7));
         }
 
         @Test
         void testParseInvalidPosition() {
             var parser = new NodeFormatterBuilder.WhitespacePrinterParser("", false);
             var ctx = createCtx();
-
             assertThrows(IndexOutOfBoundsException.class, () -> parser.parse(ctx, " ", -1));
             assertThrows(IndexOutOfBoundsException.class, () -> parser.parse(ctx, " ", 2));
+        }
+
+    }
+
+
+    @Nested
+    class PatternPrinterParserTest {
+
+        private final TreePatternFormatter PATTERN_FORMATTER = TreePatternFormatter.SIMPLE.withRecognizer(new ExpressionParser(null));
+
+
+        @Test
+        void testFormatPatternNode() {
+            var pattern = new TreePatternBuilder().toPattern();
+            var printer = new NodeFormatterBuilder.PatternPrinterParser();
+            var buf = new StringBuilder();
+            var patternNode = Node.Pattern.attachTo(null, 0, pattern);
+            var ctx = new NodeFormatContext(null, PATTERN_FORMATTER, null);
+            ctx.setNode(patternNode);
+            assertTrue(printer.format(ctx, buf));
+            // Simple formatter with empty pattern results in an empty string
+            assertTrue(buf.toString().isEmpty());
+        }
+
+
+        @Test
+        void testFormatOtherNodeTypesReturnsFalse() {
+            var printer = new NodeFormatterBuilder.PatternPrinterParser();
+            var buf = new StringBuilder();
+            var ruleNode = Node.Rule.attachTo(null, 0);
+            var ctx = new NodeFormatContext(null, PATTERN_FORMATTER, null);
+            ctx.setNode(ruleNode);
+            assertFalse(printer.format(ctx, buf));
+            assertTrue(buf.isEmpty());
+            var terminalNode = Node.Terminal.attachTo(null, Symbol.of().type(0).get());
+            ctx.setNode(terminalNode);
+            assertFalse(printer.format(ctx, buf));
+            assertTrue(buf.isEmpty());
+        }
+
+
+        @Test
+        void testFormatNullNodeReturnsFalse() {
+            var printer = new NodeFormatterBuilder.PatternPrinterParser();
+            var buf = new StringBuilder();
+            var ctx = new NodeFormatContext(null, PATTERN_FORMATTER, null);
+            assertFalse(printer.format(ctx, buf));
+            assertTrue(buf.isEmpty());
+        }
+
+
+        @Test
+        void testFormatWithNullPatternFormatterThrowsNPE() {
+            var pattern = new TreePatternBuilder().toPattern();
+            var printer = new NodeFormatterBuilder.PatternPrinterParser();
+            var buf = new StringBuilder();
+            var patternNode = Node.Pattern.attachTo(null, 0, pattern);
+            var ctx = new NodeFormatContext(null, null, null); // No pattern formatter
+            ctx.setNode(patternNode);
+            assertThrows(NullPointerException.class, () -> printer.format(ctx, buf));
+        }
+
+
+        @Test
+        void testParseSuccessIntoPatternContext() {
+            var parser = new NodeFormatterBuilder.PatternPrinterParser();
+            var rootCtx = new RootParseContext(null, PATTERN_FORMATTER, null);
+            var patternCtx = rootCtx.new Pattern(rootCtx);
+            String input = "<label:expr>"; // A valid pattern string for the simple formatter
+            int parsedLength = input.length();
+            assertEquals(parsedLength, parser.parse(patternCtx, input + "remainder", 0), patternCtx.root().getErrorMessages());
+            DerivationTree.Pattern patternNode = assertInstanceOf(DerivationTree.Pattern.class, patternCtx.resolve(null));
+            var resolvedPattern = patternNode.getPattern();
+            assertNotNull(resolvedPattern);
+            assertTrue(rootCtx.getErrorMessages().isEmpty());
+        }
+
+
+        @Test
+        void testParseWithWrongContextTypeThrowsRuntimeException() {
+            var parser = new NodeFormatterBuilder.PatternPrinterParser();
+            var rootCtx = new RootParseContext(null, PATTERN_FORMATTER, null);
+            var ruleCtx = rootCtx.new Rule(rootCtx); // Incorrect context type
+            assertThrows(RuntimeException.class,
+                    () -> parser.parse(ruleCtx, "<label:prog>", 0),
+                    "Wrong context type");
+        }
+
+
+        @Test
+        void testParseWithNullPatternFormatterThrowsNPE() {
+            var parser = new NodeFormatterBuilder.PatternPrinterParser();
+            var rootCtx = createCtx();
+            var patternCtx = rootCtx.new Pattern(rootCtx);
+            assertThrows(NullPointerException.class,
+                    () -> parser.parse(patternCtx, "some_input", 0));
+
+        }
+
+
+        @Test
+        void testParseInvalidPosition() {
+            var parser = new NodeFormatterBuilder.PatternPrinterParser();
+            var rootCtx = new RootParseContext(null, PATTERN_FORMATTER, null);
+            var patternCtx = rootCtx.new Pattern(rootCtx);
+            assertThrows(IndexOutOfBoundsException.class,
+                    () -> parser.parse(patternCtx, "<1:label>", -1));
+
+            assertThrows(IndexOutOfBoundsException.class,
+                    () -> parser.parse(patternCtx, "<1:label>", "<1:label>".length() + 1));
+
         }
     }
 }

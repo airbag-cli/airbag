@@ -657,12 +657,13 @@ public class NodeFormatterBuilder {
                     buf.append(formatter.format(patternNode.getPattern()));
                     yield true;
                 }
-                default -> false;
+                case null, default -> false;
             };
         }
 
         @Override
         public int parse(NodeParseContext ctx, CharSequence text, int position) {
+            validatePosition(text, position);
             FormatterParsePosition parsePosition = new FormatterParsePosition(position);
             TreePatternFormatter patternFormatter = ctx.patternFormatter();
             TreePattern pattern = patternFormatter.parse(text, parsePosition);
