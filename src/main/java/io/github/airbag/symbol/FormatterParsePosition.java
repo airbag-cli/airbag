@@ -1,10 +1,11 @@
 package io.github.airbag.symbol;
 
 import java.text.ParsePosition;
+import java.util.*;
 
 public class FormatterParsePosition extends ParsePosition {
 
-    private String message;
+    private final NavigableSet<String> messages = new TreeSet<>();
 
     /**
      * Create a new ParsePosition with the given initial index.
@@ -15,11 +16,22 @@ public class FormatterParsePosition extends ParsePosition {
         super(index);
     }
 
+    public Collection<String> getMessages() {
+        return Collections.unmodifiableSet(messages);
+    }
+
     public String getMessage() {
-        return message;
+        var joiner = new StringJoiner("%n".formatted());
+        messages.forEach(joiner::add);
+        return joiner.toString();
+    }
+
+    public void appendMessage(String message) {
+        messages.add(message);
     }
 
     public void setMessage(String message) {
-        this.message = message;
+        messages.clear();
+        messages.add(message);
     }
 }

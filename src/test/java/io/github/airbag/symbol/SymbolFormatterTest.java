@@ -62,7 +62,7 @@ public class SymbolFormatterTest {
 
             // Parse "ID one"
             Symbol s1 = multiFormatter.parse(input, position);
-            assertNull(position.getMessage());
+            assertTrue(position.getMessage().isEmpty());
             assertEquals(8, position.getIndex());
             assertEquals(Symbol.of().type(8).text("one").get(), s1);
 

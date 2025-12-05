@@ -437,8 +437,7 @@ public class SymbolFormatter {
         Objects.requireNonNull(position, "position");
         Objects.requireNonNull(input, "input");
         int initial = position.getIndex();
-        int maxError = ~position.getErrorIndex();
-        boolean errorSet = position.getMessage() != null;
+        int maxError = position.getErrorIndex();
 
         for (var parser : printerParsers) {
             SymbolParseContext ctx = new SymbolParseContext(parser, vocabulary);
@@ -448,19 +447,14 @@ public class SymbolFormatter {
                 position.setErrorIndex(-1); // Clear error index on success
                 return ctx.resolveFields();
             } else {
-                if (!errorSet) {
-                    maxError = current;
+                int errorPosition = ~current;
+                if (errorPosition > maxError) {
                     position.setMessage(ctx.getErrorMessage());
-                    position.setErrorIndex(~current);
-                    errorSet = true;
-                } else if (current < maxError) {
-                    maxError = current;
-                    position.setMessage(ctx.getErrorMessage());
-                    position.setErrorIndex(~current);
-                } else if (current == maxError) {
-                    position.setMessage(position.getMessage()
-                            .concat("%n%s".formatted(ctx.getErrorMessage())));
+                    position.setErrorIndex(errorPosition);
+                } else if (errorPosition == maxError) {
+                    position.appendMessage(ctx.getErrorMessage());
                 }
+                maxError = Math.max(maxError, errorPosition);
             }
         }
 

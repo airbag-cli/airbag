@@ -415,7 +415,7 @@ public class NodeFormatterBuilder {
             }
             Symbol symbol = symbolFormatter.parse(text, parsePosition);
             if (parsePosition.getErrorIndex() >= 0) {
-                String[] messages = parsePosition.getMessage().split("\n");
+                String[] messages = parsePosition.getMessages().toArray(new String[0]);
                 int index = parsePosition.getIndex();
                 for (var message : messages) {
                     ctx.root().recordError(index, message);
