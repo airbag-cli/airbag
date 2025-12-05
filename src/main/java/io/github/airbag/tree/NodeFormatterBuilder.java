@@ -296,59 +296,6 @@ public class NodeFormatterBuilder {
         return this;
     }
 
-    /**
-     * Appends a padding string that is dynamically calculated based on the node's depth in the tree.
-     * <p>
-     * This component is typically used to create indented, human-readable representations of a
-     * {@link DerivationTree}.
-     * <p>
-     * <b>Formatting:</b> The provided function is called with the current node's depth (where the
-     * root is at depth 0), and the returned string is appended to the output.
-     * <p>
-     * <b>Parsing:</b> The function is called with the current parsing depth. The parser then
-     * expects to find the returned string at the current position in the input.
-     *
-     * @param padFunction A function that takes an integer depth and returns a padding string.
-     * @return This builder.
-     */
-    public NodeFormatterBuilder appendPadding(Function<Integer, String> padFunction) {
-        printerParsers.add(new PaddingPrinterParser(padFunction));
-        return this;
-    }
-
-    /**
-     * Appends padding by repeating a given string for each level of depth.
-     * <p>
-     * This is a convenience method for {@link #appendPadding(Function)}.
-     * For example, if {@code padString} is {@code "  "}, a node at depth 0 gets no padding,
-     * a node at depth 1 gets "  ", a node at depth 2 gets "    ", and so on.
-     * <p>
-     * <b>Formatting:</b> Appends {@code padString.repeat(node.depth())}.
-     * <p>
-     * <b>Parsing:</b> Expects to find {@code padString.repeat(currentDepth)} in the input.
-     *
-     * @param padString The string to repeat for each level of indentation.
-     * @return This builder.
-     */
-    public NodeFormatterBuilder appendPadding(String padString) {
-        return appendPadding(padString::repeat);
-    }
-
-    /**
-     * Appends padding by repeating a space character a fixed number of times for each depth level.
-     * <p>
-     * This is a convenience method for {@code appendPadding(" ".repeat(padSize))}.
-     * <p>
-     * <b>Formatting:</b> Appends a number of spaces equal to {@code padSize * node.depth()}.
-     * <p>
-     * <b>Parsing:</b> Expects to find a number of spaces equal to {@code padSize * currentDepth}.
-     *
-     * @param padSize The number of spaces to use for each level of indentation.
-     * @return This builder.
-     */
-    public NodeFormatterBuilder appendPadding(int padSize) {
-        return appendPadding(" ".repeat(padSize));
-    }
 
     public NodeFormatterBuilder appendPattern() {
         printerParsers.add(new PatternPrinterParser());
@@ -671,40 +618,6 @@ public class NodeFormatterBuilder {
         }
     }
 
-    static class PaddingPrinterParser implements NodePrinterParser {
-
-        private final Function<Integer, String> padFunction;
-
-        public PaddingPrinterParser(Function<Integer, String> padFunction) {
-            this.padFunction = padFunction;
-        }
-
-        @Override
-        public boolean format(NodeFormatContext ctx, StringBuilder buf) {
-            buf.append(padFunction.apply(ctx.node().depth()));
-            return true;
-        }
-
-        @Override
-        public int parse(NodeParseContext ctx, CharSequence text, int position) {
-            validatePosition(text, position);
-            String literal = padFunction.apply(ctx.depth());
-            int positionEnd = position + literal.length();
-            if (positionEnd > text.length() ||
-                !literal.contentEquals(text.subSequence(position, positionEnd))) {
-                ctx.root()
-                        .recordError(position,
-                                escapeText("Expected padding literal '%s' but found '%s'".formatted(
-                                        literal,
-                                        textLookahead(text,
-                                                position,
-                                                Math.max(10, literal.length() + 4)))));
-                return ~position;
-            }
-            return positionEnd;
-        }
-    }
-
     static class WhitespacePrinterParser implements NodePrinterParser {
 
         private final String whitespace;
@@ -726,6 +639,7 @@ public class NodeFormatterBuilder {
 
         @Override
         public int parse(NodeParseContext context, CharSequence text, int position) {
+            validatePosition(text, position);
             while (position < text.length() && Character.isWhitespace(text.charAt(position))) {
                 position++;
             }

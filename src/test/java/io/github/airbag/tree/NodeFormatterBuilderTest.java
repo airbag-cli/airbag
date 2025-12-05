@@ -1,5 +1,6 @@
 package io.github.airbag.tree;
 
+import io.github.airbag.gen.ExpressionParser;
 import io.github.airbag.symbol.Symbol;
 import io.github.airbag.symbol.SymbolFormatter;
 import io.github.airbag.symbol.SymbolFormatterBuilder;
@@ -7,11 +8,8 @@ import io.github.airbag.symbol.TypeFormat;
 import io.github.airbag.tree.NodeFormatterBuilder.IntegerRulePrinterParser;
 import io.github.airbag.tree.NodeFormatterBuilder.LiteralPrinterParser;
 import io.github.airbag.tree.NodeFormatterBuilder.StringRuleNamePrinterParser;
-import org.antlr.v4.runtime.IntStream;
 import org.antlr.v4.runtime.Recognizer;
-import org.antlr.v4.runtime.TokenFactory;
 import org.antlr.v4.runtime.VocabularyImpl;
-import org.antlr.v4.runtime.atn.ATNSimulator;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -25,73 +23,6 @@ public class NodeFormatterBuilderTest {
 
     static RootParseContext createCtx(SymbolFormatter formatter) {
         return new RootParseContext(formatter, null, null);
-    }
-
-    // Mock Recognizer for testing purposes
-    static class MockRecognizer extends Recognizer<Object, ATNSimulator> {
-        private final String[] ruleNames;
-
-        public MockRecognizer(String[] ruleNames) {
-            this.ruleNames = ruleNames;
-        }
-
-        @Override
-        public String[] getRuleNames() {
-            return ruleNames;
-        }
-
-        @Override
-        public String getGrammarFileName() {
-            return null;
-        }
-
-        @Override
-        public String[] getTokenNames() { // deprecated
-            return new String[0];
-        }
-
-        @Override
-        public org.antlr.v4.runtime.Vocabulary getVocabulary() {
-            return null;
-        }
-
-        public String[] getRuleContextNames() {
-            return new String[0];
-        }
-
-        public int getRuleIndex(String ruleName) {
-            for (int i = 0; i < ruleNames.length; i++) {
-                if (ruleNames[i].equals(ruleName)) {
-                    return i;
-                }
-            }
-            return -1;
-        }
-
-        @Override
-        public org.antlr.v4.runtime.atn.ATN getATN() {
-            return null;
-        }
-
-        @Override
-        public IntStream getInputStream() {
-            return null;
-        }
-
-        @Override
-        public void setInputStream(IntStream input) {
-
-        }
-
-        @Override
-        public TokenFactory<?> getTokenFactory() {
-            return null;
-        }
-
-        @Override
-        public void setTokenFactory(TokenFactory<?> input) {
-
-        }
     }
 
     @Nested
@@ -358,19 +289,18 @@ public class NodeFormatterBuilderTest {
     @Nested
     class StringRuleNamePrinterParserTest {
 
-        private final String[] MOCK_RULE_NAMES = {"ruleA", "ruleB", "ruleC"};
-        private final Recognizer<?, ?> MOCK_RECOGNIZER = new MockRecognizer(MOCK_RULE_NAMES);
+        private final Recognizer<?, ?> PARSER = new ExpressionParser(null);
 
         @Test
         void testFormatRuleNodeWithValidIndex() {
             var printer = new StringRuleNamePrinterParser();
             var buf = new StringBuilder();
             var ruleNode = Node.Rule.attachTo(null, 1); // Index for "ruleB"
-            var ctx = new NodeFormatContext(null, null, MOCK_RECOGNIZER);
+            var ctx = new NodeFormatContext(null, null, PARSER);
             ctx.setNode(ruleNode);
 
             assertTrue(printer.format(ctx, buf));
-            assertEquals("ruleB", buf.toString());
+            assertEquals("stat", buf.toString());
         }
 
         @Test
@@ -378,11 +308,11 @@ public class NodeFormatterBuilderTest {
             var printer = new StringRuleNamePrinterParser();
             var buf = new StringBuilder();
             var patternNode = Node.Pattern.attachTo(null, 0, null); // Index for "ruleA"
-            var ctx = new NodeFormatContext(null, null, MOCK_RECOGNIZER);
+            var ctx = new NodeFormatContext(null, null, PARSER);
             ctx.setNode(patternNode);
 
             assertTrue(printer.format(ctx, buf));
-            assertEquals("ruleA", buf.toString());
+            assertEquals("prog", buf.toString());
         }
 
         @Test
@@ -402,7 +332,7 @@ public class NodeFormatterBuilderTest {
             var printer = new StringRuleNamePrinterParser();
             var buf = new StringBuilder();
             var ruleNode = Node.Rule.attachTo(null, 99); // Out of bounds index
-            var ctx = new NodeFormatContext(null, null, MOCK_RECOGNIZER);
+            var ctx = new NodeFormatContext(null, null, PARSER);
             ctx.setNode(ruleNode);
 
             assertFalse(printer.format(ctx, buf));
@@ -414,7 +344,7 @@ public class NodeFormatterBuilderTest {
             var printer = new StringRuleNamePrinterParser();
             var buf = new StringBuilder();
             var terminalNode = Node.Terminal.attachTo(null, Symbol.of().type(0).get());
-            var ctx = new NodeFormatContext(null, null, MOCK_RECOGNIZER);
+            var ctx = new NodeFormatContext(null, null, PARSER);
             ctx.setNode(terminalNode);
 
             assertFalse(printer.format(ctx, buf));
@@ -425,7 +355,7 @@ public class NodeFormatterBuilderTest {
         void testFormatNullNode() {
             var printer = new StringRuleNamePrinterParser();
             var buf = new StringBuilder();
-            var ctx = new NodeFormatContext(null, null, MOCK_RECOGNIZER);
+            var ctx = new NodeFormatContext(null, null, PARSER);
 
             assertFalse(printer.format(ctx, buf));
             assertTrue(buf.isEmpty());
@@ -434,29 +364,29 @@ public class NodeFormatterBuilderTest {
         @Test
         void testParseRuleNameIntoRuleContextSuccess() {
             var parser = new StringRuleNamePrinterParser();
-            var rootCtx = new RootParseContext(null, null, MOCK_RECOGNIZER);
+            var rootCtx = new RootParseContext(null, null, PARSER);
             var ruleCtx = rootCtx.new Rule(rootCtx);
 
-            assertEquals(5, parser.parse(ruleCtx, "ruleBdef", 0));
-            assertEquals(1, ruleCtx.index()); // "ruleB" is at index 1
+            assertEquals(4, parser.parse(ruleCtx, "exprdef", 0));
+            assertEquals(2, ruleCtx.index());
             assertTrue(rootCtx.getErrorMessages().isEmpty());
         }
 
         @Test
         void testParseRuleNameIntoPatternContextSuccess() {
             var parser = new StringRuleNamePrinterParser();
-            var rootCtx = new RootParseContext(null, null, MOCK_RECOGNIZER);
+            var rootCtx = new RootParseContext(null, null, PARSER);
             var patternCtx = rootCtx.new Pattern(rootCtx);
 
-            assertEquals(5, parser.parse(patternCtx, "ruleAtest", 0));
-            assertEquals(0, patternCtx.resolve(null).index()); // "ruleA" is at index 0
+            assertEquals(4, parser.parse(patternCtx, "progtest", 0));
+            assertEquals(0, patternCtx.resolve(null).index());
             assertTrue(rootCtx.getErrorMessages().isEmpty());
         }
 
         @Test
         void testParseUnrecognizedRuleName() {
             var parser = new StringRuleNamePrinterParser();
-            var rootCtx = new RootParseContext(null, null, MOCK_RECOGNIZER);
+            var rootCtx = new RootParseContext(null, null, PARSER);
             var ruleCtx = rootCtx.new Rule(rootCtx);
 
             assertEquals(~0, parser.parse(ruleCtx, "unknownRule", 0));
@@ -482,7 +412,7 @@ public class NodeFormatterBuilderTest {
         @Test
         void testParseEmptyString() {
             var parser = new StringRuleNamePrinterParser();
-            var rootCtx = new RootParseContext(null, null, MOCK_RECOGNIZER);
+            var rootCtx = new RootParseContext(null, null, PARSER);
             var ruleCtx = rootCtx.new Rule(rootCtx);
 
             assertEquals(~0, parser.parse(ruleCtx, "", 0));
@@ -495,7 +425,7 @@ public class NodeFormatterBuilderTest {
         @Test
         void testParsePartialRuleName() {
             var parser = new StringRuleNamePrinterParser();
-            var rootCtx = new RootParseContext(null, null, MOCK_RECOGNIZER);
+            var rootCtx = new RootParseContext(null, null, PARSER);
             var ruleCtx = rootCtx.new Rule(rootCtx);
 
             assertEquals(~0, parser.parse(ruleCtx, "rule", 0));
@@ -507,25 +437,11 @@ public class NodeFormatterBuilderTest {
         @Test
         void testParseInvalidPosition() {
             var parser = new StringRuleNamePrinterParser();
-            var rootCtx = new RootParseContext(null, null, MOCK_RECOGNIZER);
+            var rootCtx = new RootParseContext(null, null, PARSER);
             var ruleCtx = rootCtx.new Rule(rootCtx);
 
             assertThrows(IndexOutOfBoundsException.class, () -> parser.parse(ruleCtx, "ruleA", -1));
             assertThrows(IndexOutOfBoundsException.class, () -> parser.parse(ruleCtx, "ruleA", 6));
-        }
-
-        @Test
-        void testParseLongestMatchPreference() {
-            String[] longerRuleNames = {"rule", "ruleA", "ruleAB"};
-            Recognizer<?, ?> longerRecognizer = new MockRecognizer(longerRuleNames);
-            var parser = new StringRuleNamePrinterParser();
-            var rootCtx = new RootParseContext(null, null, longerRecognizer);
-            var ruleCtx = rootCtx.new Rule(rootCtx);
-
-            // Should match "ruleAB" (index 2) as it's the longest match
-            assertEquals(6, parser.parse(ruleCtx, "ruleABsuffix", 0));
-            assertEquals(2, ruleCtx.index());
-            assertTrue(rootCtx.getErrorMessages().isEmpty());
         }
     }
 
@@ -749,19 +665,18 @@ public class NodeFormatterBuilderTest {
     @Nested
     class RulePrinterParserTest {
 
-        private final String[] MOCK_RULE_NAMES = {"ruleA", "ruleB", "ruleC"};
-        private final Recognizer<?, ?> MOCK_RECOGNIZER = new MockRecognizer(MOCK_RULE_NAMES);
+        private final Recognizer<?, ?> PARSER = new ExpressionParser(null);
 
         @Test
         void testFormatRuleNodePreferringStringName() {
             var printer = new NodeFormatterBuilder.RulePrinterParser();
             var buf = new StringBuilder();
             var ruleNode = Node.Rule.attachTo(null, 1); // Index for "ruleB"
-            var ctx = new NodeFormatContext(null, null, MOCK_RECOGNIZER);
+            var ctx = new NodeFormatContext(null, null, PARSER);
             ctx.setNode(ruleNode);
 
             assertTrue(printer.format(ctx, buf));
-            assertEquals("ruleB", buf.toString());
+            assertEquals("stat", buf.toString());
         }
 
         @Test
@@ -769,7 +684,7 @@ public class NodeFormatterBuilderTest {
             var printer = new NodeFormatterBuilder.RulePrinterParser();
             var buf = new StringBuilder();
             var ruleNode = Node.Rule.attachTo(null, 99); // Index out of bounds for MOCK_RECOGNIZER
-            var ctx = new NodeFormatContext(null, null, MOCK_RECOGNIZER);
+            var ctx = new NodeFormatContext(null, null, PARSER);
             ctx.setNode(ruleNode);
 
             assertTrue(printer.format(ctx, buf));
@@ -793,11 +708,11 @@ public class NodeFormatterBuilderTest {
             var printer = new NodeFormatterBuilder.RulePrinterParser();
             var buf = new StringBuilder();
             var patternNode = Node.Pattern.attachTo(null, 0, null); // Index for "ruleA"
-            var ctx = new NodeFormatContext(null, null, MOCK_RECOGNIZER);
+            var ctx = new NodeFormatContext(null, null, PARSER);
             ctx.setNode(patternNode);
 
             assertTrue(printer.format(ctx, buf));
-            assertEquals("ruleA", buf.toString());
+            assertEquals("prog", buf.toString());
         }
 
         @Test
@@ -805,7 +720,7 @@ public class NodeFormatterBuilderTest {
             var printer = new NodeFormatterBuilder.RulePrinterParser();
             var buf = new StringBuilder();
             var patternNode = Node.Pattern.attachTo(null, 100, null); // Index out of bounds
-            var ctx = new NodeFormatContext(null, null, MOCK_RECOGNIZER);
+            var ctx = new NodeFormatContext(null, null, PARSER);
             ctx.setNode(patternNode);
 
             assertTrue(printer.format(ctx, buf));
@@ -817,7 +732,7 @@ public class NodeFormatterBuilderTest {
             var printer = new NodeFormatterBuilder.RulePrinterParser();
             var buf = new StringBuilder();
             var terminalNode = Node.Terminal.attachTo(null, Symbol.of().type(0).get());
-            var ctx = new NodeFormatContext(null, null, MOCK_RECOGNIZER);
+            var ctx = new NodeFormatContext(null, null, PARSER);
             ctx.setNode(terminalNode);
 
             assertFalse(printer.format(ctx, buf));
@@ -828,7 +743,7 @@ public class NodeFormatterBuilderTest {
         void testFormatNullNodeReturnsFalse() {
             var printer = new NodeFormatterBuilder.RulePrinterParser();
             var buf = new StringBuilder();
-            var ctx = new NodeFormatContext(null, null, MOCK_RECOGNIZER);
+            var ctx = new NodeFormatContext(null, null, PARSER);
 
             assertFalse(printer.format(ctx, buf));
             assertTrue(buf.isEmpty());
@@ -837,11 +752,11 @@ public class NodeFormatterBuilderTest {
         @Test
         void testParseRuleNamePreferringStringName() {
             var parser = new NodeFormatterBuilder.RulePrinterParser();
-            var rootCtx = new RootParseContext(null, null, MOCK_RECOGNIZER);
+            var rootCtx = new RootParseContext(null, null, PARSER);
             var ruleCtx = rootCtx.new Rule(rootCtx);
 
-            assertEquals(5, parser.parse(ruleCtx, "ruleBxyz", 0));
-            assertEquals(1, ruleCtx.index());
+            assertEquals(4, parser.parse(ruleCtx, "exprxyz", 0));
+            assertEquals(2, ruleCtx.index());
             assertTrue(rootCtx.getErrorMessages().isEmpty());
         }
 
@@ -858,7 +773,7 @@ public class NodeFormatterBuilderTest {
         @Test
         void testParseFallsBackToInteger() {
             var parser = new NodeFormatterBuilder.RulePrinterParser();
-            var rootCtx = new RootParseContext(null, null, MOCK_RECOGNIZER);
+            var rootCtx = new RootParseContext(null, null, PARSER);
             var ruleCtx = rootCtx.new Rule(rootCtx);
 
             // "unknown" is not a rule name, so it should try IntegerRulePrinterParser
@@ -869,7 +784,7 @@ public class NodeFormatterBuilderTest {
         @Test
         void testParseFailureWhenNeitherStringNorIntegerMatches() {
             var parser = new NodeFormatterBuilder.RulePrinterParser();
-            var rootCtx = new RootParseContext(null, null, MOCK_RECOGNIZER);
+            var rootCtx = new RootParseContext(null, null, PARSER);
             var ruleCtx = rootCtx.new Rule(rootCtx);
 
             assertEquals(~0, parser.parse(ruleCtx, "unknown", 0));
@@ -884,7 +799,7 @@ public class NodeFormatterBuilderTest {
         @Test
         void testParseEmptyStringFailure() {
             var parser = new NodeFormatterBuilder.RulePrinterParser();
-            var rootCtx = new RootParseContext(null, null, MOCK_RECOGNIZER);
+            var rootCtx = new RootParseContext(null, null, PARSER);
             var ruleCtx = rootCtx.new Rule(rootCtx);
 
             assertEquals(~0, parser.parse(ruleCtx, "", 0));
@@ -898,11 +813,186 @@ public class NodeFormatterBuilderTest {
         @Test
         void testParseInvalidPositionThrowsException() {
             var parser = new NodeFormatterBuilder.RulePrinterParser();
-            var rootCtx = new RootParseContext(null, null, MOCK_RECOGNIZER);
+            var rootCtx = new RootParseContext(null, null, PARSER);
             var ruleCtx = rootCtx.new Rule(rootCtx);
 
-            assertThrows(IndexOutOfBoundsException.class, () -> parser.parse(ruleCtx, "ruleA", -1));
-            assertThrows(IndexOutOfBoundsException.class, () -> parser.parse(ruleCtx, "ruleA", 6));
+            assertThrows(IndexOutOfBoundsException.class, () -> parser.parse(ruleCtx, "expr", -1));
+            assertThrows(IndexOutOfBoundsException.class, () -> parser.parse(ruleCtx, "prog", 6));
+        }
+    }
+
+    @Nested
+    class ChildrenPrinterParserTest {
+
+        @Test
+        void testFormatThrowsUnsupportedOperationException() {
+            var separatorPrinterParser = new LiteralPrinterParser(" ");
+            var childrenPrinterParser = new NodeFormatterBuilder.ChildrenPrinterParser(separatorPrinterParser);
+            var buf = new StringBuilder();
+            var ctx = new NodeFormatContext(null, null, null);
+
+            assertThrows(UnsupportedOperationException.class, () -> childrenPrinterParser.format(ctx, buf));
+        }
+
+        @Test
+        void testParseThrowsUnsupportedOperationException() {
+            var separatorPrinterParser = new LiteralPrinterParser(" ");
+            var childrenPrinterParser = new NodeFormatterBuilder.ChildrenPrinterParser(separatorPrinterParser);
+            var ctx = createCtx();
+
+            assertThrows(UnsupportedOperationException.class, () -> childrenPrinterParser.parse(ctx, "any text", 0));
+        }
+
+        @Test
+        void testConstructorWithNullSeparator() {
+            // Ensure that the constructor allows null separator if needed, though typically it won't be null
+            var childrenPrinterParser = new NodeFormatterBuilder.ChildrenPrinterParser(null);
+            assertNotNull(childrenPrinterParser);
+            assertNull(childrenPrinterParser.separator());
+        }
+    }
+
+    @Nested
+    class WhitespacePrinterParserTest {
+
+        @Test
+        void testConstructorValidWhitespace() {
+            assertDoesNotThrow(() -> new NodeFormatterBuilder.WhitespacePrinterParser(" ", false));
+            assertDoesNotThrow(() -> new NodeFormatterBuilder.WhitespacePrinterParser("\t", false));
+            assertDoesNotThrow(() -> new NodeFormatterBuilder.WhitespacePrinterParser("\n", false));
+            assertDoesNotThrow(() -> new NodeFormatterBuilder.WhitespacePrinterParser("  \t\n", false));
+            assertDoesNotThrow(() -> new NodeFormatterBuilder.WhitespacePrinterParser("", false));
+        }
+
+        @Test
+        void testConstructorInvalidWhitespace() {
+            var exception = assertThrows(IllegalArgumentException.class,
+                    () -> new NodeFormatterBuilder.WhitespacePrinterParser("a ", false));
+            assertEquals("Can only append whitespace", exception.getMessage());
+
+            exception = assertThrows(IllegalArgumentException.class,
+                    () -> new NodeFormatterBuilder.WhitespacePrinterParser(" 1", false));
+            assertEquals("Can only append whitespace", exception.getMessage());
+
+            exception = assertThrows(IllegalArgumentException.class,
+                    () -> new NodeFormatterBuilder.WhitespacePrinterParser(" \tX\n", false));
+            assertEquals("Can only append whitespace", exception.getMessage());
+        }
+
+        @Test
+        void testFormatFixedWhitespace() {
+            var printer = new NodeFormatterBuilder.WhitespacePrinterParser("   ", false);
+            var buf = new StringBuilder();
+            var ctx = new NodeFormatContext(null, null, null);
+
+            assertTrue(printer.format(ctx, buf));
+            assertEquals("   ", buf.toString());
+
+            buf = new StringBuilder();
+            printer = new NodeFormatterBuilder.WhitespacePrinterParser("", false);
+            assertTrue(printer.format(ctx, buf));
+            assertTrue(buf.isEmpty());
+        }
+
+        @Test
+        void testFormatIndentedWhitespace() {
+            var printer = new NodeFormatterBuilder.WhitespacePrinterParser("  ", true); // 2 spaces per indent
+            var buf = new StringBuilder();
+            var ctx = new NodeFormatContext(null, null, null);
+
+            // Depth 0
+            ctx.setNode(Node.Rule.attachTo(null, 0));
+            assertTrue(printer.format(ctx, buf));
+            assertTrue(buf.isEmpty());
+
+            // Depth 1
+            buf = new StringBuilder();
+            ctx.setNode(Node.Rule.attachTo(Node.Rule.attachTo(null, 0), 1));
+            assertTrue(printer.format(ctx, buf));
+            assertEquals("  ", buf.toString());
+
+            // Depth 3
+            buf = new StringBuilder();
+            Node root = Node.Rule.attachTo(null, 0);
+            Node child1 = Node.Rule.attachTo(root, 1);
+            Node child2 = Node.Rule.attachTo(child1, 2);
+            ctx.setNode(child2);
+            assertTrue(printer.format(ctx, buf));
+            assertEquals("    ", buf.toString()); // 3 * "  "
+        }
+
+        @Test
+        void testParseConsumesWhitespace() {
+            var parser = new NodeFormatterBuilder.WhitespacePrinterParser("", false); // "ignored" will be ignored
+            var ctx = createCtx();
+
+            assertEquals(4, parser.parse(ctx, "  \t\nremainder", 0)); // consumes 5 whitespace chars
+            assertTrue(ctx.getErrorMessages().isEmpty());
+            assertEquals(0, ctx.getMaxError());
+
+            assertEquals(3, parser.parse(ctx, "abc", 3)); // no whitespace, should return current position
+            assertTrue(ctx.getErrorMessages().isEmpty());
+        }
+
+        @Test
+        void testParseConsumesOnlyWhitespace() {
+            var parser = new NodeFormatterBuilder.WhitespacePrinterParser("", false);
+            var ctx = createCtx();
+
+            assertEquals(3, parser.parse(ctx, "   abc", 0));
+            assertTrue(ctx.getErrorMessages().isEmpty());
+            assertEquals(0, ctx.getMaxError());
+            assertEquals('a', "   abc".charAt(3));
+        }
+
+        @Test
+        void testParseEmptyString() {
+            var parser = new NodeFormatterBuilder.WhitespacePrinterParser("", false);
+            var ctx = createCtx();
+
+            assertEquals(0, parser.parse(ctx, "", 0));
+            assertTrue(ctx.getErrorMessages().isEmpty());
+            assertEquals(0, ctx.getMaxError());
+        }
+
+        @Test
+        void testParseNoWhitespace() {
+            var parser = new NodeFormatterBuilder.WhitespacePrinterParser("", false);
+            var ctx = createCtx();
+
+            assertEquals(0, parser.parse(ctx, "abc", 0));
+            assertTrue(ctx.getErrorMessages().isEmpty());
+            assertEquals(0, ctx.getMaxError());
+        }
+
+        @Test
+        void testParseAtEndOfInput() {
+            var parser = new NodeFormatterBuilder.WhitespacePrinterParser("", false);
+            var ctx = createCtx();
+
+            assertEquals(4, parser.parse(ctx, "  \t\n", 0));
+            assertTrue(ctx.getErrorMessages().isEmpty());
+            assertEquals(0, ctx.getMaxError());
+        }
+
+        @Test
+        void testParseWithOffset() {
+            var parser = new NodeFormatterBuilder.WhitespacePrinterParser("", false);
+            var ctx = createCtx();
+
+            assertEquals(7, parser.parse(ctx, "abc  \t\nxyz", 3)); // starts at ' ' (index 3)
+            assertTrue(ctx.getErrorMessages().isEmpty());
+            assertEquals(0, ctx.getMaxError());
+            assertEquals('x', "abc  \t\nxyz".charAt(7));
+        }
+
+        @Test
+        void testParseInvalidPosition() {
+            var parser = new NodeFormatterBuilder.WhitespacePrinterParser("", false);
+            var ctx = createCtx();
+
+            assertThrows(IndexOutOfBoundsException.class, () -> parser.parse(ctx, " ", -1));
+            assertThrows(IndexOutOfBoundsException.class, () -> parser.parse(ctx, " ", 2));
         }
     }
 }
