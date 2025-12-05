@@ -219,7 +219,7 @@ public class NodeFormatterBuilder {
      *         .appendRule()
      *         .appendChildren(separator -> separator
      *             .appendLiteral("
-")
+     * ")
      *             .appendPadding("  ") // Indent each child
      *         )
      *     )
@@ -453,16 +453,21 @@ public class NodeFormatterBuilder {
                     buf.append(formatter.format(errorNode.symbol()));
                     yield true;
                 }
-                default -> false;
+                case null, default -> false;
             };
         }
 
         @Override
         public int parse(NodeParseContext ctx, CharSequence text, int position) {
+            validatePosition(text, position);
             FormatterParsePosition parsePosition = new FormatterParsePosition(position);
             SymbolFormatter symbolFormatter = ctx.symbolFormatter();
+            if (symbolFormatter == null) {
+                ctx.root().recordError(position, "No symbol formatter set.");
+                return ~position;
+            }
             Symbol symbol = symbolFormatter.parse(text, parsePosition);
-            if (parsePosition.getErrorIndex() > 0) {
+            if (parsePosition.getErrorIndex() >= 0) {
                 String[] messages = parsePosition.getMessage().split("\n");
                 int index = parsePosition.getIndex();
                 for (var message : messages) {
@@ -509,20 +514,31 @@ public class NodeFormatterBuilder {
                                         textLookahead(text, position, 3)));
                 return numberEnd;
             }
-            int index = Integer.parseInt(text.subSequence(position, numberEnd).toString());
-            if (ctx instanceof RootParseContext.Rule ruleCtx) {
-                ruleCtx.setIndex(index);
-            } else if (ctx instanceof  RootParseContext.Pattern patternCtx) {
-                patternCtx.setIndex(index);
-            }
-            else {
-                throw new RuntimeException("No rule or pattern context");
+            try {
+                int index = Integer.parseInt(text.subSequence(position, numberEnd).toString());
+                if (ctx instanceof RootParseContext.Rule ruleCtx) {
+                    ruleCtx.setIndex(index);
+                } else if (ctx instanceof RootParseContext.Pattern patternCtx) {
+                    patternCtx.setIndex(index);
+                } else {
+                    throw new RuntimeException("No rule or pattern context");
+                }
+            } catch (NumberFormatException e) {
+                ctx.root()
+                        .recordError(position,
+                                "The number '%s' is out of range".formatted(text.subSequence(
+                                        position,
+                                        numberEnd)));
+                return ~numberEnd;
             }
             return numberEnd;
         }
 
         public int peek(CharSequence text, int position) {
             validatePosition(text, position);
+            if (text.isEmpty()) {
+                return ~position;
+            }
             return text.charAt(position) == '-' ?
                     findNumberEnd(text, position + 1) :
                     findNumberEnd(text, position);
@@ -719,7 +735,7 @@ public class NodeFormatterBuilder {
 
     static class PatternPrinterParser implements NodePrinterParser {
 
-       @Override
+        @Override
         public boolean format(NodeFormatContext ctx, StringBuilder buf) {
             return switch (ctx.node()) {
                 case DerivationTree.Pattern patternNode -> {

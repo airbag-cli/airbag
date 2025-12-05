@@ -839,6 +839,9 @@ public class SymbolFormatterBuilder {
         @Override
         public int peek(SymbolParseContext context, CharSequence text, int position) {
             validatePosition(text, position);
+            if (text.isEmpty()) {
+                return ~position;
+            }
             if (text.charAt(position) == '-') {
                 int result = findNumberEnd(text, position + 1);
                 if (result < 0) {

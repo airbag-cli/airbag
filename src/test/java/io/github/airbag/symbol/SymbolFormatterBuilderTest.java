@@ -33,10 +33,8 @@ public class SymbolFormatterBuilderTest {
     @Nested
     class IntegerPrinterParserTest {
 
-        private static SymbolFormatterBuilder.CompositePrinterParser bundleUp(SymbolFormatterBuilder.IntegerPrinterParser integerPrinterParser) {
-            return new SymbolFormatterBuilder.CompositePrinterParser(List.of(integerPrinterParser),
-                    false);
-        }
+
+
 
         @Test
         void testIntegerPrinterPositiveNumber() {
@@ -71,6 +69,20 @@ public class SymbolFormatterBuilderTest {
             b = assertDoesNotThrow(() -> lenientPrinter.format(FORMAT_CTX, buf));
             assertTrue(b);
             assertEquals("-1", buf.toString());
+        }
+
+        @Test
+        void testPeekEmptyInput() {
+            var integerPrinterParser = new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.TYPE);
+            var ctx = new SymbolParseContext(null, null);
+            assertEquals(~0, integerPrinterParser.peek(ctx, "", 0));
+        }
+
+        @Test
+        void testParseEmptyInput() {
+            var integerPrinterParser = new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.TYPE);
+            var ctx = new SymbolParseContext(null, null);
+            assertEquals(~0, integerPrinterParser.parse(ctx, "", 0));
         }
 
         @Test
@@ -397,6 +409,23 @@ public class SymbolFormatterBuilderTest {
         // --- peek() tests ---
 
         @Test
+        void testPeekEmptyInput() {
+            TextPrinterParser textParser = new TextPrinterParser(TextOption.NOTHING);
+            SymbolParseContext ctx = createTextParseContext(textParser);
+            assertEquals(0, textParser.peek(ctx, "", 0));
+        }
+
+        @Test
+        void testParseEmptyInput() {
+            TextPrinterParser textParser = new TextPrinterParser(TextOption.NOTHING);
+            var ctx = createTextParseContext(textParser);
+            int end = textParser.parse(ctx, "", 0);
+            assertEquals(0, end);
+            assertEquals("", ctx.resolveFields().text());
+            assertNull(ctx.getErrorMessage());
+        }
+
+        @Test
         void testPeekNothingOptionNoSuccessors() {
             // TextPrinterParser is the only parser in the chain
             TextPrinterParser textParser = new TextPrinterParser(TextOption.NOTHING);
@@ -598,6 +627,18 @@ public class SymbolFormatterBuilderTest {
         }
 
         @Test
+        void testPeekNoInput() {
+            SymbolParseContext ctx = new SymbolParseContext(null,VOCABULARY); // No vocabulary
+            assertEquals(~0, PARSER.peek(ctx, "", 0));
+        }
+
+        @Test
+        void testParseEmptyInput() {
+            SymbolParseContext ctx = new SymbolParseContext(null,VOCABULARY); // No vocabulary
+            assertEquals(~0, PARSER.parse(ctx, "", 0));
+        }
+
+        @Test
         void testPeekOutOfBounds() {
             SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
             assertThrows(IndexOutOfBoundsException.class, () -> PARSER.peek(ctx, "A", -1));
@@ -731,6 +772,18 @@ public class SymbolFormatterBuilderTest {
             SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
             assertThrows(IndexOutOfBoundsException.class, () -> PARSER.peek(ctx, "'a'", -1));
             assertThrows(IndexOutOfBoundsException.class, () -> PARSER.peek(ctx, "'a'", 4));
+        }
+
+        @Test
+        void testPeekNoInput() {
+            SymbolParseContext ctx = new SymbolParseContext(null,VOCABULARY); // No vocabulary
+            assertEquals(~0, PARSER.peek(ctx, "", 0));
+        }
+
+        @Test
+        void testParseEmptyInput() {
+            SymbolParseContext ctx = new SymbolParseContext(null,VOCABULARY); // No vocabulary
+            assertEquals(~0, PARSER.parse(ctx, "", 0));
         }
 
         @Test
