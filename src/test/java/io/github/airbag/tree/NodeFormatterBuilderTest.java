@@ -1106,5 +1106,13 @@ public class NodeFormatterBuilderTest {
                     () -> parser.parse(patternCtx, "<1:label>", "<1:label>".length() + 1));
 
         }
+
+        @Test
+        void testParseEmptyString() {
+            var parser = new NodeFormatterBuilder.PatternPrinterParser();
+            var rootCtx = new RootParseContext(null, PATTERN_FORMATTER, null);
+            var patternCtx = rootCtx.new Pattern(rootCtx);
+            assertEquals(0, parser.parse(patternCtx, "", 0));
+        }
     }
 }

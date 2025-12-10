@@ -2,27 +2,30 @@ package io.github.airbag.tree.pattern;
 
 import io.github.airbag.tree.DerivationTree;
 import io.github.airbag.tree.Trees;
-import io.github.airbag.tree.pattern.TreePatternBuilder.CompositePatternElement;
+import io.github.airbag.tree.pattern.TreePatternBuilder.TreePatternElement;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class TreePattern {
 
-    private final CompositePatternElement compositePattern;
+    public static final TreePattern WILDCARD = new TreePatternBuilder().appendWildcard().toPattern();
 
-    TreePattern(CompositePatternElement compositePatternElement) {
-        this.compositePattern = compositePatternElement;
+    public static final TreePattern EMPTY = new TreePatternBuilder().toPattern();
+
+    private final TreePatternElement pattern;
+
+    TreePattern(TreePatternElement compositePatternElement) {
+        this.pattern = compositePatternElement;
     }
 
     public boolean matches(DerivationTree t) {
-        return compositePattern.match(new TreePatternContext(t));
+        return pattern.match(new TreePatternContext(t));
     }
 
     public TreeMatchResult match(DerivationTree t) {
         TreePatternContext ctx = new TreePatternContext(t);
-        boolean success = compositePattern.match(ctx);
+        boolean success = pattern.match(ctx);
         return new TreeMatchResult(success, t, ctx.getLabels());
     }
 
@@ -37,7 +40,11 @@ public class TreePattern {
         return matches;
     }
 
-    TreePatternBuilder.TreePatternElement[] getElements() {
-        return compositePattern.elements();
+    TreePatternElement[] getElements() {
+        if (pattern instanceof TreePatternBuilder.CompositePatternElement compositePatternElement) {
+            return compositePatternElement.elements();
+        } else {
+            return new TreePatternElement[] {pattern};
+        }
     }
 }

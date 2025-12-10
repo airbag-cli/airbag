@@ -4,6 +4,7 @@ import io.github.airbag.symbol.Symbol;
 import io.github.airbag.symbol.SymbolField;
 import io.github.airbag.tree.DerivationTree;
 import io.github.airbag.tree.Trees;
+import org.antlr.v4.runtime.tree.Tree;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +48,11 @@ public class TreePatternBuilder {
         return this;
     }
 
+    public TreePatternBuilder appendWildcard() {
+        treePatternList.add(new WildcardPatternElement());
+        return this;
+    }
+
     interface TreePatternElement {
 
         boolean match(TreePatternContext ctx);
@@ -78,6 +84,14 @@ public class TreePatternBuilder {
 
         public TreePatternElement[] elements() {
             return patternElements;
+        }
+    }
+
+    static class WildcardPatternElement implements TreePatternElement {
+
+        @Override
+        public boolean match(TreePatternContext ctx) {
+            return true;
         }
     }
 
