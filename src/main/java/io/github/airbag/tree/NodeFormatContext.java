@@ -1,7 +1,7 @@
 package io.github.airbag.tree;
 
 import io.github.airbag.symbol.SymbolFormatter;
-import io.github.airbag.tree.pattern.TreePatternFormatter;
+import io.github.airbag.tree.pattern.PatternFormatter;
 import org.antlr.v4.runtime.Recognizer;
 
 public class NodeFormatContext {
@@ -9,20 +9,20 @@ public class NodeFormatContext {
     //Later final
     private DerivationTree node;
     private final SymbolFormatter symbolFormatter;
-    private final TreePatternFormatter patternFormatter;
+    private final PatternFormatter patternFormatter;
     private final Recognizer<?,?> recognizer;
     private final boolean doNotRecurse;
 
 
 
-    public NodeFormatContext(SymbolFormatter symbolFormatter, TreePatternFormatter patternFormatter, Recognizer<?, ?> recognizer, boolean doNotRecurse) {
+    public NodeFormatContext(SymbolFormatter symbolFormatter, PatternFormatter patternFormatter, Recognizer<?, ?> recognizer, boolean doNotRecurse) {
         this.symbolFormatter = symbolFormatter;
         this.patternFormatter = patternFormatter;
         this.recognizer = recognizer;
         this.doNotRecurse = doNotRecurse;
     }
 
-    public NodeFormatContext(SymbolFormatter symbolFormatter, TreePatternFormatter patternFormatter, Recognizer<?,?> recognizer) {
+    public NodeFormatContext(SymbolFormatter symbolFormatter, PatternFormatter patternFormatter, Recognizer<?,?> recognizer) {
         this(symbolFormatter, patternFormatter, recognizer, false);
     }
 
@@ -30,7 +30,7 @@ public class NodeFormatContext {
         return symbolFormatter;
     }
 
-    public TreePatternFormatter patternFormatter() {
+    public PatternFormatter patternFormatter() {
         return patternFormatter;
     }
 

@@ -87,6 +87,14 @@ public record Symbol(int index, int start, int stop, String text, int type, int 
                 token.getCharPositionInLine());
     }
 
+    public static Symbol of(String symbol) {
+        return SymbolFormatter.ANTLR.parse(symbol);
+    }
+
+    public static Symbol of(String symbol, SymbolFormatter formatter) {
+        return formatter.parse(symbol);
+    }
+
     /**
      * A factory method for creating a {@link Builder}.
      *

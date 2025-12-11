@@ -8,8 +8,8 @@ import io.github.airbag.symbol.TypeFormat;
 import io.github.airbag.tree.NodeFormatterBuilder.IntegerRulePrinterParser;
 import io.github.airbag.tree.NodeFormatterBuilder.LiteralPrinterParser;
 import io.github.airbag.tree.NodeFormatterBuilder.StringRuleNamePrinterParser;
-import io.github.airbag.tree.pattern.TreePatternBuilder;
-import io.github.airbag.tree.pattern.TreePatternFormatter;
+import io.github.airbag.tree.pattern.PatternBuilder;
+import io.github.airbag.tree.pattern.PatternFormatter;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.VocabularyImpl;
 import org.junit.jupiter.api.Nested;
@@ -1002,12 +1002,12 @@ public class NodeFormatterBuilderTest {
     @Nested
     class PatternPrinterParserTest {
 
-        private final TreePatternFormatter PATTERN_FORMATTER = TreePatternFormatter.SIMPLE.withRecognizer(new ExpressionParser(null));
+        private final PatternFormatter PATTERN_FORMATTER = PatternFormatter.SIMPLE.withRecognizer(new ExpressionParser(null));
 
 
         @Test
         void testFormatPatternNode() {
-            var pattern = new TreePatternBuilder().toPattern();
+            var pattern = new PatternBuilder().toPattern();
             var printer = new NodeFormatterBuilder.PatternPrinterParser();
             var buf = new StringBuilder();
             var patternNode = Node.Pattern.attachTo(null, 0, pattern);
@@ -1047,7 +1047,7 @@ public class NodeFormatterBuilderTest {
 
         @Test
         void testFormatWithNullPatternFormatterThrowsNPE() {
-            var pattern = new TreePatternBuilder().toPattern();
+            var pattern = new PatternBuilder().toPattern();
             var printer = new NodeFormatterBuilder.PatternPrinterParser();
             var buf = new StringBuilder();
             var patternNode = Node.Pattern.attachTo(null, 0, pattern);

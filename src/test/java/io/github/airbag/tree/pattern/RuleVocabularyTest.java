@@ -34,7 +34,7 @@ public class RuleVocabularyTest {
         assertEquals("RULE1", vocabulary.getSymbolicName(1));
         assertEquals("RULE2", vocabulary.getSymbolicName(2));
 
-        // Test out of bounds token types
+        // Test out-of-bounds token types
         assertNull(vocabulary.getSymbolicName(3)); // Just outside bounds
         assertNull(vocabulary.getSymbolicName(100)); // Far out of bounds
 
@@ -51,7 +51,7 @@ public class RuleVocabularyTest {
         assertEquals("RULEA", vocabulary.getDisplayName(0));
         assertEquals("RULEB", vocabulary.getDisplayName(1));
 
-        // Test out of bounds token types
+        // Test out-of-bounds token types
         assertNull(vocabulary.getDisplayName(2));
         assertNull(vocabulary.getDisplayName(99));
 

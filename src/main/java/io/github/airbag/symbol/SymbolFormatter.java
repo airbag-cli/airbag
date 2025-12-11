@@ -189,13 +189,13 @@ public class SymbolFormatter {
      * // the output would be: "ID:'user'"
      * }</pre>
      *
-     * <h3>TreePatternBuilder Syntax</h3>
+     * <h3>PatternBuilder Syntax</h3>
      * The pattern allows you to specify which symbol fields to include, along with any
      * literal text, in the desired order.
      *
-     * <h3>TreePatternBuilder Letters</h3>
+     * <h3>PatternBuilder Letters</h3>
      * The following pattern letters are available:
-     * <table border="1" cellpadding="5" summary="TreePatternBuilder Letters">
+     * <table border="1" cellpadding="5" summary="PatternBuilder Letters">
      *   <tr><th>Letter(s)</th><th>Component</th><th>Description</th></tr>
      *   <tr>
      *     <td><b>I</b></td>

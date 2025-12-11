@@ -1,8 +1,6 @@
 package io.github.airbag.tree;
 
 import io.github.airbag.symbol.Symbol;
-import io.github.airbag.tree.pattern.TreePattern;
-import io.github.airbag.tree.pattern.TreePatternBuilder;
 import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.RuleNode;
@@ -110,6 +108,6 @@ public sealed interface DerivationTree permits Node, DerivationTree.Rule, Deriva
 
     sealed interface Pattern extends DerivationTree permits Node.Pattern {
 
-        TreePattern getPattern();
+        io.github.airbag.tree.pattern.Pattern getPattern();
     }
 }

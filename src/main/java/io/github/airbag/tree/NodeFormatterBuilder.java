@@ -3,13 +3,12 @@ package io.github.airbag.tree;
 import io.github.airbag.symbol.Symbol;
 import io.github.airbag.symbol.SymbolFormatter;
 import io.github.airbag.symbol.FormatterParsePosition;
-import io.github.airbag.tree.pattern.TreePattern;
-import io.github.airbag.tree.pattern.TreePatternFormatter;
+import io.github.airbag.tree.pattern.Pattern;
+import io.github.airbag.tree.pattern.PatternFormatter;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * Builder for defining the format of a single {@link Node} within a {@link DerivationTree}.
@@ -653,7 +652,7 @@ public class NodeFormatterBuilder {
         public boolean format(NodeFormatContext ctx, StringBuilder buf) {
             return switch (ctx.node()) {
                 case DerivationTree.Pattern patternNode -> {
-                    TreePatternFormatter formatter = ctx.patternFormatter();
+                    PatternFormatter formatter = ctx.patternFormatter();
                     buf.append(formatter.format(patternNode.getPattern()));
                     yield true;
                 }
@@ -665,8 +664,8 @@ public class NodeFormatterBuilder {
         public int parse(NodeParseContext ctx, CharSequence text, int position) {
             validatePosition(text, position);
             FormatterParsePosition parsePosition = new FormatterParsePosition(position);
-            TreePatternFormatter patternFormatter = ctx.patternFormatter();
-            TreePattern pattern = patternFormatter.parse(text, parsePosition);
+            PatternFormatter patternFormatter = ctx.patternFormatter();
+            Pattern pattern = patternFormatter.parse(text, parsePosition);
             if (ctx instanceof RootParseContext.Pattern patternCtx) {
                 patternCtx.setPattern(pattern);
             } else {

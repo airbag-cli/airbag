@@ -2,31 +2,31 @@ package io.github.airbag.tree.pattern;
 
 import io.github.airbag.tree.DerivationTree;
 import io.github.airbag.tree.Trees;
-import io.github.airbag.tree.pattern.TreePatternBuilder.TreePatternElement;
+import io.github.airbag.tree.pattern.PatternBuilder.TreePatternElement;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class TreePattern {
+public class Pattern {
 
-    public static final TreePattern WILDCARD = new TreePatternBuilder().appendWildcard().toPattern();
+    public static final Pattern WILDCARD = new PatternBuilder().appendWildcard().toPattern();
 
-    public static final TreePattern EMPTY = new TreePatternBuilder().toPattern();
+    public static final Pattern EMPTY = new PatternBuilder().toPattern();
 
     private final TreePatternElement pattern;
 
-    TreePattern(TreePatternElement compositePatternElement) {
+    Pattern(TreePatternElement compositePatternElement) {
         this.pattern = compositePatternElement;
     }
 
     public boolean matches(DerivationTree t) {
-        return pattern.match(new TreePatternContext(t));
+        return pattern.match(new PatternContext(t));
     }
 
-    public TreeMatchResult match(DerivationTree t) {
-        TreePatternContext ctx = new TreePatternContext(t);
+    public MatchResult match(DerivationTree t) {
+        PatternContext ctx = new PatternContext(t);
         boolean success = pattern.match(ctx);
-        return new TreeMatchResult(success, t, ctx.getLabels());
+        return new MatchResult(success, t, ctx.getLabels());
     }
 
     public List<DerivationTree> findAll(DerivationTree t) {
@@ -41,7 +41,7 @@ public class TreePattern {
     }
 
     TreePatternElement[] getElements() {
-        if (pattern instanceof TreePatternBuilder.CompositePatternElement compositePatternElement) {
+        if (pattern instanceof PatternBuilder.CompositePatternElement compositePatternElement) {
             return compositePatternElement.elements();
         } else {
             return new TreePatternElement[] {pattern};

@@ -50,13 +50,13 @@ import java.util.*;
  * // The same formatter can also parse this string back into its components.
  * }</pre>
  *
- * <h3>TreePatternBuilder-Based Formatting</h3>
+ * <h3>PatternBuilder-Based Formatting</h3>
  * For more complex or dynamic formatting needs, the {@link #appendPattern(String)}
  * method provides a concise and powerful alternative. It allows you to define the
  * entire format using a single pattern string, similar to date and time formatting
  * patterns. This is often more convenient than chaining multiple {@code append...} calls.
  *
- * <p><b>Example: TreePatternBuilder-Based Formatter</b></p>
+ * <p><b>Example: PatternBuilder-Based Formatter</b></p>
  * <pre>{@code
  * // A pattern to replicate ANTLR's default Token.toString() format
  * String pattern = "\\[@N,B:E='X',<L>,R:P\\]";
@@ -347,9 +347,9 @@ public class SymbolFormatterBuilder {
      * letters typically representing "strict" parsing and uppercase letters representing
      * "lenient" parsing.
      *
-     * <h3>TreePatternBuilder Letters</h3>
+     * <h3>PatternBuilder Letters</h3>
      * The following pattern letters are available:
-     * <table border="1" cell-padding="5" summary="TreePatternBuilder Letters">
+     * <table border="1" cell-padding="5" summary="PatternBuilder Letters">
      *   <tr><th>Letter(s)</th><th>Component</th><th>Description</th></tr>
      *   <tr>
      *     <td><b>I</b></td>

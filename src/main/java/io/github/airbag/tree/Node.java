@@ -1,8 +1,6 @@
 package io.github.airbag.tree;
 
 import io.github.airbag.symbol.Symbol;
-import io.github.airbag.tree.pattern.TreePattern;
-import io.github.airbag.tree.pattern.TreePatternBuilder;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -174,7 +172,7 @@ public abstract sealed class Node implements DerivationTree permits Node.Rule, N
 
     public final static class Pattern extends Node implements DerivationTree.Pattern {
 
-        private final TreePattern pattern;
+        private final io.github.airbag.tree.pattern.Pattern pattern;
 
         /**
          * Constructs a new node and links it to its Terminal.
@@ -182,17 +180,17 @@ public abstract sealed class Node implements DerivationTree permits Node.Rule, N
          * @param parent The Terminal node. If null, this node is considered the root.
          * @param index  The index for this node.
          */
-        Pattern(DerivationTree parent, int index, TreePattern pattern) {
+        Pattern(DerivationTree parent, int index, io.github.airbag.tree.pattern.Pattern pattern) {
             super(parent, index);
             this.pattern = pattern;
         }
 
-        public static Node.Pattern attachTo(DerivationTree parent,int index, TreePattern pattern) {
+        public static Node.Pattern attachTo(DerivationTree parent,int index, io.github.airbag.tree.pattern.Pattern pattern) {
             return new Node.Pattern(parent, index, pattern);
         }
 
         @Override
-        public TreePattern getPattern() {
+        public io.github.airbag.tree.pattern.Pattern getPattern() {
             return pattern;
         }
     }

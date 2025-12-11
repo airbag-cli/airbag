@@ -1,15 +1,13 @@
 package io.github.airbag.tree;
 
 import io.github.airbag.symbol.*;
-import io.github.airbag.tree.NodeFormatterBuilder.NodePrinterParser;
 import io.github.airbag.tree.TreeFormatterBuilder.TreePrinterParser;
-import io.github.airbag.tree.pattern.TreePatternFormatter;
+import io.github.airbag.tree.pattern.PatternFormatter;
 import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Vocabulary;
 
 import java.text.ParsePosition;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -104,17 +102,17 @@ public class TreeFormatter {
     private final TreePrinterParser treePrinterParser;
     private final SymbolFormatter symbolFormatter;
     private final Parser recognizer;
-    private final TreePatternFormatter patternFormatter;
+    private final PatternFormatter patternFormatter;
 
     TreeFormatter(TreePrinterParser treePrinterParser) {
         this.symbolFormatter = SymbolFormatter.SIMPLE;
-        this.patternFormatter = TreePatternFormatter.SIMPLE;
+        this.patternFormatter = PatternFormatter.SIMPLE;
         this.recognizer = null;
         this.treePrinterParser = treePrinterParser;
     }
 
     TreeFormatter(SymbolFormatter symbolFormatter,
-                  TreePatternFormatter patternFormatter,
+                  PatternFormatter patternFormatter,
                   Parser recognizer,
                   TreePrinterParser treePrinterParser) {
         this.symbolFormatter = symbolFormatter;
