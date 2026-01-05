@@ -20,18 +20,6 @@ import java.util.stream.Collectors;
 
 public class SymbolAssertionFailedError extends AssertionFailedError {
 
-    private static final DiffAlgorithmFactory DEFAULT_DIFF = MyersDiff.factory();
-
-    public SymbolAssertionFailedError(Symbol expected, Symbol actual) {
-        this(SymbolFormatter.SIMPLE, expected, actual);
-    }
-
-    public SymbolAssertionFailedError(SymbolFormatter formatter, Symbol expected, Symbol actual) {
-        super(message(formatter, List.of(expected), List.of(actual)),
-                ValueWrapper.create(expected, formatter.format(expected)),
-                ValueWrapper.create(actual, formatter.format(actual)));
-    }
-
     public SymbolAssertionFailedError(SymbolFormatter formatter,
                                       List<Symbol> expectedList,
                                       List<Symbol> actualList) {

@@ -140,29 +140,6 @@ public class TreeFormatter {
     }
 
     /**
-     * Formats only the root node of the given {@link DerivationTree}, excluding its children.
-     * <p>
-     * This method is useful when you need a string representation of a specific node
-     * without the complexity of the entire subtree. It uses the same formatting rules
-     * as the {@link #format(DerivationTree)} method but stops after processing the top-level node.
-     * For example, if a rule node is formatted as {@code "(<rule> ...)"}, this method
-     * would return {@code "(<rule>)"}, omitting the children.
-     *
-     * @param node The {@link DerivationTree} whose root node is to be formatted. Must not be null.
-     * @return The formatted string representation of the node.
-     * @throws RuntimeException if formatting fails.
-     */
-    public String formatNode(DerivationTree node) {
-        NodeFormatContext ctx = new NodeFormatContext(symbolFormatter, patternFormatter, recognizer, true);
-        ctx.setNode(node);
-        StringBuilder buf = new StringBuilder();
-        if (!treePrinterParser.format(ctx, buf)) {
-            throw new RuntimeException("Cannot format %s".formatted(node));
-        }
-        return buf.toString();
-    }
-
-    /**
      * Parses a character sequence into a {@link DerivationTree}.
      * <p>
      * This method expects to consume the entire input string. If any part of the string

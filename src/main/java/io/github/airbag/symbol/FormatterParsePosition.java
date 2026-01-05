@@ -2,7 +2,6 @@ package io.github.airbag.symbol;
 
 import java.text.ParsePosition;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class FormatterParsePosition extends ParsePosition {
 

@@ -11,19 +11,13 @@ public class NodeFormatContext {
     private final SymbolFormatter symbolFormatter;
     private final PatternFormatter patternFormatter;
     private final Recognizer<?,?> recognizer;
-    private final boolean doNotRecurse;
 
 
 
-    public NodeFormatContext(SymbolFormatter symbolFormatter, PatternFormatter patternFormatter, Recognizer<?, ?> recognizer, boolean doNotRecurse) {
+    public NodeFormatContext(SymbolFormatter symbolFormatter, PatternFormatter patternFormatter, Recognizer<?, ?> recognizer) {
         this.symbolFormatter = symbolFormatter;
         this.patternFormatter = patternFormatter;
         this.recognizer = recognizer;
-        this.doNotRecurse = doNotRecurse;
-    }
-
-    public NodeFormatContext(SymbolFormatter symbolFormatter, PatternFormatter patternFormatter, Recognizer<?,?> recognizer) {
-        this(symbolFormatter, patternFormatter, recognizer, false);
     }
 
     public SymbolFormatter symbolFormatter() {
@@ -46,7 +40,4 @@ public class NodeFormatContext {
         return recognizer;
     }
 
-    public boolean doNotRecurse() {
-        return doNotRecurse;
-    }
 }

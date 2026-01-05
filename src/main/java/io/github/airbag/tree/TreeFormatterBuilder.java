@@ -237,15 +237,6 @@ public class TreeFormatterBuilder {
 
         @Override
         public boolean format(NodeFormatContext ctx, StringBuilder buf) {
-            if (ctx.doNotRecurse()) {
-                // Trim trailing whitespace
-                int i = buf.length() - 1;
-                while (i >= 0 && Character.isWhitespace(buf.charAt(i))) {
-                    i--;
-                }
-                buf.setLength(i + 1);
-                return true;
-            }
             var current = ctx.node();
             for (int i = 0; i < current.size(); i++) {
                 var child = current.getChild(i);
