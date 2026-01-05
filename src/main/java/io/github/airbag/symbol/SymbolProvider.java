@@ -114,39 +114,7 @@ public class SymbolProvider {
      * @see SymbolFormatter#SIMPLE
      */
     public List<Symbol> fromSpec(String input) {
-        FormatterParsePosition position = new FormatterParsePosition(0);
-        List<Symbol> symbols = new ArrayList<>();
-        int index = 0;
-        while (position.getIndex() < input.length()) {
-            char c = input.charAt(position.getIndex());
-            if (Character.isWhitespace(c)) {
-                position.setIndex(position.getIndex() + 1);
-                continue;
-            }
-
-            Symbol parsedSymbol = formatter.parse(input, position);
-
-            if (parsedSymbol == null) {
-                throw new SymbolParseException(input, position.getIndex(), position.getMessage());
-            }
-
-            // Safely create a new token to set the index if not set
-            if (!formatter.getFields().contains(SymbolField.INDEX)) {
-                Symbol indexedSymbol = new Symbol(index,
-                        parsedSymbol.start(),
-                        parsedSymbol.stop(),
-                        parsedSymbol.text(),
-                        parsedSymbol.type(),
-                        parsedSymbol.channel(),
-                        parsedSymbol.line(),
-                        parsedSymbol.position());
-                symbols.add(indexedSymbol);
-                index++;
-            } else {
-                symbols.add(parsedSymbol);
-            }
-        }
-        return symbols;
+        return formatter.parseList(input);
     }
 
     /**

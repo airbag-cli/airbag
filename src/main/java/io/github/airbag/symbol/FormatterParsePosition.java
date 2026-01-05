@@ -2,10 +2,12 @@ package io.github.airbag.symbol;
 
 import java.text.ParsePosition;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class FormatterParsePosition extends ParsePosition {
 
     private final NavigableSet<String> messages = new TreeSet<>();
+    private int symbolIndex = -1;
 
     /**
      * Create a new ParsePosition with the given initial index.
@@ -33,5 +35,17 @@ public class FormatterParsePosition extends ParsePosition {
     public void setMessage(String message) {
         messages.clear();
         messages.add(message);
+    }
+
+    public int getSymbolIndex() {
+        return symbolIndex;
+    }
+
+    public void setSymbolIndex(int symbolIndex) {
+        this.symbolIndex = symbolIndex;
+    }
+
+    public boolean isSymbolIndex() {
+        return symbolIndex != -1;
     }
 }

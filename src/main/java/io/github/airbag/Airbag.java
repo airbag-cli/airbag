@@ -126,6 +126,10 @@ public class Airbag {
         assertSymbolList(List.of(expected), List.of(actual));
     }
 
+    public void assertSymbols(String expected, String actual) {
+        assertSymbolList(symbolProvider.fromSpec(expected), symbolProvider.fromInput(actual));
+    }
+
     public void assertSymbolList(List<Symbol> expected,
                                  List<Symbol> actual) {
         SymbolFormatter formatter = symbolProvider.getFormatter();

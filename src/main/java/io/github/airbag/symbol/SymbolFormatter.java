@@ -1,6 +1,7 @@
 package io.github.airbag.symbol;
 
 import io.github.airbag.symbol.SymbolFormatterBuilder.CompositePrinterParser;
+import io.github.airbag.symbol.SymbolFormatterBuilder.WhitespacePrinterParser;
 import org.antlr.v4.runtime.Vocabulary;
 
 import java.text.ParsePosition;
@@ -375,6 +376,12 @@ public class SymbolFormatter {
         return buf.toString();
     }
 
+    public String formatList(List<Symbol> symbols, String delimiter) {
+        var joiner = new StringJoiner(delimiter);
+        symbols.forEach(s -> joiner.add(format(s)));
+        return joiner.toString();
+    }
+
     /**
      * Parses a string into a single symbol using a strict parsing strategy.
      * <p>
@@ -445,6 +452,9 @@ public class SymbolFormatter {
             if (current >= 0) {
                 position.setIndex(current);
                 position.setErrorIndex(-1); // Clear error index on success
+                if (position.isSymbolIndex()) {
+                    ctx.addField(SymbolField.INDEX, position.getSymbolIndex());
+                }
                 return ctx.resolveFields();
             } else {
                 int errorPosition = ~current;
@@ -460,6 +470,32 @@ public class SymbolFormatter {
 
         // All parsers failed return null
         return null;
+    }
+
+    public List<Symbol> parseList(CharSequence input) {
+        return parseList(input, true);
+    }
+
+    public List<Symbol> parseList(CharSequence input, boolean ignoreWhitespace) {
+        WhitespacePrinterParser whitespaceConsumer = new WhitespacePrinterParser("");
+        FormatterParsePosition position = new FormatterParsePosition(0);
+        if (!fields.contains(SymbolField.INDEX)) {
+            position.setSymbolIndex(0);
+        }
+        List<Symbol> list = new ArrayList<>();
+        while(input.length() > position.getIndex() && position.getErrorIndex() < 0) {
+            Symbol symbol = parse(input, position);
+            if (position.getErrorIndex() >= 0 && ignoreWhitespace) {
+                int index = whitespaceConsumer.parse(null, input, position.getIndex());
+                if (index > 0) {
+                    position.setIndex(index);
+                    position.setErrorIndex(-1);
+                }
+            } else {
+                list.add(symbol);
+            }
+        }
+        return Collections.unmodifiableList(list);
     }
 
     public SymbolFormatter withVocabulary(Vocabulary vocabulary) {
