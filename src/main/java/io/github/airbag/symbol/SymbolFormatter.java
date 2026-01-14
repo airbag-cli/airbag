@@ -493,6 +493,9 @@ public class SymbolFormatter {
                 }
             } else {
                 list.add(symbol);
+                if (position.isSymbolIndex()) {
+                    position.setSymbolIndex(position.getSymbolIndex() + 1);
+                }
             }
         }
         return Collections.unmodifiableList(list);

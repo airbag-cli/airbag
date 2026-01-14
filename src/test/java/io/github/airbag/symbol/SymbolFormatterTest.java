@@ -483,4 +483,88 @@ public class SymbolFormatterTest {
             // For literal, "+":0 would not be formatted as such, just "+", so no explicit test needed beyond parsesLiteralCorrectly
         }
     }
+
+    @Nested
+    class ParseListTest {
+
+        private final SymbolFormatter formatter = SymbolFormatter.SIMPLE.withVocabulary(VOCABULARY);
+
+        private static Vocabulary createVocabularyWithoutWS() {
+            String[] literalNames = new String[]{
+                    null, "'='", "'*'", "'/'", "'+'", "'-'", "'('", "')'"
+            };
+            String[] symbolicNames =
+                    new String[]{
+                            null, null, null, null, null, null, null, null, "ID", "INT", "NEWLINE",
+                            // No "WS"
+                    };
+            return new VocabularyImpl(literalNames, symbolicNames);
+        }
+
+        @Test
+        void testParseListWithImplicitIndexingAndWhitespace() {
+            String input = "(ID 'a') (ID 'b')";
+            java.util.List<Symbol> symbols = formatter.parseList(input);
+
+            assertEquals(2, symbols.size());
+
+            Symbol expected1 = Symbol.of().type(8).text("a").channel(0).index(0).get();
+            assertEquals(expected1, symbols.get(0));
+
+            Symbol expected2 = Symbol.of().type(8).text("b").channel(0).index(1).get();
+            assertEquals(expected2, symbols.get(1));
+        }
+
+        @Test
+        void testParseListWithVariousWhitespace() {
+            String input = "(ID 'a')\n\t(ID 'b')  '+'   "; // mixed symbols, with newlines, tabs, and trailing spaces
+            java.util.List<Symbol> symbols = formatter.parseList(input);
+
+            assertEquals(3, symbols.size());
+
+            Symbol expected1 = Symbol.of().type(8).text("a").channel(0).index(0).get();
+            assertEquals(expected1, symbols.get(0));
+
+            Symbol expected2 = Symbol.of().type(8).text("b").channel(0).index(1).get();
+            assertEquals(expected2, symbols.get(1));
+
+            Symbol expected3 = Symbol.of().type(4).text("+").channel(0).index(2).get();
+            assertEquals(expected3, symbols.get(2));
+        }
+
+        @Test
+        void testParseListWithoutWhitespaceSeparators() {
+            String input = "(ID 'a')(ID 'b')";
+            java.util.List<Symbol> symbols = formatter.parseList(input);
+
+            assertEquals(2, symbols.size());
+            Symbol expected1 = Symbol.of().type(8).text("a").channel(0).index(0).get();
+            assertEquals(expected1, symbols.get(0));
+
+            Symbol expected2 = Symbol.of().type(8).text("b").channel(0).index(1).get();
+            assertEquals(expected2, symbols.get(1));
+        }
+
+        @Test
+        void testParseEmptyList() {
+            String input = "   ";
+            java.util.List<Symbol> symbols = formatter.parseList(input);
+            assertTrue(symbols.isEmpty());
+
+            input = "";
+            symbols = formatter.parseList(input);
+            assertTrue(symbols.isEmpty());
+        }
+
+        @Test
+        void testParseListFailsWithWhitespaceWhenNotIgnored() {
+            SymbolFormatter formatterWithoutWS = SymbolFormatter.SIMPLE.withVocabulary(createVocabularyWithoutWS());
+            String input = "(ID 'a') (ID 'b')";
+
+            // The space between symbols is not a recognized whitespace token if the vocabulary does not contain 'WS'.
+            // Therefore, parsing should fail after the first symbol due to extraneous input.
+            SymbolParseException e = assertThrows(SymbolParseException.class, () -> formatterWithoutWS.parseList(input));
+            assertTrue(e.getMessage().contains("extraneous input"));
+        }
+    }
 }
