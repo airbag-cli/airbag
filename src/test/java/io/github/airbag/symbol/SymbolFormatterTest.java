@@ -563,8 +563,15 @@ public class SymbolFormatterTest {
 
             // The space between symbols is not a recognized whitespace token if the vocabulary does not contain 'WS'.
             // Therefore, parsing should fail after the first symbol due to extraneous input.
-            SymbolParseException e = assertThrows(SymbolParseException.class, () -> formatterWithoutWS.parseList(input));
-            assertTrue(e.getMessage().contains("extraneous input"));
+            SymbolParseException e = assertThrows(SymbolParseException.class, () -> formatterWithoutWS.parseList(input, false));
+            assertEquals("""
+                            Parse failed at index 8:
+                            Expected 'EOF' but found ' (I'
+                            Expected literal '(' but found ' '
+                            Unrecognized literal type name starting with ' (ID '
+                            
+                            (ID 'a')>> (ID 'b')
+                            """, e.getMessage());
         }
     }
 }

@@ -4,6 +4,7 @@ import io.github.airbag.symbol.SymbolFormatterBuilder.CompositePrinterParser;
 import io.github.airbag.symbol.SymbolFormatterBuilder.WhitespacePrinterParser;
 import org.antlr.v4.runtime.Vocabulary;
 
+import java.text.ParseException;
 import java.text.ParsePosition;
 import java.util.*;
 
@@ -485,11 +486,15 @@ public class SymbolFormatter {
         List<Symbol> list = new ArrayList<>();
         while(input.length() > position.getIndex() && position.getErrorIndex() < 0) {
             Symbol symbol = parse(input, position);
-            if (position.getErrorIndex() >= 0 && ignoreWhitespace) {
-                int index = whitespaceConsumer.parse(null, input, position.getIndex());
-                if (index > 0) {
-                    position.setIndex(index);
-                    position.setErrorIndex(-1);
+            if (position.getErrorIndex() >= 0) {
+                if (ignoreWhitespace) {
+                    int index = whitespaceConsumer.parse(null, input, position.getIndex());
+                    if (index > 0) {
+                        position.setIndex(index);
+                        position.setErrorIndex(-1);
+                    }
+                } else {
+                    throw new SymbolParseException(input.toString(), position.getErrorIndex(), position.getMessage());
                 }
             } else {
                 list.add(symbol);
