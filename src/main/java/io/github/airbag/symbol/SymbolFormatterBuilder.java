@@ -179,7 +179,7 @@ public class SymbolFormatterBuilder {
      * This component provides a strict mapping between a symbol's type and its symbolic name
      * as defined in the ANTLR {@link Vocabulary}.
      * <p>
-     * <b>Formatting:</b> It will throw a {@link SymbolFormatterException} if the vocabulary is missing or
+     * <b>Formatting:</b> It will cause a {@link SymbolFormatterException} if the vocabulary is missing or
      * if the symbol's type does not have a symbolic name. This is often the case for tokens
      * representing literals (e.g., keywords, operators like {@code '='}), which have a literal
      * name but not a symbolic one.
@@ -203,7 +203,7 @@ public class SymbolFormatterBuilder {
      * typically enclosed in single quotes (e.g., {@code '='}).
      * <p>
      * <b>Formatting:</b> The literal name from the vocabulary (including the single quotes)
-     * is appended to the output. It will throw a {@link SymbolFormatterException} if the vocabulary
+     * is appended to the output. It will cause a {@link SymbolFormatterException} if the vocabulary
      * is missing or if the symbol's type does not have a literal name. This is often the
      * case for tokens with symbolic names like {@code ID} or {@code INT}.
      * <p>
@@ -269,9 +269,9 @@ public class SymbolFormatterBuilder {
     }
 
     /**
-     * Appends a whitespace component that formats with a single space and parses any amount of whitespace.
+     * Appends a whitespace component that formats with no space and parses any amount of whitespace.
      * <p>
-     * This is a convenience method for {@code appendWhitespace(" ")}.
+     * This is a convenience method for {@code appendWhitespace("")}.
      *
      * <p><b>Formatting:</b></p>
      * No whitespace is added while formatting
@@ -338,18 +338,30 @@ public class SymbolFormatterBuilder {
     }
 
     /**
-     * Appends a printer and parser to the formatter using a flexible pattern string.
+     * Creates a {@link SymbolFormatter} from a pattern string.
      * <p>
-     * This method allows for the creation of a formatter by defining a pattern string,
-     * which specifies the desired arrangement of symbol components. The pattern supports
-     * various letters, each representing a specific field of a {@link Symbol}.
-     * The case of the letter often determines its behavior during parsing, with lowercase
-     * letters typically representing "strict" parsing and uppercase letters representing
-     * "lenient" parsing.
+     * This factory method provides a convenient way to define a symbol format using a
+     * single pattern string, similar to date and time formatting patterns. It is a
+     * concise alternative to programmatically chaining individual components with a
+     * {@link SymbolFormatterBuilder}.
+     *
+     * <p><b>Example:</b></p>
+     * <pre>{@code
+     * // Creates a formatter that represents a symbol as "SYMBOLIC_NAME:'text'"
+     * SymbolFormatter formatter = SymbolFormatter.ofPattern("s:\\'x\\'");
+     *
+     * // Example formatting:
+     * // Given a symbol with symbolic name "ID" and text "user",
+     * // the output would be: "ID:'user'"
+     * }</pre>
+     *
+     * <h3>PatternBuilder Syntax</h3>
+     * The pattern allows you to specify which symbol fields to include, along with any
+     * literal text, in the desired order.
      *
      * <h3>PatternBuilder Letters</h3>
      * The following pattern letters are available:
-     * <table border="1" cell-padding="5" summary="PatternBuilder Letters">
+     * <table border="1" cellpadding="5" summary="PatternBuilder Letters">
      *   <tr><th>Letter(s)</th><th>Component</th><th>Description</th></tr>
      *   <tr>
      *     <td><b>I</b></td>
@@ -361,7 +373,7 @@ public class SymbolFormatterBuilder {
      *     <td>Symbol Type (Symbolic)</td>
      *     <td>
      *         <b>s (Strict):</b> Formats the symbolic name of the symbol (e.g., "ID"). Fails if no symbolic name is available. Parses a symbolic name and resolves it to a symbol type.<br>
-     *         <b>S (Lenient):</b> Formats the symbolic name if available; otherwise, formats the literal name. Parses either a symbolic or literal name.
+     *         <b>S (Lenient):</b> Formats the symbolic name if available; otherwise, formats the literal name and lastly the integer type if both fail. Parses either a symbolic or literal name or the integer type.
      *     </td>
      *   </tr>
      *   <tr>
@@ -369,7 +381,7 @@ public class SymbolFormatterBuilder {
      *     <td>Symbol Type (Literal)</td>
      *     <td>
      *         <b>l (Strict):</b> Formats the literal name of the symbol (e.g., "'='" ). Fails if no literal name is available. Parses a literal name and resolves it to a symbol type.<br>
-     *         <b>L (Lenient):</b> Formats the literal name if available; otherwise, formats the symbolic name. Parses either a literal or symbolic name.
+     *         <b>L (Lenient):</b> Formats the literal name if available; otherwise, formats the symbolic name and lastly the integer type. Parses either a literal or symbolic name or the integer type.
      *     </td>
      *   </tr>
      *   <tr>
@@ -430,50 +442,40 @@ public class SymbolFormatterBuilder {
      *   </tr>
      * </table>
      *
-     * <h3>Literals and Quoted Text</h3>
-     * Any character in the pattern that is not a recognized pattern letter (and not part of an optional
-     * section marker {@code []} or an escape sequence {@code \}) is treated as a literal.
-     * For example, in the pattern {@code s:x}, the colon is a literal.
-     * <p>
-     * To treat a sequence of characters as a single literal, especially if it contains characters
-     * that could be interpreted as pattern modifiers, you can enclose the sequence in {@code '} characters.
-     * Everything between the opening and closing {@code '} is treated as one literal block.
-     * For example, {@code 's'} would result in the literal "s" being printed, not the symbolic name.
-     * This is useful for ensuring that text is treated as a literal, regardless of its content.
+     * <h3>Literals, Escaping, and Quoting</h3>
+     * You can include literal text in your pattern in three ways:
+     * <ul>
+     *   <li><b>Unquoted Text:</b> Any character that is not a recognized pattern letter (a-z, A-Z)
+     *       or a special character ({@code []'\}) is treated as a literal. For example, in the pattern
+     *       {@code s:x}, the colon is a literal.</li>
+     *   <li><b>Escaping:</b> The backslash character ({@code \}) escapes the following character, forcing
+     *       it to be treated as a literal. This is useful for treating a single pattern letter or special
+     *       character as a literal. For example, {@code \s} will produce a literal 's', {@code \\} a literal
+     *       '\' and {@code \'} a literal single quote.</li>
+     *   <li><b>Quoting:</b> You can quote a sequence of characters with the percent sign ({@code '}).
+     *       Everything between a pair of {@code '} characters is treated as a single literal block.
+     *       This is useful for including sequences that contain pattern letters or special characters.
+     *       For example, {@code 's'} produces the literal "s", and {@code 'section[]'} produces "section[]".
+     *       To include a literal single quote, escape it with a backslash: {@code \'}.</li>
+     * </ul>
      *
      * <h3>Optional Sections</h3>
      * Square brackets {@code []} can be used to create an optional section in the pattern.
      * During formatting, if all components within the optional section can be printed, they are.
      * Otherwise, the entire section is skipped. During parsing, the parser will attempt to
      * match the components in the optional section, but if it fails, it will skip the section
-     * and continue with the rest of the pattern.
+     * and continue with the rest of the pattern. A component can "fail" if either the text option
+     * set the option {@link TextOption#failOnDefault(boolean)} or if the component is strict with a default value.
      *
-     * <h3>Escaping</h3>
-     * The backslash character {@code \} is used as an escape character. It allows individual pattern
-     * letters to be treated as literals outside a quoted block. For example, a pattern of {@code \s}
-     * will format or parse the literal character 's'. To include a literal backslash, use a double
-     * backslash {@code \\}. To include a literal percent sign, use {@code \'}.
+     * <h3>Additional Remarks</h3>
+     * This method cannot recognize alternatives. If the given pattern is supposed to have alternatives
+     * use {@link SymbolFormatter#ofPattern(String)} instead.
      *
-     * <h3>Examples</h3>
-     * <pre>{@code
-     *   // Format a symbol as "SYMBOLIC_NAME:'text'"
-     *   // For a symbol with symbolic name "ID" and text "user", the output would be "ID:'user'"
-     *   String pattern1 = "s:\\'x\\'";
      *
-     *   // Replicate ANTLR's default Symbol.toString() format
-     *   // Example output: [@-1,0:3='text',<0>,1:0]
-     *   // Using quoted blocks for all literal parts to avoid ambiguity.
-     *   String antlrPattern = "\\[@N,B:E=\\'X\\',<L>,['channel'=c],R:P\\]";
-     *
-     *   // Format a symbol with an optional channel display
-     *   // If the channel is not the default, it will be included (e.g., "ID[channel=1]")
-     *   // Otherwise, it will be omitted (e.g., "ID")
-     *   String optionalChannelPattern = "s[\\['channel'=c\\]]";
-     * }</pre>
-     *
-     * @param pattern the pattern string to define the formatter.
-     * @return this builder.
-     * @throws IllegalArgumentException if the pattern is invalid.
+     * @param pattern the pattern string that defines the format.
+     * @return a new {@link SymbolFormatter} instance based on the provided pattern.
+     * @throws IllegalArgumentException if the pattern string is invalid.
+     * @see SymbolFormatterBuilder#appendPattern(String)
      */
     public SymbolFormatterBuilder appendPattern(String pattern) {
         Objects.requireNonNull(pattern, "pattern");
@@ -481,6 +483,7 @@ public class SymbolFormatterBuilder {
         return this;
     }
 
+    // All characters used for symbol fields
     private static final Set<Character> PATTERN_LETTERS = Set.of('I',
             'S',
             's',
@@ -501,8 +504,10 @@ public class SymbolFormatterBuilder {
             'R',
             'r');
 
+    // Special characters for escaping or optional sections
     private static final Set<Character> SPECIAL_CHARACTERS = Set.of('[', ']', '\'', '\\');
 
+    // Parse the provided pattern string
     private void parsePattern(String pattern) {
         StringBuilder literalBuf = new StringBuilder();
         for (int i = 0; i < pattern.length(); i++) {
@@ -586,6 +591,7 @@ public class SymbolFormatterBuilder {
         flushLiteralBuf(literalBuf);
     }
 
+    // Append all literals in the buffer to the builder
     private void flushLiteralBuf(StringBuilder buf) {
         if (!buf.isEmpty()) {
             appendLiteral(buf.toString());
@@ -673,7 +679,7 @@ public class SymbolFormatterBuilder {
          *
          * @param context the context holding the values to be formatted.
          * @param buf     the buffer to append the formatted text to.
-         * @return true if the formatting was successful, false otherwise.
+         * @return {@code true} if the formatting was successful, {@code false} otherwise.
          */
         boolean format(SymbolFormatContext context, StringBuilder buf);
 
@@ -692,6 +698,8 @@ public class SymbolFormatterBuilder {
         /**
          * Peeks ahead in the text to see if the next characters match this parser's rule,
          * but does not consume them. Implementations of this method must not alter the parse context.
+         * This is used for lookahead in non-greedy components like the {@link TextPrinterParser} or
+         * in optional sections.
          *
          * @param context  the parse context.
          * @param text     the text to peek into.
