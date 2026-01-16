@@ -216,6 +216,12 @@ public final class SymbolField<T> {
         return Set.of(TYPE, TEXT, INDEX, LINE, POSITION, START, STOP, CHANNEL);
     }
 
+    /**
+     * Returns a predefined set of common {@code SymbolField} instances for basic symbol identification.
+     * This set typically includes fields like {@code TYPE}, {@code TEXT}, {@code INDEX}, and {@code CHANNEL}.
+     *
+     * @return A set containing {@code TYPE}, {@code TEXT}, {@code INDEX}, and {@code CHANNEL} fields.
+     */
     public static Set<SymbolField<?>> simple() {
         return Set.of(TYPE, TEXT, INDEX, CHANNEL);
     }
