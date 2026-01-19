@@ -101,14 +101,44 @@ public class Airbag {
         }
     }
 
-    public static void assertSymbol(Symbol expected, Symbol actual, Collection<SymbolField<?>> fields) {
+    /**
+     * Asserts that the actual symbol matches the expected symbol, comparing only the specified fields.
+     * If the symbols do not match, an {@link AssertionFailedError} is thrown with a detailed message.
+     *
+     * @param expected The expected symbol. Must not be null.
+     * @param actual   The actual symbol to check against the expected symbol. Must not be null.
+     * @param fields   A collection of {@link SymbolField} instances to use for comparison.
+     * @throws AssertionFailedError if the actual symbol does not match the expected symbol based on the specified fields.
+     */
+    public static void assertSymbol(Symbol expected,
+                                    Symbol actual,
+                                    Collection<SymbolField<?>> fields) {
         assertSymbol(expected, actual, SymbolFormatter.fromFields(fields));
     }
 
+    /**
+     * Asserts that the actual symbol matches the expected symbol, comparing only the specified fields.
+     * This is a convenience method that takes an array of {@link SymbolField} instances.
+     * If the symbols do not match, an {@link AssertionFailedError} is thrown with a detailed message.
+     *
+     * @param expected The expected symbol. Must not be null.
+     * @param actual   The actual symbol to check against the expected symbol. Must not be null.
+     * @param fields   An array of {@link SymbolField} instances to use for comparison.
+     * @throws AssertionFailedError if the actual symbol does not match the expected symbol based on the specified fields.
+     */
     public static void assertSymbol(Symbol expected, Symbol actual, SymbolField<?>... fields) {
         assertSymbol(expected, actual, SymbolFormatter.fromFields(Arrays.asList(fields)));
     }
 
+    /**
+     * Asserts that the actual symbol matches the expected symbol using the provided formatter for comparison.
+     * If the symbols do not match, an {@link AssertionFailedError} is thrown with a detailed message.
+     *
+     * @param expected  The expected symbol. Must not be null.
+     * @param actual    The actual symbol to check against the expected symbol. Must not be null.
+     * @param formatter The {@link SymbolFormatter} to use for formatting and comparing symbols.
+     * @throws AssertionFailedError if the actual symbol does not match the expected symbol.
+     */
     public static void assertSymbol(Symbol expected, Symbol actual, SymbolFormatter formatter) {
         assertSymbolList(List.of(expected), List.of(actual), formatter);
     }
@@ -126,12 +156,32 @@ public class Airbag {
         assertSymbolList(List.of(expected), List.of(actual));
     }
 
+    /**
+     * Asserts that the actual input string, when tokenized by the underlying lexer of the tested
+     * grammar results in a list of symbols that matches the expected symbol specification.
+     * If the lists do not match, an {@link AssertionFailedError} is thrown with a detailed message.
+     * The comparison is done using a "weak" equality check, where only symbol fields captured by
+     * the underlying formatter are compared.
+     *
+     * @param expected The expected symbol specification string. Must not be null.
+     * @param actual   The actual input string to tokenize and compare. Must not be null.
+     * @throws AssertionFailedError if the tokenized actual input does not match the expected symbols.
+     */
     public void assertSymbols(String expected, String actual) {
         assertSymbolList(symbolProvider.fromSpec(expected), symbolProvider.fromInput(actual));
     }
 
-    public void assertSymbolList(List<Symbol> expected,
-                                 List<Symbol> actual) {
+    /**
+     * Asserts that the actual list of symbols matches the expected list using the underlying formatter
+     * from the {@link SymbolProvider}.
+     * The comparison is done using a "weak" equality check, where only symbol fields captured by
+     * the underlying formatter are compared.
+     *
+     * @param expected The expected list of symbols. Must not be null.
+     * @param actual   The actual list of symbols to check against the expected list. Must not be null.
+     * @throws AssertionFailedError if the actual list of symbols does not match the expected list.
+     */
+    public void assertSymbolList(List<Symbol> expected, List<Symbol> actual) {
         SymbolFormatter formatter = symbolProvider.getFormatter();
         assertSymbolList(expected, actual, formatter);
     }
@@ -139,7 +189,8 @@ public class Airbag {
     /**
      * Asserts that the actual list of tokens matches the expected list.
      * If the lists do not match, an {@link AssertionFailedError} is thrown with a detailed message comparing the two lists.
-     * The comparison is done using a "weak" equality check, which means that the token type and text must be the same, but other properties such as line and column numbers may differ.
+     * The comparison is done using a "weak" equality check, where only symbol fields captured by
+     * the underlying formatter are compared.
      *
      * @param expected  The expected list of tokens. Must not be null.
      * @param actual    The actual list of tokens to check against the expected list. Must not be null.
