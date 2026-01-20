@@ -6,10 +6,6 @@ import java.util.Map;
 
 public record MatchResult(boolean isSuccess, DerivationTree tree, Map<String, DerivationTree> labels) {
 
-    public DerivationTree getLabel() {
-        return tree();
-    }
-
     public DerivationTree getLabel(String label) {
         return labels.get(label);
     }

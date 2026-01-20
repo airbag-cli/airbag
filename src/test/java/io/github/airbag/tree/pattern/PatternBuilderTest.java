@@ -34,8 +34,8 @@ public class PatternBuilderTest {
                     SymbolField.equalizer(SymbolField.all()));
             DerivationTree terminal = Node.Terminal.root(Symbol.of("[@1,4:3='My text',<4>,10:11]"));
             var ctx = new PatternContext(terminal);
-            assertTrue(element.match(ctx));
-            assertFalse(elementStrict.match(ctx));
+            assertTrue(element.isMatch(ctx));
+            assertFalse(elementStrict.isMatch(ctx));
         }
 
         @Test
@@ -45,7 +45,7 @@ public class PatternBuilderTest {
             DerivationTree rule = Node.Rule.root(4);
             DerivationTree terminal = Node.Terminal.attachTo(rule,Symbol.of("[@1,4:3='My text',<4>,10:11]"));
             var ctx = new PatternContext(terminal);
-            assertTrue(element.match(ctx));
+            assertTrue(element.isMatch(ctx));
         }
 
     }
@@ -54,19 +54,19 @@ public class PatternBuilderTest {
     class RuleTagPatternElementTest {
 
         @Test
-        void testSuccessfulMatch() {
+        void testSuccessfulIsMatch() {
             var element = new PatternBuilder.RuleTagPatternElement(5);
             DerivationTree rule = Node.Rule.root(5);
             var ctx = new PatternContext(rule);
-            assertTrue(element.match(ctx));
+            assertTrue(element.isMatch(ctx));
         }
 
         @Test
-        void testFailureMatch() {
+        void testFailureIsMatch() {
             var element = new PatternBuilder.RuleTagPatternElement(5);
             DerivationTree rule = Node.Rule.root(7);
             var ctx = new PatternContext(rule);
-            assertFalse(element.match(ctx));
+            assertFalse(element.isMatch(ctx));
         }
 
         @Test
@@ -74,7 +74,7 @@ public class PatternBuilderTest {
             var element = new PatternBuilder.RuleTagPatternElement(5);
             DerivationTree terminal = Node.Terminal.root(Symbol.of("(5 'text')", SymbolFormatter.SIMPLE));
             var ctx = new PatternContext(terminal);
-            assertFalse(element.match(ctx));
+            assertFalse(element.isMatch(ctx));
         }
 
         @Test
@@ -82,7 +82,7 @@ public class PatternBuilderTest {
             var element = new PatternBuilder.RuleTagPatternElement(5, "result");
             DerivationTree rule = Node.Rule.root(5);
             var ctx = new PatternContext(rule);
-            assertTrue(element.match(ctx));
+            assertTrue(element.isMatch(ctx));
             assertNotNull(ctx.getLabel("result"));
         }
 
@@ -97,7 +97,7 @@ public class PatternBuilderTest {
             var element = new PatternBuilder.SymbolTagPatternElement(5);
             DerivationTree terminal = Node.Terminal.root(Symbol.of().type(5).get());
             var ctx = new PatternContext(terminal);
-            assertTrue(element.match(ctx));
+            assertTrue(element.isMatch(ctx));
         }
 
         @Test
@@ -105,7 +105,7 @@ public class PatternBuilderTest {
             var element = new PatternBuilder.SymbolTagPatternElement(5);
             DerivationTree terminal = Node.Terminal.root(Symbol.of().type(6).get());
             var ctx = new PatternContext(terminal);
-            assertFalse(element.match(ctx));
+            assertFalse(element.isMatch(ctx));
         }
 
         @Test
@@ -113,7 +113,7 @@ public class PatternBuilderTest {
             var element = new PatternBuilder.SymbolTagPatternElement(5);
             DerivationTree terminal = Node.Rule.root(5);
             var ctx = new PatternContext(terminal);
-            assertFalse(element.match(ctx));
+            assertFalse(element.isMatch(ctx));
         }
 
         @Test
@@ -121,7 +121,7 @@ public class PatternBuilderTest {
             var element = new PatternBuilder.SymbolTagPatternElement(5, "result");
             DerivationTree rule = Node.Terminal.root(Symbol.of().type(5).get());
             var ctx = new PatternContext(rule);
-            assertTrue(element.match(ctx));
+            assertTrue(element.isMatch(ctx));
             assertNotNull(ctx.getLabel("result"));
         }
 

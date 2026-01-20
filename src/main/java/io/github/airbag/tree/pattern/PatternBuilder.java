@@ -217,7 +217,7 @@ public class PatternBuilder {
          * @param ctx The {@link PatternContext} providing the current tree node and other matching state.
          * @return {@code true} if the element successfully matches the tree node, {@code false} otherwise.
          */
-        boolean match(PatternContext ctx);
+        boolean isMatch(PatternContext ctx);
     }
 
     /**
@@ -240,14 +240,14 @@ public class PatternBuilder {
         }
 
         @Override
-        public boolean match(PatternContext ctx) {
+        public boolean isMatch(PatternContext ctx) {
             var t = ctx.getTree();
             for (int i = 0; i < Math.max(patternElements.length, t.size()); i++) {
                 if (i == patternElements.length || i == t.size()) {
                     return false;
                 }
                 ctx.setTree(t.getChild(i));
-                if (!patternElements[i].match(ctx)) {
+                if (!patternElements[i].isMatch(ctx)) {
                     return false;
                 }
             }
@@ -272,7 +272,7 @@ public class PatternBuilder {
     static class WildcardPatternElement implements TreePatternElement {
 
         @Override
-        public boolean match(PatternContext ctx) {
+        public boolean isMatch(PatternContext ctx) {
             return true;
         }
     }
@@ -299,12 +299,12 @@ public class PatternBuilder {
         }
 
         @Override
-        public boolean match(PatternContext ctx) {
+        public boolean isMatch(PatternContext ctx) {
             if (ctx.getTree() instanceof DerivationTree.Terminal terminal) {
                 return equalizer.test(terminal.symbol(), symbol);
             } else if (ctx.getTree().size() == 1) {
                 ctx.setTree(ctx.getTree().getChild(0));
-                return match(ctx);
+                return isMatch(ctx);
             } else {
                 return false;
             }
@@ -355,7 +355,7 @@ public class PatternBuilder {
         }
 
         @Override
-        public boolean match(PatternContext ctx) {
+        public boolean isMatch(PatternContext ctx) {
             boolean result = switch (ctx.getTree()) {
                 case DerivationTree.Rule ruleNode -> ruleNode.index() == ruleIndex;
                 default -> false;
@@ -415,8 +415,8 @@ public class PatternBuilder {
         }
 
         @Override
-        public boolean match(PatternContext ctx) {
-            boolean result = symbolPattern.match(ctx);
+        public boolean isMatch(PatternContext ctx) {
+            boolean result = symbolPattern.isMatch(ctx);
             if (result && tag != null) {
                 ctx.addLabel(tag, ctx.getTree());
             }
