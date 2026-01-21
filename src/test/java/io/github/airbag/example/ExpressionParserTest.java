@@ -206,5 +206,47 @@ public class ExpressionParserTest {
         airbag.assertTree(expectedTree, actualTree);
     }
 
+    @Test
+    void testProgWithPattern() {
+        // Build expected tree from specification
+        DerivationTree expectedTree = treeProvider.fromSpec("""
+                (prog
+                    (<stat>
+                        (
+                            <ID>
+                            '='
+                            <expr>
+                            (NEWLINE '\\n')
+                        )
+                    )
+                    (stat
+                        (expr (expr (INT '5'))
+                        '+'
+                        (expr (ID 'x')))
+                        (NEWLINE '\\n')
+                    )
+                    EOF
+                )""");
+
+        // Create a derivation tree from symbol list.
+        List<Symbol> symbolList = symbolFormatter.parseList("""
+                (ID 'x')
+                '='
+                (INT '10')
+                (NEWLINE '\\n')
+                (INT '5')
+                '+'
+                (ID 'x')
+                (NEWLINE '\\n')
+                EOF""");
+
+        // Pass the symbol list to the parser
+        DerivationTree actualTree = treeProvider.fromInput(symbolList, "prog");
+
+        //Compare the expected and actual tree
+        airbag.assertTree(expectedTree, actualTree);
+    }
+
+
 
 }
