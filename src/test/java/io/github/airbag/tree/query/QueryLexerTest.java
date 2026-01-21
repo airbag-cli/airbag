@@ -1,4 +1,4 @@
-package io.github.airbag.tree;
+package io.github.airbag.tree.query;
 
 import io.github.airbag.Airbag;
 import org.junit.jupiter.api.BeforeAll;

@@ -131,7 +131,7 @@ public abstract class QueryElement {
                     return !isInverted && (tokenType == terminal.index()) ||
                            (isInverted && (tokenType != terminal.index()));
                 } else {
-                    return false;
+                    return isInverted;
                 }
             };
         }
