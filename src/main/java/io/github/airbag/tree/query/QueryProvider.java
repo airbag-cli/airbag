@@ -122,23 +122,4 @@ public class QueryProvider {
         };
     }
 
-    /**
-     * Determines the {@link QueryElement.Navigator} based on the first token encountered.
-     * This helper is used to interpret the initial navigation operator (e.g., {@code /} or {@code //}).
-     *
-     * @param first The first ANTLR {@link Token} of a query segment.
-     * @return The corresponding {@link QueryElement.Navigator}.
-     * @throws IllegalArgumentException If the token type does not represent a recognized navigator.
-     * @deprecated This method appears to be unused and its logic is integrated directly into {@link #compile(String)}.
-     *             Consider removing it if it's indeed redundant.
-     */
-    private static QueryElement.Navigator getNavigator(Token first) {
-        return switch (first.getType()) {
-            case QueryLexer.ROOT -> QueryElement.Navigator.ROOT;
-            case QueryLexer.ANYWHERE -> QueryElement.Navigator.DESCENDANTS;
-            default ->
-                    throw new IllegalArgumentException("Unrecognized navigator %s".formatted(first.getText()));
-        };
-    }
-
 }

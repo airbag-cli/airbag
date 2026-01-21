@@ -44,24 +44,14 @@ public class Airbag {
     /**
      * Constructs a new Airbag instance from the given parser and lexer classes.
      *
-     * @param parserClass The {@link Class} object for the ANTLR parser. Must not be null.
-     * @param lexerClass  The {@link Class} object for the ANTLR lexer. Must not be null.
+     * @param parserClass The {@link Class} object for the ANTLR parser.
+     * @param lexerClass  The {@link Class} object for the ANTLR lexer.
      */
-    public Airbag(Class<? extends Parser> parserClass, Class<? extends Lexer> lexerClass) {
-        symbolProvider = new SymbolProvider(lexerClass);
-        treeProvider = new TreeProvider(parserClass);
+    private Airbag(Class<? extends Lexer> lexerClass, Class<? extends Parser> parserClass) {
+        symbolProvider = lexerClass == null ? null : new SymbolProvider(lexerClass);
+        treeProvider = parserClass == null ? null : new TreeProvider(parserClass);
     }
 
-    /**
-     * Constructs a new Airbag instance from the given lexer class.
-     * This constructor is intended for use when you only need to test the lexer.
-     *
-     * @param lexerClass The {@link Class} object for the ANTLR lexer. Must not be null.
-     */
-    public Airbag(Class<? extends Lexer> lexerClass) {
-        symbolProvider = new SymbolProvider(lexerClass);
-        treeProvider = null;
-    }
 
     /**
      * Creates a new Airbag instance for testing a lexer.
@@ -74,10 +64,27 @@ public class Airbag {
     public static Airbag testLexer(String fullyQualifiedName) {
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
         try {
-            return new Airbag(loader.loadClass(fullyQualifiedName).asSubclass(Lexer.class));
+            return new Airbag(loader.loadClass(fullyQualifiedName).asSubclass(Lexer.class), null);
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static Airbag testLexer(Class<? extends Lexer> lexerClass) {
+        return new Airbag(lexerClass, null);
+    }
+
+    public static Airbag testParser(String fullyQualifiedName) {
+        ClassLoader loader = Thread.currentThread().getContextClassLoader();
+        try {
+            return new Airbag(null, loader.loadClass(fullyQualifiedName).asSubclass(Parser.class));
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static Airbag testParser(Class<? extends Parser> parserClass) {
+        return new Airbag(null, parserClass);
     }
 
     /**
@@ -93,12 +100,15 @@ public class Airbag {
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
         try {
             var lexerClass = loader.loadClass(fullyQualifiedName + "Lexer").asSubclass(Lexer.class);
-            var parserClass = loader.loadClass(fullyQualifiedName + "Parser")
-                    .asSubclass(Parser.class);
-            return new Airbag(parserClass, lexerClass);
+            var parserClass = loader.loadClass(fullyQualifiedName + "Parser").asSubclass(Parser.class);
+            return new Airbag(lexerClass, parserClass);
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static Airbag testGrammar(Class<? extends Lexer> lexerClass, Class<? extends Parser> parserClass) {
+        return new Airbag(lexerClass, parserClass);
     }
 
     /**
@@ -168,6 +178,7 @@ public class Airbag {
      * @throws AssertionFailedError if the tokenized actual input does not match the expected symbols.
      */
     public void assertSymbols(String expected, String actual) {
+        Objects.requireNonNull(symbolProvider, "No symbol provider instantiated.");
         assertSymbolList(symbolProvider.fromSpec(expected), symbolProvider.fromInput(actual));
     }
 
@@ -182,6 +193,7 @@ public class Airbag {
      * @throws AssertionFailedError if the actual list of symbols does not match the expected list.
      */
     public void assertSymbolList(List<Symbol> expected, List<Symbol> actual) {
+        Objects.requireNonNull(symbolProvider, "No symbol provider instantiated.");
         SymbolFormatter formatter = symbolProvider.getFormatter();
         assertSymbolList(expected, actual, formatter);
     }
@@ -223,6 +235,7 @@ public class Airbag {
      * @throws NullPointerException if the {@link TreeProvider} was not configured for this Airbag instance.
      */
     public void assertTree(DerivationTree expected, DerivationTree actual) {
+        Objects.requireNonNull(treeProvider, "No tree provider instantiated");
         SymbolFormatter formatter = Objects.requireNonNull(treeProvider)
                 .getFormatter()
                 .getSymbolFormatter();

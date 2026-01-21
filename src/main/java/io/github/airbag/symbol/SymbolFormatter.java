@@ -81,13 +81,13 @@ public class SymbolFormatter {
      * This formatter provides a detailed, parsable representation of a symbol, including all its core attributes.
      * The format is: {@code "[@{index},{start}:{stop}='{text}',<{type}>(,channel={channel}),{line}:{pos}]"}
      * <ul>
-     *     <li>{@code <index>}: The symbol's index within the stream. See {@link Symbol#index()}.</li>
-     *     <li>{@code <start>:<stop>}: The start and stop character indices in the input stream. See {@link Symbol#start()} and {@link Symbol#stop()}.</li>
-     *     <li>{@code '<text>'}: The matched text of the symbol, with special characters escaped. See {@link Symbol#text()}.</li>
-     *     <li>{@code <<type>>}: The symbol's type, resolved first as a literal name (e.g., {@code '='}), then as a symbolic name (e.g., {@code ID}).</li>
-     *     <li>{@code <channel>}: The channel number. See {@link Symbol#channel()}. The channel section is optional and everything
+     *     <li>{@code {index}}: The symbol's index within the stream. See {@link Symbol#index()}.</li>
+     *     <li>{@code {start}:{stop}}: The start and stop character indices in the input stream. See {@link Symbol#start()} and {@link Symbol#stop()}.</li>
+     *     <li>{@code '{text}'}: The matched text of the symbol, with special characters escaped. See {@link Symbol#text()}.</li>
+     *     <li>{@code {type}}: The symbol's type, resolved first as a literal name (e.g., {@code '='}), then as a symbolic name (e.g., {@code ID}).</li>
+     *     <li>{@code {channel}}: The channel number. See {@link Symbol#channel()}. The channel section is optional and everything
      *     in parentheses is only present, if a non default value is present.</li>
-     *     <li>{@code <line>:<pos>}: The line number and character position within the line. See {@link Symbol#line()} and {@link Symbol#position()}.</li>
+     *     <li>{@code {line}:{pos}}: The line number and character position within the line. See {@link Symbol#line()} and {@link Symbol#position()}.</li>
      * </ul>
      * <p><b>Example:</b>
      * <pre>{@code
@@ -96,7 +96,8 @@ public class SymbolFormatter {
      *
      * // Assuming index=10, start=50, stop=53, line=5, pos=4
      *  String formatted = SymbolFormatter.ANTLR.withVocabulary(MyLexer.VOCABULARY).format(symbol);
-     * // formatted will be: "[@10,50:53='user',<ID>,5:4]"
+     * // formatted will be:
+     * "[@10,50:53='user',<ID>,5:4]"
      * }</pre>
      * This format is particularly useful for debugging and logging, as it captures the full context of a symbol.
      */
@@ -585,9 +586,13 @@ public class SymbolFormatter {
             if (position.getErrorIndex() >= 0) {
                 if (ignoreWhitespace) {
                     int index = whitespaceConsumer.parse(null, input, position.getIndex());
-                    if (index > 0) {
+                    if (index > position.getIndex()) {
                         position.setIndex(index);
                         position.setErrorIndex(-1);
+                    } else {
+                        throw new SymbolParseException(input.toString(),
+                                position.getErrorIndex(),
+                                position.getMessage());
                     }
                 } else {
                     throw new SymbolParseException(input.toString(),
