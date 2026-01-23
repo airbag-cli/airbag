@@ -185,6 +185,10 @@ public abstract sealed class Node implements DerivationTree permits Node.Rule, N
             this.pattern = pattern;
         }
 
+        public static Node.Pattern root(int index, io.github.airbag.tree.pattern.Pattern pattern) {
+            return new Node.Pattern(null, index, pattern);
+        }
+
         public static Node.Pattern attachTo(DerivationTree parent,int index, io.github.airbag.tree.pattern.Pattern pattern) {
             return new Node.Pattern(parent, index, pattern);
         }

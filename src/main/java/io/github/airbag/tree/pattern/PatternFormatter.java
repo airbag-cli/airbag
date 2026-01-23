@@ -6,6 +6,7 @@ import io.github.airbag.symbol.SymbolField;
 import io.github.airbag.symbol.SymbolFormatter;
 import io.github.airbag.tree.TreeParseException;
 import org.antlr.v4.runtime.Parser;
+import org.antlr.v4.runtime.Recognizer;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -32,7 +33,7 @@ public class PatternFormatter {
     private final SymbolFormatter symbolFormatter;
     private final SymbolFormatter symbolTagFormatter;
     private final SymbolFormatter ruleTagFormatter;
-    private final Parser parser;
+    private final Recognizer<?, ?> parser;
     private final String start;
     private final String end;
 
@@ -52,7 +53,7 @@ public class PatternFormatter {
      * @param start           The starting delimiter for tags (e.g., "<").
      * @param end             The ending delimiter for tags (e.g., ">").
      */
-    private PatternFormatter(Parser parser,
+    private PatternFormatter(Recognizer<?, ?> parser,
                              SymbolFormatter symbolFormatter,
                              String start,
                              String end) {
@@ -183,7 +184,7 @@ public class PatternFormatter {
      * @param parser The ANTLR {@link Parser} to associate with this formatter. Can be {@code null} to reset.
      * @return A new {@code PatternFormatter} instance.
      */
-    public PatternFormatter withRecognizer(Parser parser) {
+    public PatternFormatter withRecognizer(Recognizer<?, ?> parser) {
         if (parser == this.parser) {
             return this;
         }

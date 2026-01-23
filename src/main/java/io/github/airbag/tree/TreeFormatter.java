@@ -33,7 +33,7 @@ import java.util.Objects;
  * <h3>Customization</h3>
  * Once a formatter is created, it can be further customized. The
  * {@link #withSymbolFormatter(SymbolFormatter)} method allows you to control how terminal
- * symbols are formatted, while {@link #withRecognizer(Parser)} provides the necessary
+ * symbols are formatted, while {@link #withRecognizer(Recognizer)} provides the necessary
  * context (like rule and token names) from an ANTLR parser or lexer.
  *
  * @see TreeFormatterBuilder
@@ -101,7 +101,7 @@ public class TreeFormatter {
 
     private final TreePrinterParser treePrinterParser;
     private final SymbolFormatter symbolFormatter;
-    private final Parser recognizer;
+    private final Recognizer<?, ?> recognizer;
     private final PatternFormatter patternFormatter;
 
     TreeFormatter(TreePrinterParser treePrinterParser) {
@@ -113,7 +113,7 @@ public class TreeFormatter {
 
     TreeFormatter(SymbolFormatter symbolFormatter,
                   PatternFormatter patternFormatter,
-                  Parser recognizer,
+                  Recognizer<?, ?> recognizer,
                   TreePrinterParser treePrinterParser) {
         this.symbolFormatter = symbolFormatter;
         this.patternFormatter = patternFormatter;
@@ -222,7 +222,7 @@ public class TreeFormatter {
      * @param recognizer The ANTLR recognizer (e.g., a {@code Parser} instance) to provide context.
      * @return A new, configured {@link TreeFormatter} instance.
      */
-    public TreeFormatter withRecognizer(Parser recognizer) {
+    public TreeFormatter withRecognizer(Recognizer<?, ?> recognizer) {
         if (recognizer == null) {
             return new TreeFormatter(symbolFormatter.withVocabulary(null), patternFormatter.withRecognizer(null), null, treePrinterParser);
         }

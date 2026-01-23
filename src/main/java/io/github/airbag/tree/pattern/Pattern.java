@@ -29,6 +29,11 @@ import java.util.List;
  */
 public class Pattern {
 
+    /**
+     * A pattern element that requires an empty subtree
+     */
+    public static final Pattern NOTHING = new Pattern(new PatternBuilder.CompositePatternElement(new TreePatternElement[0]));
+
     //The patter field used for matching logic
     private final TreePatternElement pattern;
 
@@ -73,7 +78,7 @@ public class Pattern {
      *
      * @param t The {@link DerivationTree} to search within.
      * @return A list of {@link DerivationTree} instances that match the pattern.
-     *         Returns an empty list if no matches are found.
+     * Returns an empty list if no matches are found.
      */
     public List<DerivationTree> findAll(DerivationTree t) {
         List<DerivationTree> descendants = Trees.getDescendants(true, t);
@@ -96,7 +101,7 @@ public class Pattern {
         if (pattern instanceof PatternBuilder.CompositePatternElement compositePatternElement) {
             return compositePatternElement.elements();
         } else {
-            return new TreePatternElement[] {pattern};
+            return new TreePatternElement[]{pattern};
         }
     }
 }

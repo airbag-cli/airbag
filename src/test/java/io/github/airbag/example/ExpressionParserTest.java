@@ -197,7 +197,8 @@ public class ExpressionParserTest {
                 '+'
                 (ID 'x')
                 (NEWLINE '\\n')
-                EOF""");
+                EOF
+                """);
 
         // Pass the symbol list to the parser
         DerivationTree actualTree = treeProvider.fromInput(symbolList, "prog");
@@ -238,7 +239,8 @@ public class ExpressionParserTest {
                 '+'
                 (ID 'x')
                 (NEWLINE '\\n')
-                EOF""");
+                EOF
+                """);
 
         // Pass the symbol list to the parser
         DerivationTree actualTree = treeProvider.fromInput(symbolList, "prog");
