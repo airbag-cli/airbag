@@ -5,12 +5,12 @@ import io.github.airbag.tree.DerivationTree;
 import java.util.HashMap;
 import java.util.Map;
 
-class TreePatternContext {
+class PatternContext {
 
     private final Map<String, DerivationTree> labels = new HashMap<>();
     private DerivationTree tree;
 
-    public TreePatternContext(DerivationTree tree) {
+    public PatternContext(DerivationTree tree) {
         this.tree = tree;
     }
 
@@ -24,6 +24,10 @@ class TreePatternContext {
 
     public void addLabel(String label, DerivationTree t) {
         labels.put(label, t);
+    }
+
+    public DerivationTree getLabel(String label) {
+        return labels.get(label);
     }
 
     public Map<String, DerivationTree> getLabels() {

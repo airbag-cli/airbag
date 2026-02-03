@@ -1,15 +1,13 @@
 package io.github.airbag.tree;
 
 import io.github.airbag.symbol.*;
-import io.github.airbag.tree.NodeFormatterBuilder.NodePrinterParser;
 import io.github.airbag.tree.TreeFormatterBuilder.TreePrinterParser;
-import io.github.airbag.tree.pattern.TreePatternFormatter;
+import io.github.airbag.tree.pattern.PatternFormatter;
 import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Vocabulary;
 
 import java.text.ParsePosition;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -35,7 +33,7 @@ import java.util.Objects;
  * <h3>Customization</h3>
  * Once a formatter is created, it can be further customized. The
  * {@link #withSymbolFormatter(SymbolFormatter)} method allows you to control how terminal
- * symbols are formatted, while {@link #withRecognizer(Parser)} provides the necessary
+ * symbols are formatted, while {@link #withRecognizer(Recognizer)} provides the necessary
  * context (like rule and token names) from an ANTLR parser or lexer.
  *
  * @see TreeFormatterBuilder
@@ -103,19 +101,19 @@ public class TreeFormatter {
 
     private final TreePrinterParser treePrinterParser;
     private final SymbolFormatter symbolFormatter;
-    private final Parser recognizer;
-    private final TreePatternFormatter patternFormatter;
+    private final Recognizer<?, ?> recognizer;
+    private final PatternFormatter patternFormatter;
 
     TreeFormatter(TreePrinterParser treePrinterParser) {
         this.symbolFormatter = SymbolFormatter.SIMPLE;
-        this.patternFormatter = TreePatternFormatter.SIMPLE;
+        this.patternFormatter = PatternFormatter.SIMPLE;
         this.recognizer = null;
         this.treePrinterParser = treePrinterParser;
     }
 
     TreeFormatter(SymbolFormatter symbolFormatter,
-                  TreePatternFormatter patternFormatter,
-                  Parser recognizer,
+                  PatternFormatter patternFormatter,
+                  Recognizer<?, ?> recognizer,
                   TreePrinterParser treePrinterParser) {
         this.symbolFormatter = symbolFormatter;
         this.patternFormatter = patternFormatter;
@@ -137,29 +135,6 @@ public class TreeFormatter {
         StringBuilder buf = new StringBuilder();
         if (!treePrinterParser.format(ctx, buf)) {
             throw new RuntimeException("Cannot format %s".formatted(tree));
-        }
-        return buf.toString();
-    }
-
-    /**
-     * Formats only the root node of the given {@link DerivationTree}, excluding its children.
-     * <p>
-     * This method is useful when you need a string representation of a specific node
-     * without the complexity of the entire subtree. It uses the same formatting rules
-     * as the {@link #format(DerivationTree)} method but stops after processing the top-level node.
-     * For example, if a rule node is formatted as {@code "(<rule> ...)"}, this method
-     * would return {@code "(<rule>)"}, omitting the children.
-     *
-     * @param node The {@link DerivationTree} whose root node is to be formatted. Must not be null.
-     * @return The formatted string representation of the node.
-     * @throws RuntimeException if formatting fails.
-     */
-    public String formatNode(DerivationTree node) {
-        NodeFormatContext ctx = new NodeFormatContext(symbolFormatter, patternFormatter, recognizer, true);
-        ctx.setNode(node);
-        StringBuilder buf = new StringBuilder();
-        if (!treePrinterParser.format(ctx, buf)) {
-            throw new RuntimeException("Cannot format %s".formatted(node));
         }
         return buf.toString();
     }
@@ -247,7 +222,7 @@ public class TreeFormatter {
      * @param recognizer The ANTLR recognizer (e.g., a {@code Parser} instance) to provide context.
      * @return A new, configured {@link TreeFormatter} instance.
      */
-    public TreeFormatter withRecognizer(Parser recognizer) {
+    public TreeFormatter withRecognizer(Recognizer<?, ?> recognizer) {
         if (recognizer == null) {
             return new TreeFormatter(symbolFormatter.withVocabulary(null), patternFormatter.withRecognizer(null), null, treePrinterParser);
         }

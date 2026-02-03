@@ -2,8 +2,7 @@ package io.github.airbag.tree;
 
 import io.github.airbag.symbol.Symbol;
 import io.github.airbag.symbol.SymbolFormatter;
-import io.github.airbag.tree.pattern.TreePattern;
-import io.github.airbag.tree.pattern.TreePatternFormatter;
+import io.github.airbag.tree.pattern.PatternFormatter;
 import org.antlr.v4.runtime.Recognizer;
 
 import java.util.*;
@@ -11,13 +10,13 @@ import java.util.*;
 class RootParseContext implements NodeParseContext{
 
     private final SymbolFormatter symbolFormatter;
-    private final TreePatternFormatter patternFormatter;
+    private final PatternFormatter patternFormatter;
     private final Recognizer<?,?> recognizer;
     private NodeParseContext root;
     private int maxError;
     private final Set<String> errorMessages = new TreeSet<>();
 
-    RootParseContext(SymbolFormatter symbolFormatter, TreePatternFormatter patternFormatter, Recognizer<?, ?> recognizer) {
+    RootParseContext(SymbolFormatter symbolFormatter, PatternFormatter patternFormatter, Recognizer<?, ?> recognizer) {
         this.symbolFormatter = symbolFormatter;
         this.patternFormatter = patternFormatter;
         this.recognizer = recognizer;
@@ -86,7 +85,7 @@ class RootParseContext implements NodeParseContext{
     }
 
     @Override
-    public TreePatternFormatter patternFormatter() {
+    public PatternFormatter patternFormatter() {
         return patternFormatter;
     }
 
@@ -114,7 +113,7 @@ class RootParseContext implements NodeParseContext{
         }
 
         @Override
-        public TreePatternFormatter patternFormatter() {
+        public PatternFormatter patternFormatter() {
             return patternFormatter;
         }
 
@@ -177,7 +176,7 @@ class RootParseContext implements NodeParseContext{
 
 
         @Override
-        public TreePatternFormatter patternFormatter() {
+        public PatternFormatter patternFormatter() {
             return patternFormatter;
         }
 
@@ -236,7 +235,7 @@ class RootParseContext implements NodeParseContext{
 
 
         @Override
-        public TreePatternFormatter patternFormatter() {
+        public PatternFormatter patternFormatter() {
             return patternFormatter;
         }
 
@@ -275,7 +274,7 @@ class RootParseContext implements NodeParseContext{
 
         private final NodeParseContext parent;
         private int index;
-        private TreePattern pattern;
+        private io.github.airbag.tree.pattern.Pattern pattern;
 
         Pattern(NodeParseContext parent) {
             this.parent = parent;
@@ -287,7 +286,7 @@ class RootParseContext implements NodeParseContext{
         }
 
         @Override
-        public TreePatternFormatter patternFormatter() {
+        public PatternFormatter patternFormatter() {
             return patternFormatter;
         }
 
@@ -325,7 +324,7 @@ class RootParseContext implements NodeParseContext{
             this.index = index;
         }
 
-        public void setPattern(TreePattern pattern) {
+        public void setPattern(io.github.airbag.tree.pattern.Pattern pattern) {
             this.pattern = pattern;
         }
     }

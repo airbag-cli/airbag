@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Provides a simplified way to generate and format lists of ANTLR {@link Symbol} objects.
+ * Provides a simplified way to generate and format lists of {@link Symbol} objects.
  * <p>
  * This utility class abstracts the boilerplate code required to set up an ANTLR lexer
  * and produce symbol lists from input strings. It also provides configurable utilities
@@ -68,7 +68,7 @@ public class SymbolProvider {
      * This method takes a string, sets it as the input for the configured lexer,
      * and consumes the entire input to produce a complete list of symbols.
      *
-     * @param input The source string to be tokenized by the lexer. Cannot be null.
+     * @param input The source string to be tokenized by the lexer. Cannot be {@code null}.
      * @return A {@link List} of {@link Symbol} objects generated from the input string.
      * The list will include the end-of-file (EOF) symbol.
      * @see org.antlr.v4.runtime.CharStreams#fromString(String)
@@ -93,60 +93,15 @@ public class SymbolProvider {
      * <p>
      * Whitespace between symbol specifications is ignored.
      *
-     * <p><b>Specification Format (Default)</b></p>
-     * The default format, defined by {@link SymbolFormatter#SIMPLE}, allows for:
-     * <ol>
-     *   <li><b>A literal name:</b> A string enclosed in single quotes (e.g., {@code '='},
-     *       {@code 'keyword'}).</li>
-     *   <li><b>A symbolic representation:</b> A parenthesized expression, e.g., {@code (ID 'text')}.</li>
-     *   <li><b>The EOF symbol:</b> The special keyword {@code EOF}.</li>
-     * </ol>
-     *
-     * <p><b>Example</b></p>
-     * <pre>{@code
-     * List<Symbol> symbols = symbolProvider.fromSpec("(ID 'x') '=' (INT '5') EOF");
-     * }</pre>
-     *
      * @param input The string containing the symbol specifications.
      * @return A {@link List} of {@link Symbol} objects generated from the specification.
      * @throws IllegalArgumentException if any part of the input string cannot be parsed.
      * @see #setFormatter(SymbolFormatter)
+     * @see SymbolFormatter#parseList(CharSequence)
      * @see SymbolFormatter#SIMPLE
      */
     public List<Symbol> fromSpec(String input) {
-        FormatterParsePosition position = new FormatterParsePosition(0);
-        List<Symbol> symbols = new ArrayList<>();
-        int index = 0;
-        while (position.getIndex() < input.length()) {
-            char c = input.charAt(position.getIndex());
-            if (Character.isWhitespace(c)) {
-                position.setIndex(position.getIndex() + 1);
-                continue;
-            }
-
-            Symbol parsedSymbol = formatter.parse(input, position);
-
-            if (parsedSymbol == null) {
-                throw new SymbolParseException(input, position.getIndex(), position.getMessage());
-            }
-
-            // Safely create a new token to set the index if not set
-            if (!formatter.getFields().contains(SymbolField.INDEX)) {
-                Symbol indexedSymbol = new Symbol(index,
-                        parsedSymbol.start(),
-                        parsedSymbol.stop(),
-                        parsedSymbol.text(),
-                        parsedSymbol.type(),
-                        parsedSymbol.channel(),
-                        parsedSymbol.line(),
-                        parsedSymbol.position());
-                symbols.add(indexedSymbol);
-                index++;
-            } else {
-                symbols.add(parsedSymbol);
-            }
-        }
-        return symbols;
+        return formatter.parseList(input);
     }
 
     /**

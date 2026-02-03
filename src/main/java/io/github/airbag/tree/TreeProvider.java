@@ -129,9 +129,6 @@ public class TreeProvider {
      * @throws RuntimeException      if the string cannot be parsed by the configured formatter.
      */
     public DerivationTree fromSpec(String stringTree) {
-        if (stringTree.isBlank()) {
-            return null;
-        }
         return formatter.parse(stringTree);
     }
 

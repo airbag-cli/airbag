@@ -186,29 +186,40 @@ public class TreeFormatterBuilder {
         @Override
         public int parse(NodeParseContext ctx, CharSequence text, int position) {
             int result;
+
+            //Try Terminal node
             RootParseContext.Terminal terminalCtx = ctx.root().new Terminal(ctx);
             result = terminalPrinterParser.parse(terminalCtx, text, position);
             if (result > 0) {
                 ctx.addChildContext(terminalCtx);
                 return result;
             }
-            RootParseContext.Rule ruleCtx = ctx.root().new Rule(ctx);
-            result = rulePrinterParser.parse(ruleCtx, text, position);
+
+            //Try Error node
+            RootParseContext.Error errorCtx = ctx.root().new Error(ctx);
+            result = errorPrinterParser.parse(errorCtx, text, position);
             if (result > 0) {
-                ctx.addChildContext(ruleCtx);
+                ctx.addChildContext(errorCtx);
                 return result;
             }
+
+            //Try pattern node
             RootParseContext.Pattern patternCtx = ctx.root().new Pattern(ctx);
             result = patternPrinterParser.parse(patternCtx, text, position);
             if (result > 0) {
                 ctx.addChildContext(patternCtx);
                 return result;
             }
-            RootParseContext.Error errorCtx = ctx.root().new Error(ctx);
-            result = errorPrinterParser.parse(errorCtx, text, position);
+
+            //Try rule node
+            RootParseContext.Rule ruleCtx = ctx.root().new Rule(ctx);
+            result = rulePrinterParser.parse(ruleCtx, text, position);
             if (result > 0) {
-                ctx.addChildContext(errorCtx);
+                ctx.addChildContext(ruleCtx);
+                return result;
             }
+
+            //Return in case of failure
             return result;
         }
 
@@ -226,15 +237,6 @@ public class TreeFormatterBuilder {
 
         @Override
         public boolean format(NodeFormatContext ctx, StringBuilder buf) {
-            if (ctx.doNotRecurse()) {
-                // Trim trailing whitespace
-                int i = buf.length() - 1;
-                while (i >= 0 && Character.isWhitespace(buf.charAt(i))) {
-                    i--;
-                }
-                buf.setLength(i + 1);
-                return true;
-            }
             var current = ctx.node();
             for (int i = 0; i < current.size(); i++) {
                 var child = current.getChild(i);

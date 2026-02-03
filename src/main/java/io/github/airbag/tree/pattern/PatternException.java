@@ -1,15 +1,15 @@
 package io.github.airbag.tree.pattern;
 
-public class TreePatternException extends RuntimeException {
+public class PatternException extends RuntimeException {
 
     private String input;
     private int position;
 
-    public TreePatternException(String message) {
+    public PatternException(String message) {
         super(message);
     }
 
-    public TreePatternException(String input, int position, String message) {
+    public PatternException(String input, int position, String message) {
         super(constructMessage(input, position, message));
         this.input = input;
         this.position = position;

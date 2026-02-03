@@ -1,18 +1,77 @@
 package io.github.airbag.symbol;
 
 import io.github.airbag.symbol.SymbolFormatterBuilder.CompositePrinterParser;
+import io.github.airbag.symbol.SymbolFormatterBuilder.WhitespacePrinterParser;
 import org.antlr.v4.runtime.Vocabulary;
 
-import java.text.ParsePosition;
 import java.util.*;
 
 import static java.util.Map.entry;
 
 /**
- * A formatter for ANTLR {@link Symbol} objects.
+ * A formatter for parsing and formatting ANTLR {@link Symbol} objects.
  * <p>
- * This class can be used to format a symbol into a string representation, or to parse a string into a symbol.
- * The format of the string is defined by a {@link SymbolFormatterBuilder}.
+ * This class provides the primary application entry point for formatting and parsing {@link Symbol} instances.
+ * It can transform a {@code Symbol} into a specific string representation and parse a string back into a {@code Symbol}.
+ *
+ * <h3>Overview</h3>
+ * <p>
+ * The formatting and parsing logic is defined by a composition of smaller components, each responsible for handling a
+ * specific {@link SymbolField} (e.g., {@link SymbolField#TYPE TYPE}, {@link SymbolField#TEXT TEXT}) or a literal string.
+ * New formatters can be created using one of three main approaches:
+ * <ol>
+ *     <li><b>Predefined constants:</b> Common formats are available as static constants, such as
+ *     {@link #SIMPLE} and {@link #ANTLR}.</li>
+ *     <li><b>Pattern strings:</b> A format can be defined using a pattern string with {@link #ofPattern(String)}.
+ *     This is a concise way to specify a custom format.</li>
+ *     <li><b>Builder:</b> For more complex scenarios, a {@link SymbolFormatterBuilder} can be used to construct a
+ *     formatter piece by piece, allowing for detailed control over formatting and parsing logic, including
+ *     optional sections. Multiple formatter can be chained as alternatives with the {@link #withAlternative(SymbolFormatter)}
+ *     method.
+ *     </li>
+ * </ol>
+ *
+ * <h3>Contextual Information</h3>
+ * <p>
+ * To correctly map between a symbol's integer type and its symbolic or literal name (e.g., from type {@code 5} to name {@code 'ID'} or {@code '='}),
+ * the formatter relies on an ANTLR {@link org.antlr.v4.runtime.Vocabulary}. The vocabulary can be provided when creating a formatter
+ * or by using the {@link #withVocabulary(Vocabulary)} method.
+ *
+ * <h3>Formatting</h3>
+ * <p>
+ * Formatting is performed by the {@link #format(Symbol)} method.
+ * <pre>{@code
+ * // Using a predefined formatter
+ * Symbol symbol = ...;
+ * Vocabulary vocabulary = ...;
+ * String formatted = SymbolFormatter.SIMPLE.withVocabulary(vocabulary).format(symbol);
+ * }</pre>
+ * Even a list of symbols can be formatted with the {@link #formatList(List, String)}
+ *
+ * <h3>Parsing</h3>
+ * <p>
+ * Parsing is performed by the {@link #parse(CharSequence)} and {@link #parse(CharSequence, FormatterParsePosition)} methods.
+ * <pre>{@code
+ * // Parsing a string that represents a single, complete symbol
+ * Vocabulary vocabulary = ...;
+ * Symbol symbol = SymbolFormatter.ofPattern("s:'x'").withVocabulary(vocabulary).parse("ID:'myVar'");
+ *
+ * // Parsing a symbol from the beginning of a string
+ * FormatterParsePosition position = new FormatterParsePosition(0);
+ * Symbol firstSymbol = formatter.parse("(ID 'a') (OP '+')", position); // Parses first symbol
+ * Symbol secondSymbol = formatter.parse("(ID 'a') (OP '+')", position); // Parses second symbol
+ * }</pre>
+ * Additionally it is possible to parse a full list of symbols with {@link #parseList(CharSequence)}
+ *
+ * <h3>Immutability</h3>
+ * <p>
+ * This class is immutable and thread-safe. Methods that appear to modify the formatter, such as
+ * {@link #withVocabulary(Vocabulary)} and {@link #withAlternative(SymbolFormatter)}, return a new
+ * instance with the specified changes.
+ *
+ * @see SymbolFormatterBuilder
+ * @see #ofPattern(String)
+ * @see org.antlr.v4.runtime.Vocabulary
  */
 public class SymbolFormatter {
 
@@ -20,22 +79,25 @@ public class SymbolFormatter {
      * A formatter that mimics the default ANTLR {@link Object#toString} of the {@link org.antlr.v4.runtime.CommonToken} format.
      * <p>
      * This formatter provides a detailed, parsable representation of a symbol, including all its core attributes.
-     * The format is: {@code "[@<index>,<start>:<stop>='<text>',<<type>>,<line>:<pos>]"}
+     * The format is: {@code "[@{index},{start}:{stop}='{text}',<{type}>(,channel={channel}),{line}:{pos}]"}
      * <ul>
-     *     <li>{@code <index>}: The symbol's index within the stream. See {@link Symbol#index()}.</li>
-     *     <li>{@code <start>:<stop>}: The start and stop character indices in the input stream. See {@link Symbol#start()} and {@link Symbol#stop()}.</li>
-     *     <li>{@code '<text>'}: The matched text of the symbol, with special characters escaped. See {@link Symbol#text()}.</li>
-     *     <li>{@code <<type>>}: The symbol's type, resolved first as a literal name (e.g., {@code '='}), then as a symbolic name (e.g., {@code ID}).</li>
-     *     <li>{@code <line>:<pos>}: The line number and character position within the line. See {@link Symbol#line()} and {@link Symbol#position()}.</li>
+     *     <li>{@code {index}}: The symbol's index within the stream. See {@link Symbol#index()}.</li>
+     *     <li>{@code {start}:{stop}}: The start and stop character indices in the input stream. See {@link Symbol#start()} and {@link Symbol#stop()}.</li>
+     *     <li>{@code '{text}'}: The matched text of the symbol, with special characters escaped. See {@link Symbol#text()}.</li>
+     *     <li>{@code {type}}: The symbol's type, resolved first as a literal name (e.g., {@code '='}), then as a symbolic name (e.g., {@code ID}).</li>
+     *     <li>{@code {channel}}: The channel number. See {@link Symbol#channel()}. The channel section is optional and everything
+     *     in parentheses is only present, if a non default value is present.</li>
+     *     <li>{@code {line}:{pos}}: The line number and character position within the line. See {@link Symbol#line()} and {@link Symbol#position()}.</li>
      * </ul>
      * <p><b>Example:</b>
      * <pre>{@code
      * // Given a symbol representing an identifier "user"
-     *  Symbol symbol = Symbol.of().type(MyLexer.ID).text("user");
-     * // Assuming index=10, start=50, stop=53, line=5, pos=4
+     *  Symbol symbol = Symbol.of().type(MyLexer.ID).text("user").index(10).start(50).end(53).line(5).position(4).get();
      *
+     * // Assuming index=10, start=50, stop=53, line=5, pos=4
      *  String formatted = SymbolFormatter.ANTLR.withVocabulary(MyLexer.VOCABULARY).format(symbol);
-     * // formatted will be: "[@10,50:53='user',<ID>,5:4]"
+     * // formatted will be:
+     * "[@10,50:53='user',<ID>,5:4]"
      * }</pre>
      * This format is particularly useful for debugging and logging, as it captures the full context of a symbol.
      */
@@ -61,9 +123,7 @@ public class SymbolFormatter {
             .appendLiteral("]")
             .toFormatter();
 
-    /**
-     * A formatter for the symbol's literal name (e.g., '=', '*').
-     */
+    // A formatter for the symbol's literal name (e.g., '=', '*').
     private static final SymbolFormatter LITERAL = new SymbolFormatterBuilder().appendLiteralType()
             .startOptional()
             .appendLiteral(":")
@@ -71,15 +131,11 @@ public class SymbolFormatter {
             .endOptional()
             .toFormatter();
 
-    /**
-     * A formatter for the special end-of-file symbol.
-     */
+    // A formatter for the special end-of-file symbol.
     private static final SymbolFormatter EOF = new SymbolFormatterBuilder().appendEOF()
             .toFormatter();
 
-    /**
-     * A formatter for the symbol's symbolic name and text (e.g., "(ID 'myVar')").
-     */
+    // A formatter for the symbol's symbolic name and text (e.g., "(ID 'myVar')").
     private static final SymbolFormatter SYMBOLIC = new SymbolFormatterBuilder().appendLiteral("(")
             .appendWhitespace()
             .appendType(TypeFormat.SYMBOLIC_FIRST)
@@ -111,7 +167,7 @@ public class SymbolFormatter {
      *     <li><b>Literal Name:</b> If the symbol has a literal name in the vocabulary (e.g., a keyword or operator),
      *     it is formatted as that name, including quotes (e.g., {@code "'='"}).</li>
      *     <li><b>Symbolic Name and Text:</b> If the symbol has no literal name (e.g., an identifier or number),
-     *     it is formatted as {@code "(<SymbolicName> '<text>')"}.</li>
+     *     it is formatted as {@code "(TYPE '<text>')"} where TYPE is the actual symbolic name of the symbol.</li>
      * </ol>
      * For literal and symbolic formats, if the symbol is on a non-default channel, the channel
      * number will be appended (e.g., {@code "'+':3"} or {@code "(ID:3 'myVar')"}).
@@ -151,18 +207,14 @@ public class SymbolFormatter {
      */
     private final Vocabulary vocabulary;
 
-    /**
-     * Constructs a new SymbolFormatter.
-     *
-     * @param printerParser The printer/parser to use for formatting and parsing.
-     * @param fields        The fields that are used by this formatter.
-     */
+    // Package private constructor
     SymbolFormatter(CompositePrinterParser printerParser,
                     Set<SymbolField<?>> fields,
                     Vocabulary vocabulary) {
         this(List.of(printerParser), fields, vocabulary);
     }
 
+    // Private constructor
     private SymbolFormatter(List<CompositePrinterParser> printerParsers,
                             Set<SymbolField<?>> fields,
                             Vocabulary vocabulary) {
@@ -182,20 +234,20 @@ public class SymbolFormatter {
      * <p><b>Example:</b></p>
      * <pre>{@code
      * // Creates a formatter that represents a symbol as "SYMBOLIC_NAME:'text'"
-     * SymbolFormatter formatter = SymbolFormatter.ofPattern("s:'x'");
+     * SymbolFormatter formatter = SymbolFormatter.ofPattern("s:\\'x\\'");
      *
      * // Example formatting:
      * // Given a symbol with symbolic name "ID" and text "user",
      * // the output would be: "ID:'user'"
      * }</pre>
      *
-     * <h3>TreePatternBuilder Syntax</h3>
+     * <h3>PatternBuilder Syntax</h3>
      * The pattern allows you to specify which symbol fields to include, along with any
      * literal text, in the desired order.
      *
-     * <h3>TreePatternBuilder Letters</h3>
+     * <h3>PatternBuilder Letters</h3>
      * The following pattern letters are available:
-     * <table border="1" cellpadding="5" summary="TreePatternBuilder Letters">
+     * <table border="1" cellpadding="5" summary="PatternBuilder Letters">
      *   <tr><th>Letter(s)</th><th>Component</th><th>Description</th></tr>
      *   <tr>
      *     <td><b>I</b></td>
@@ -207,7 +259,7 @@ public class SymbolFormatter {
      *     <td>Symbol Type (Symbolic)</td>
      *     <td>
      *         <b>s (Strict):</b> Formats the symbolic name of the symbol (e.g., "ID"). Fails if no symbolic name is available. Parses a symbolic name and resolves it to a symbol type.<br>
-     *         <b>S (Lenient):</b> Formats the symbolic name if available; otherwise, formats the literal name. Parses either a symbolic or literal name.
+     *         <b>S (Lenient):</b> Formats the symbolic name if available; otherwise, formats the literal name and lastly the integer type if both fail. Parses either a symbolic or literal name or the integer type.
      *     </td>
      *   </tr>
      *   <tr>
@@ -215,7 +267,7 @@ public class SymbolFormatter {
      *     <td>Symbol Type (Literal)</td>
      *     <td>
      *         <b>l (Strict):</b> Formats the literal name of the symbol (e.g., "'='" ). Fails if no literal name is available. Parses a literal name and resolves it to a symbol type.<br>
-     *         <b>L (Lenient):</b> Formats the literal name if available; otherwise, formats the symbolic name. Parses either a literal or symbolic name.
+     *         <b>L (Lenient):</b> Formats the literal name if available; otherwise, formats the symbolic name and lastly the integer type. Parses either a literal or symbolic name or the integer type.
      *     </td>
      *   </tr>
      *   <tr>
@@ -276,29 +328,30 @@ public class SymbolFormatter {
      *   </tr>
      * </table>
      *
-     * <h3>Literals and Quoted Text</h3>
-     * Any character in the pattern that is not a recognized pattern letter (and not part of an optional
-     * section marker {@code []} or an escape sequence {@code \}) is treated as a literal.
-     * For example, in the pattern {@code s:x}, the colon is a literal.
-     * <p>
-     * To treat a sequence of characters as a single literal, especially if it contains characters
-     * that could be interpreted as pattern modifiers, you can enclose the sequence in {@code %} characters.
-     * Everything between the opening and closing {@code %} is treated as one literal block.
-     * For example, {@code %s%} would result in the literal "s" being printed, not the symbolic name.
-     * This is useful for ensuring that text is treated as a literal, regardless of its content.
+     * <h3>Literals, Escaping, and Quoting</h3>
+     * You can include literal text in your pattern in three ways:
+     * <ul>
+     *   <li><b>Unquoted Text:</b> Any character that is not a recognized pattern letter (a-z, A-Z)
+     *       or a special character ({@code []'\}) is treated as a literal. For example, in the pattern
+     *       {@code s:x}, the colon is a literal.</li>
+     *   <li><b>Escaping:</b> The backslash character ({@code \}) escapes the following character, forcing
+     *       it to be treated as a literal. This is useful for treating a single pattern letter or special
+     *       character as a literal. For example, {@code \s} will produce a literal 's', {@code \\} a literal
+     *       '\' and {@code \'} a literal single quote.</li>
+     *   <li><b>Quoting:</b> You can quote a sequence of characters with the percent sign ({@code '}).
+     *       Everything between a pair of {@code '} characters is treated as a single literal block.
+     *       This is useful for including sequences that contain pattern letters or special characters.
+     *       For example, {@code 's'} produces the literal "s", and {@code 'section[]'} produces "section[]".
+     *       To include a literal single quote, escape it with a backslash: {@code \'}.</li>
+     * </ul>
      *
      * <h3>Optional Sections</h3>
      * Square brackets {@code []} can be used to create an optional section in the pattern.
      * During formatting, if all components within the optional section can be printed, they are.
      * Otherwise, the entire section is skipped. During parsing, the parser will attempt to
      * match the components in the optional section, but if it fails, it will skip the section
-     * and continue with the rest of the pattern.
-     *
-     * <h3>Escaping</h3>
-     * The backslash character {@code \} is used as an escape character. It allows individual pattern
-     * letters to be treated as literals outside a quoted block. For example, a pattern of {@code \s}
-     * will format or parse the literal character 's'. To include a literal backslash, use a double
-     * backslash {@code \\}. To include a literal percent sign, use {@code \%}.
+     * and continue with the rest of the pattern. A component can "fail" if either the text option
+     * set the option {@link TextOption#failOnDefault(boolean)} or if the component is strict with a default value.
      *
      * <h3>Alternatives</h3>
      * Alternatives patterns are separated by {@code |}. This character is non-escapable with this method
@@ -313,15 +366,58 @@ public class SymbolFormatter {
     public static SymbolFormatter ofPattern(String pattern) {
         String[] patterns = pattern.split("\\|");
         SymbolFormatter formatter = null;
-        for (String singlePattern : patterns) {
-            if (formatter == null) {
-                formatter = new SymbolFormatterBuilder().appendPattern(singlePattern).toFormatter();
+        try {
+            for (String singlePattern : patterns) {
+                if (formatter == null) {
+                    formatter = new SymbolFormatterBuilder().appendPattern(singlePattern)
+                            .toFormatter();
+                } else {
+                    formatter = formatter.withAlternative(new SymbolFormatterBuilder().appendPattern(
+                            singlePattern).toFormatter());
+                }
+            }
+        } catch (IllegalStateException e) {
+            throw new IllegalArgumentException("The pattern %s is invalid".formatted(pattern), e);
+        }
+
+        return formatter;
+    }
+
+    /**
+     * Creates a formatter that prints a symbol's fields, one per line.
+     * <p>
+     * This is useful for creating a detailed, human-readable representation of a symbol's data.
+     * Each specified field is printed on a new line with its name and formatted value.
+     * <p><b>Example Output:</b>
+     * <pre>{@code
+     * type: ID
+     * text: 'myVariable'
+     * line: 10
+     * position: 5
+     * }</pre>
+     *
+     * @param fields A collection of {@link SymbolField}s to include in the formatter.
+     * @return A new {@link SymbolFormatter} that formats the specified fields.
+     */
+    public static SymbolFormatter fromFields(Collection<SymbolField<?>> fields) {
+        SymbolFormatterBuilder builder = new SymbolFormatterBuilder();
+        for (var field : fields) {
+            if (field == SymbolField.TEXT) {
+                builder.appendLiteral("text: ")
+                        .appendText(TextOption.ESCAPED)
+                        .appendLiteral("%n".formatted());
+            } else if (field == SymbolField.TYPE) {
+                builder.appendLiteral("type: ")
+                        .appendType(TypeFormat.SYMBOLIC_FIRST)
+                        .appendLiteral("%n".formatted());
             } else {
-                formatter = formatter.withAlternative(new SymbolFormatterBuilder().appendPattern(
-                        singlePattern).toFormatter());
+                //noinspection unchecked
+                builder.appendLiteral("%s: ".formatted(field.name()))
+                        .appendInteger((SymbolField<Integer>) field)
+                        .appendLiteral("%n".formatted());
             }
         }
-        return formatter;
+        return builder.toFormatter();
     }
 
     /**
@@ -346,6 +442,19 @@ public class SymbolFormatter {
             throw new SymbolFormatterException("Failed to format symbol %s".formatted(symbol));
         }
         return buf.toString();
+    }
+
+    /**
+     * Formats a list of symbols into a single string, separated by a delimiter.
+     *
+     * @param symbols   The list of symbols to format.
+     * @param delimiter The delimiter to place between formatted symbols.
+     * @return A single string containing all formatted symbols.
+     */
+    public String formatList(List<Symbol> symbols, String delimiter) {
+        var joiner = new StringJoiner(delimiter);
+        symbols.forEach(s -> joiner.add(format(s)));
+        return joiner.toString();
     }
 
     /**
@@ -387,15 +496,16 @@ public class SymbolFormatter {
      * Parses a symbol from a string in a lenient, non-exception-throwing manner.
      * <p>
      * This method attempts to parse a symbol starting at the index specified by the
-     * {@link ParsePosition}. It does <b>not</b> require the entire string to be consumed.
+     * {@link FormatterParsePosition}. It does <b>not</b> require the entire string to be consumed.
      * <p>
-     * On success, the parsed {@link Symbol} is returned, and the index of the {@code ParsePosition}
+     * On success, the parsed {@link Symbol} is returned, and the index of the {@code FormatterParsePosition}
      * is updated to point to the character immediately after the parsed text. The error index
      * is set to -1.
      * <p>
      * On failure, this method returns {@code null} instead of throwing an exception. The
-     * index of the {@code ParsePosition} is left unchanged, and the error index is updated
-     * to the position where the parse failed.
+     * index of the {@code FormatterParsePosition} is left unchanged, and the error index is updated
+     * to the position where the parse failed. The method {@link FormatterParsePosition#getMessage()} gives an
+     * indication about why the parse might have failed.
      * <p>
      * This method is particularly useful for parsing multiple symbols sequentially from a
      * single input string.
@@ -410,8 +520,7 @@ public class SymbolFormatter {
         Objects.requireNonNull(position, "position");
         Objects.requireNonNull(input, "input");
         int initial = position.getIndex();
-        int maxError = ~position.getErrorIndex();
-        boolean errorSet = position.getMessage() != null;
+        int maxError = position.getErrorIndex();
 
         for (var parser : printerParsers) {
             SymbolParseContext ctx = new SymbolParseContext(parser, vocabulary);
@@ -419,21 +528,19 @@ public class SymbolFormatter {
             if (current >= 0) {
                 position.setIndex(current);
                 position.setErrorIndex(-1); // Clear error index on success
+                if (position.isSymbolIndex()) {
+                    ctx.addField(SymbolField.INDEX, position.getSymbolIndex());
+                }
                 return ctx.resolveFields();
             } else {
-                if (!errorSet) {
-                    maxError = current;
+                int errorPosition = ~current;
+                if (errorPosition > maxError) {
                     position.setMessage(ctx.getErrorMessage());
-                    position.setErrorIndex(~current);
-                    errorSet = true;
-                } else if (current < maxError) {
-                    maxError = current;
-                    position.setMessage(ctx.getErrorMessage());
-                    position.setErrorIndex(~current);
-                } else if (current == maxError) {
-                    position.setMessage(position.getMessage()
-                            .concat("%n%s".formatted(ctx.getErrorMessage())));
+                    position.setErrorIndex(errorPosition);
+                } else if (errorPosition == maxError) {
+                    position.appendMessage(ctx.getErrorMessage());
                 }
+                maxError = Math.max(maxError, errorPosition);
             }
         }
 
@@ -441,6 +548,76 @@ public class SymbolFormatter {
         return null;
     }
 
+    /**
+     * Parses a sequence of symbols from a string.
+     * <p>
+     * This method reads symbols sequentially until the end of the input is reached.
+     * By default, it skips any whitespace between symbols.
+     *
+     * @param input The character sequence to parse.
+     * @return An unmodifiable list of parsed symbols.
+     * @throws SymbolParseException if any part of the input (other than trailing whitespace) cannot be parsed.
+     */
+    public List<Symbol> parseList(CharSequence input) {
+        return parseList(input, true);
+    }
+
+    /**
+     * Parses a sequence of symbols from a string, with optional whitespace handling.
+     * <p>
+     * This method reads symbols sequentially until the end of the input is reached.
+     *
+     * @param input            The character sequence to parse.
+     * @param ignoreWhitespace If true, any whitespace between symbols is ignored. If false,
+     *                         the parser expects symbols to be contiguous, and any intervening
+     *                         characters will cause a {@link SymbolParseException}.
+     * @return An unmodifiable list of parsed symbols.
+     * @throws SymbolParseException if any part of the input cannot be parsed.
+     */
+    public List<Symbol> parseList(CharSequence input, boolean ignoreWhitespace) {
+        WhitespacePrinterParser whitespaceConsumer = new WhitespacePrinterParser("");
+        FormatterParsePosition position = new FormatterParsePosition(0);
+        if (!fields.contains(SymbolField.INDEX)) {
+            position.setSymbolIndex(0);
+        }
+        List<Symbol> list = new ArrayList<>();
+        while (input.length() > position.getIndex() && position.getErrorIndex() < 0) {
+            Symbol symbol = parse(input, position);
+            if (position.getErrorIndex() >= 0) {
+                if (ignoreWhitespace) {
+                    int index = whitespaceConsumer.parse(null, input, position.getIndex());
+                    if (index > position.getIndex()) {
+                        position.setIndex(index);
+                        position.setErrorIndex(-1);
+                    } else {
+                        throw new SymbolParseException(input.toString(),
+                                position.getErrorIndex(),
+                                position.getMessage());
+                    }
+                } else {
+                    throw new SymbolParseException(input.toString(),
+                            position.getErrorIndex(),
+                            position.getMessage());
+                }
+            } else {
+                list.add(symbol);
+                if (position.isSymbolIndex()) {
+                    position.setSymbolIndex(position.getSymbolIndex() + 1);
+                }
+            }
+        }
+        return Collections.unmodifiableList(list);
+    }
+
+    /**
+     * Returns a copy of this formatter with a new ANTLR vocabulary.
+     * <p>
+     * The vocabulary is essential for resolving token type integers to their literal
+     * and symbolic names (e.g., mapping type {@code 4} to symbolic name {@code 'ID'}).
+     *
+     * @param vocabulary The ANTLR vocabulary to use for name resolution.
+     * @return A new {@link SymbolFormatter} instance with the specified vocabulary.
+     */
     public SymbolFormatter withVocabulary(Vocabulary vocabulary) {
         if (Objects.equals(vocabulary, this.vocabulary)) {
             return this;
@@ -480,7 +657,13 @@ public class SymbolFormatter {
     }
 
     /**
-     * Prints this formatter pattern as string.
+     * Returns a string representation of this formatter's pattern.
+     * <p>
+     * This is useful for debugging and understanding the structure of the formatter.
+     * If the formatter was built with alternatives, each alternative pattern is
+     * separated by {@code  | }.
+     *
+     * @return A string representing the formatter's pattern.
      */
     @Override
     public String toString() {

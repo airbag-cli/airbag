@@ -1,664 +1,577 @@
 package io.github.airbag.symbol;
 
-import io.github.airbag.gen.ExpressionLexer;
 import org.antlr.v4.runtime.Vocabulary;
+import org.antlr.v4.runtime.VocabularyImpl;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.util.function.BiPredicate;
-
+import static io.github.airbag.Airbag.assertSymbol;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class SymbolFormatterTest {
 
-    private static final Symbol DEFAULT = Symbol.of().get();
+    private static Vocabulary createVocabulary() {
+        String[] literalNames = new String[]{
+                null, "'='", "'*'", "'/'", "'+'", "'-'", "'('", "')'"
+        };
+        String[] symbolicNames =
+                new String[]{
+                        null, null, null, null, null, null, null, null, "ID", "INT", "NEWLINE",
+                        "WS"
+                };
+        return new VocabularyImpl(literalNames, symbolicNames);
+    }
 
-    private static final Symbol SYMBOL1 = Symbol.of()
-            .index(0)
-            .start(0)
-            .stop(3)
-            .text("var")
-            .type(ExpressionLexer.ID)
-            .channel(ExpressionLexer.DEFAULT_TOKEN_CHANNEL)
-            .line(1)
-            .position(3)
-            .get();
-
-    private static final Symbol SYMBOL2 = Symbol.of()
-            .index(1)
-            .start(4)
-            .stop(5)
-            .text("=")
-            .type(ExpressionLexer.T__0)
-            .channel(ExpressionLexer.DEFAULT_TOKEN_CHANNEL)
-            .line(1)
-            .position(5)
-            .get();
-
-    private static final Symbol SYMBOL3 = Symbol.of()
-            .index(2)
-            .start(6)
-            .stop(8)
-            .text("15")
-            .type(ExpressionLexer.INT)
-            .channel(ExpressionLexer.DEFAULT_TOKEN_CHANNEL)
-            .line(1)
-            .position(8)
-            .get();
-
-    private static final Vocabulary VOCABULARY = new Vocabulary() {
-        @Override
-        public int getMaxTokenType() {
-            return 4;
-        }
-
-        @Override
-        public String getLiteralName(int tokenType) {
-            if (tokenType == 3) {
-                return "'='";
-            } else if (tokenType == 4) {
-                return "'=='";
-            }
-            return null;
-        }
-
-        @Override
-        public String getSymbolicName(int tokenType) {
-            if (tokenType == 1) {
-                return "ID";
-            } else if (tokenType == 2) {
-                return "IDENTIFIER";
-            }
-            return null;
-        }
-
-        @Override
-        public String getDisplayName(int tokenType) {
-            return "";
-        }
-    };
-
-    private static final BiPredicate<Symbol, Symbol> TESTER = SymbolField.equalizer(SymbolField.all());
+    private final static Vocabulary VOCABULARY = createVocabulary();
 
     @Nested
-    class Format {
+    class LenientParseTest {
+
+        private final SymbolFormatter formatter = SymbolFormatter.ofPattern("s").withVocabulary(VOCABULARY);
 
         @Test
-        void emptyFormatter() {
-            SymbolFormatter empty = new SymbolFormatterBuilder().toFormatter();
-            assertEquals("", empty.format(SYMBOL1));
+        void testSuccessfulLenientParse() {
+            FormatterParsePosition position = new FormatterParsePosition(0);
+            String input = "ID and more";
+            Symbol expected = Symbol.of().type(8).get();
+
+            Symbol parsed = formatter.parse(input, position);
+
+            assertEquals(expected, parsed);
+            assertEquals(2, position.getIndex()); // Position after 'ID'
+            assertEquals(-1, position.getErrorIndex());
         }
 
         @Test
-        void indexIntegerFormatter() {
-            SymbolFormatter indexFormatter = new SymbolFormatterBuilder().appendInteger(SymbolField.INDEX)
-                    .toFormatter();
-            assertEquals("1", indexFormatter.format(SYMBOL2));
+        void testFailingLenientParse() {
+            FormatterParsePosition position = new FormatterParsePosition(0);
+            String input = "123 and more"; // '123' is not a symbolic name
+
+            Symbol parsed = formatter.parse(input, position);
+
+            assertNull(parsed);
+            assertEquals(0, position.getIndex()); // Position is unchanged
+            assertEquals(0, position.getErrorIndex()); // Error at the start
         }
 
         @Test
-        void integerFormatterStrict() {
-            SymbolFormatter indexFormatter = new SymbolFormatterBuilder().appendInteger(SymbolField.INDEX,
-                    true).toFormatter();
-            assertThrows(SymbolFormatterException.class, () -> indexFormatter.format(DEFAULT));
-            assertEquals("0", indexFormatter.format(SYMBOL1));
-        }
+        void testParseMultipleSymbols() {
+            SymbolFormatter multiFormatter = SymbolFormatter.ofPattern("s \\'x\\'").withVocabulary(VOCABULARY);
+            String input = "ID 'one' INT 'two'";
+            FormatterParsePosition position = new FormatterParsePosition(0);
 
-        @Test
-        void startIntegerFormatter() {
-            SymbolFormatter startFormatter = new SymbolFormatterBuilder().appendInteger(SymbolField.START)
-                    .toFormatter();
-            assertEquals("6", startFormatter.format(SYMBOL3));
-        }
+            // Parse "ID one"
+            Symbol s1 = multiFormatter.parse(input, position);
+            assertTrue(position.getMessage().isEmpty());
+            assertEquals(8, position.getIndex());
+            assertEquals(Symbol.of().type(8).text("one").get(), s1);
 
-        @Test
-        void stopIntegerFormatter() {
-            SymbolFormatter stopFormatter = new SymbolFormatterBuilder().appendInteger(SymbolField.STOP)
-                    .toFormatter();
-            assertEquals("8", stopFormatter.format(SYMBOL3));
-        }
+            // Advance past space
+            position.setIndex(position.getIndex() + 1);
 
-        @Test
-        void typeIntegerFormatter() {
-            SymbolFormatter typeFormatter = new SymbolFormatterBuilder().appendInteger(SymbolField.TYPE)
-                    .toFormatter();
-            assertEquals(String.valueOf(ExpressionLexer.ID), typeFormatter.format(SYMBOL1));
-        }
-
-        @Test
-        void channelIntegerFormatter() {
-            SymbolFormatter channelFormatter = new SymbolFormatterBuilder().appendInteger(
-                    SymbolField.CHANNEL).toFormatter();
-            assertEquals(String.valueOf(ExpressionLexer.DEFAULT_TOKEN_CHANNEL),
-                    channelFormatter.format(SYMBOL1));
-        }
-
-        @Test
-        void lineIntegerFormatter() {
-            SymbolFormatter lineFormatter = new SymbolFormatterBuilder().appendInteger(SymbolField.LINE)
-                    .toFormatter();
-            assertEquals("1", lineFormatter.format(SYMBOL1));
-        }
-
-        @Test
-        void positionIntegerFormatter() {
-            SymbolFormatter positionFormatter = new SymbolFormatterBuilder().appendInteger(
-                    SymbolField.POSITION).toFormatter();
-            assertEquals("8", positionFormatter.format(SYMBOL3));
-        }
-
-        @Test
-        void emptyLiteralPrinterParser() {
-            SymbolFormatter literalFormatter = new SymbolFormatterBuilder().appendLiteral("")
-                    .toFormatter();
-            assertEquals("", literalFormatter.format(DEFAULT));
-        }
-
-        @Test
-        void literalFormatter() {
-            SymbolFormatter literalFormatter = new SymbolFormatterBuilder().appendLiteral("Hello")
-                    .toFormatter();
-            assertEquals("Hello", literalFormatter.format(DEFAULT));
-        }
-
-        @Test
-        void textFormatter() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder().appendLiteral("'")
-                    .appendText()
-                    .appendLiteral("'")
-                    .toFormatter();
-            assertEquals("'var'", formatter.format(SYMBOL1));
-        }
-
-        @Test
-        void escapedText() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder().appendLiteral("'")
-                    .appendText(TextOption.ESCAPED)
-                    .appendLiteral("'")
-                    .toFormatter();
-            assertEquals("'\\\\new comment with \\n newline'",
-                    formatter.format(Symbol.of().text("\\new comment with \n newline").get()));
-        }
-
-        @Test
-        void symbolicFormatter() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder().appendSymbolicType()
-                    .toFormatter()
-                    .withVocabulary(ExpressionLexer.VOCABULARY);
-            assertEquals("ID", formatter.format(SYMBOL1));
-        }
-
-        @Test
-        void symbolicFormatterFail() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder().appendSymbolicType()
-                    .toFormatter();
-            assertThrows(SymbolFormatterException.class, () -> formatter.format(SYMBOL1));
-        }
-
-        @Test
-        void literalAndSymbolicFormatter() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder()
-                    .appendLiteral("type: ")
-                    .appendSymbolicType()
-                    .toFormatter()
-                    .withVocabulary(ExpressionLexer.VOCABULARY);
-            assertEquals("type: ID", formatter.format(SYMBOL1));
-        }
-
-        @Test
-        void literalAndSymbolicFormatterFail() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder()
-                    .appendLiteral("type: ")
-                    .appendSymbolicType()
-                    .toFormatter();
-            assertThrows(SymbolFormatterException.class, () -> formatter.format(SYMBOL1));
-        }
-
-        @Test
-        void literalTypeFormatter() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder()
-                    .appendLiteralType()
-                    .toFormatter()
-                    .withVocabulary(ExpressionLexer.VOCABULARY);
-            assertEquals("'='", formatter.format(SYMBOL2));
-        }
-
-        @Test
-        void literalTypeFormatterNoVocabulary() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder()
-                    .appendLiteralType()
-                    .toFormatter();
-            assertThrows(SymbolFormatterException.class, () -> formatter.format(SYMBOL2));
-        }
-
-        @Test
-        void literalTypeFormatterForSymbolic() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder()
-                    .appendLiteralType()
-                    .toFormatter()
-                    .withVocabulary(ExpressionLexer.VOCABULARY);
-            assertThrows(SymbolFormatterException.class, () -> formatter.format(SYMBOL1));
-        }
-
-        @Test
-        void symbolicFormatterForLiteral() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder()
-                    .appendSymbolicType()
-                    .toFormatter()
-                    .withVocabulary(ExpressionLexer.VOCABULARY);
-            assertThrows(SymbolFormatterException.class, () -> formatter.format(SYMBOL2));
-        }
-
-        @Test
-        void optionalPresent() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder()
-                    .appendSymbolicType()
-                    .startOptional()
-                    .appendLiteral(":")
-                    .appendInteger(SymbolField.CHANNEL, true)
-                    .endOptional()
-                    .toFormatter()
-                    .withVocabulary(VOCABULARY);
-            Symbol tokenWithChannel = Symbol.of().type(1).channel(5).get();
-            assertEquals("ID:5", formatter.format(tokenWithChannel));
-        }
-
-        @Test
-        void optionalAbsent() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder()
-                    .appendSymbolicType()
-                    .startOptional()
-                    .appendLiteral(":")
-                    .appendInteger(SymbolField.CHANNEL, true)
-                    .endOptional()
-                    .toFormatter()
-                    .withVocabulary(VOCABULARY);
-            Symbol tokenWithoutChannel = Symbol.of().type(1).channel(0).get(); // default channel
-            assertEquals("ID", formatter.format(tokenWithoutChannel));
-        }
-
-        @Test
-        void appendPattern() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder()
-                    .appendPattern("N,B:E,C,P,R")
-                    .toFormatter();
-            Symbol token = Symbol.of()
-                    .index(1).start(2).stop(3)
-                    .channel(4).position(5).line(6)
-                    .get();
-            assertEquals("1,2:3,4,5,6", formatter.format(token));
-        }
-
-        @Test
-        void appendTypeSymbolicFirst() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder()
-                    .appendType(TypeFormat.SYMBOLIC_FIRST)
-                    .toFormatter()
-                    .withVocabulary(VOCABULARY);
-            Symbol symbolic = Symbol.of().type(1).get();
-            Symbol literal = Symbol.of().type(3).get();
-            assertEquals("ID", formatter.format(symbolic));
-            assertEquals("'='", formatter.format(literal));
-        }
-
-        @Test
-        void appendEOF() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder().appendEOF().toFormatter();
-            Symbol eofSymbol = Symbol.of().type(Symbol.EOF).text("<EOF>").get();
-            assertEquals("EOF", formatter.format(eofSymbol));
-            Symbol notEofSymbol = Symbol.of().type(1).get();
-            assertThrows(SymbolFormatterException.class, () -> formatter.format(notEofSymbol));
+            // Parse "INT two"
+            Symbol s2 = multiFormatter.parse(input, position);
+            assertEquals(Symbol.of().type(9).text("two").get(), s2);
+            assertEquals(18, position.getIndex());
         }
     }
 
     @Nested
-    class Parse {
+    class ExceptionHandlingTest {
+
 
         @Test
-        void emptyFormatter() {
-            SymbolFormatter empty = new SymbolFormatterBuilder().toFormatter();
-            assertTrue(TESTER.test(DEFAULT, empty.parse("")));
+        void formatShouldThrowExceptionOnFailure() {
+            // Strict symbolic formatter 's' requires a symbolic name.
+            SymbolFormatter formatter = SymbolFormatter.ofPattern("s").withVocabulary(VOCABULARY);
+            // Type 1 has a literal name ('=') but no symbolic name.
+            Symbol symbol = Symbol.of().type(1).text("=").get();
+            assertThrows(SymbolFormatterException.class, () -> formatter.format(symbol));
         }
 
         @Test
-        void negativeInteger() {
-            SymbolFormatter indexFormatter = new SymbolFormatterBuilder().appendInteger(SymbolField.INDEX)
-                    .toFormatter();
-            assertEquals(-115, indexFormatter.parse("-115").index());
+        void parseShouldThrowExceptionOnMalformedInput() {
+            SymbolFormatter formatter = SymbolFormatter.ofPattern("s:'x'").withVocabulary(VOCABULARY);
+            String malformedInput = "ID'myId'"; // Missing colon
+            assertThrows(SymbolParseException.class, () -> formatter.parse(malformedInput));
         }
 
         @Test
-        void indexIntegerFormatter() {
-            SymbolFormatter indexFormatter = new SymbolFormatterBuilder().appendInteger(SymbolField.INDEX)
-                    .toFormatter();
-            assertEquals(1, indexFormatter.parse("1").index());
+        void parseShouldThrowExceptionOnTrailingInput() {
+            SymbolFormatter formatter = SymbolFormatter.ofPattern("s").withVocabulary(VOCABULARY);
+            String inputWithTrailingChars = "ID trailing";
+            assertThrows(SymbolParseException.class, () -> formatter.parse(inputWithTrailingChars));
         }
 
         @Test
-        void startIntegerFormatter() {
-            SymbolFormatter startFormatter = new SymbolFormatterBuilder().appendInteger(SymbolField.START)
-                    .toFormatter();
-            assertEquals(1, startFormatter.parse("1").start());
+        void parseShouldThrowExceptionOnNullInput() {
+            assertThrows(NullPointerException.class, () -> SymbolFormatter.ANTLR.parse(null));
+        }
+    }
+
+    @Nested
+    class OfPatternFormatterTest {
+
+        @Test
+        void testSimplePattern() {
+            SymbolFormatter formatter = SymbolFormatter.ofPattern("s:\\'x\\'").withVocabulary(VOCABULARY);
+            Symbol symbol = Symbol.of().type(8).text("myId").get(); // ID
+            String formatted = formatter.format(symbol);
+            assertEquals("ID:'myId'", formatted);
+
+            Symbol parsed = formatter.parse(formatted);
+            assertEquals(symbol, parsed);
         }
 
         @Test
-        void stopIntegerFormatter() {
-            SymbolFormatter stopFormatter = new SymbolFormatterBuilder().appendInteger(SymbolField.STOP)
-                    .toFormatter();
-            assertEquals(1, stopFormatter.parse("1").stop());
+        void testPatternWithAlternatives() {
+            SymbolFormatter formatter = SymbolFormatter.ofPattern("l|s").withVocabulary(VOCABULARY);
+
+            // Test literal part
+            Symbol literalSymbol = Symbol.of().type(4).text("+").get(); // '+'
+            String formattedLiteral = formatter.format(literalSymbol);
+            assertEquals("'+'", formattedLiteral);
+            assertEquals(literalSymbol, formatter.parse(formattedLiteral));
+
+            // Test symbolic part
+            Symbol symbolicSymbol = Symbol.of().type(8).get(); // ID
+            String formattedSymbolic = formatter.format(symbolicSymbol);
+            assertEquals("ID", formattedSymbolic);
+            assertSymbol(symbolicSymbol, formatter.parse(formattedSymbolic), SymbolField.all());
         }
 
         @Test
-        void typeIntegerFormatter() {
-            SymbolFormatter typeFormatter = new SymbolFormatterBuilder().appendInteger(SymbolField.TYPE)
-                    .toFormatter();
-            assertEquals(1, typeFormatter.parse("1").type());
+        void testPatternWithOptionalSection() {
+            SymbolFormatter formatter = SymbolFormatter.ofPattern("s[:c]").withVocabulary(VOCABULARY);
+
+            // Test without optional part
+            Symbol symbol = Symbol.of().type(8).channel(0).get(); // ID on default channel
+            String formatted = formatter.format(symbol);
+            assertEquals("ID", formatted);
+            assertEquals(symbol, formatter.parse(formatted));
+
+            // Test with optional part
+            Symbol symbolWithChannel = Symbol.of().type(8).channel(1).get();
+            String formattedWithChannel = formatter.format(symbolWithChannel);
+            assertEquals("ID:1", formattedWithChannel);
+            assertEquals(symbolWithChannel, formatter.parse(formattedWithChannel));
         }
 
         @Test
-        void channelIntegerFormatter() {
-            SymbolFormatter channelFormatter = new SymbolFormatterBuilder().appendInteger(
-                    SymbolField.CHANNEL).toFormatter();
-            assertEquals(1, channelFormatter.parse("1").channel());
+        void testInvalidPatternThrowsException() {
+            assertThrows(IllegalArgumentException.class, () -> SymbolFormatter.ofPattern("s["));
+        }
+    }
+
+    @Nested
+    class AntlrFormatterTest {
+
+        private final static SymbolFormatter ANTLR_WITH_VOCAB = SymbolFormatter.ANTLR.withVocabulary(VOCABULARY);
+        private final static SymbolFormatter ANTLR_WITHOUT_VOCAB = SymbolFormatter.ANTLR;
+
+        @Test
+        void formatsSymbolCorrectlyWithAndWithoutVocabulary() {
+            Symbol symbol = Symbol.of()
+                    .type(8) // Corresponds to "ID" in the vocabulary
+                    .text("testId")
+                    .index(0)
+                    .line(1)
+                    .position(0)
+                    .start(0)
+                    .stop(5)
+                    .get();
+
+            // Test with vocabulary
+            String expectedWithVocab = "[@0,0:5='testId',<ID>,1:0]";
+            assertEquals(expectedWithVocab, ANTLR_WITH_VOCAB.format(symbol));
+
+            // Test without vocabulary
+            String expectedWithoutVocab = "[@0,0:5='testId',<8>,1:0]";
+            assertEquals(expectedWithoutVocab, ANTLR_WITHOUT_VOCAB.format(symbol));
         }
 
         @Test
-        void lineIntegerFormatter() {
-            SymbolFormatter lineFormatter = new SymbolFormatterBuilder().appendInteger(SymbolField.LINE)
-                    .toFormatter();
-            assertEquals(1, lineFormatter.parse("1").line());
+        void formatsSymbolWithCustomChannel() {
+            // Symbol with a custom channel
+            Symbol customChannelSymbol = Symbol.of()
+                    .type(8)
+                    .text("custom")
+                    .index(1)
+                    .channel(1) // Custom channel
+                    .line(2)
+                    .position(0)
+                    .start(6)
+                    .stop(11)
+                    .get();
+
+            // Symbol with default channel
+            Symbol defaultChannelSymbol = Symbol.of()
+                    .type(9)
+                    .text("123")
+                    .index(2)
+                    .channel(0) // Default channel
+                    .line(3)
+                    .position(0)
+                    .start(12)
+                    .stop(14)
+                    .get();
+
+            // Test custom channel with vocabulary
+            String expectedCustomChannelWithVocab = "[@1,6:11='custom',<ID>,channel=1,2:0]";
+            assertEquals(expectedCustomChannelWithVocab, ANTLR_WITH_VOCAB.format(customChannelSymbol));
+
+            // Test default channel with vocabulary (should not show channel)
+            String expectedDefaultChannelWithVocab = "[@2,12:14='123',<INT>,3:0]";
+            assertEquals(expectedDefaultChannelWithVocab, ANTLR_WITH_VOCAB.format(defaultChannelSymbol));
+
+            // Test custom channel without vocabulary
+            String expectedCustomChannelWithoutVocab = "[@1,6:11='custom',<8>,channel=1,2:0]";
+            assertEquals(expectedCustomChannelWithoutVocab, ANTLR_WITHOUT_VOCAB.format(customChannelSymbol));
+
+            // Test default channel without vocabulary (should not show channel)
+            String expectedDefaultChannelWithoutVocab = "[@2,12:14='123',<9>,3:0]";
+            assertEquals(expectedDefaultChannelWithoutVocab, ANTLR_WITHOUT_VOCAB.format(defaultChannelSymbol));
         }
 
         @Test
-        void positionIntegerFormatter() {
-            SymbolFormatter positionFormatter = new SymbolFormatterBuilder().appendInteger(
-                    SymbolField.POSITION).toFormatter();
-            assertEquals(1, positionFormatter.parse("1").position());
+        void testFormatterToString() {
+            assertEquals("\\[@N,B:E=\\'X\\',<L>[',channel='c],R:P\\]", ANTLR_WITH_VOCAB.toString());
         }
 
         @Test
-        void emptyLiteralPrinterParser() {
-            SymbolFormatter literalFormatter = new SymbolFormatterBuilder().appendLiteral("")
-                    .toFormatter();
-            assertTrue(TESTER.test(DEFAULT, literalFormatter.parse("")));
+        void parsesSymbolWithDefaultChannelWhenNotSpecified() {
+            String input = "[@0,0:5='testId',<ID>,1:0]";
+            Symbol parsedSymbol = ANTLR_WITH_VOCAB.parse(input);
+
+            Symbol expectedSymbol = Symbol.of()
+                    .type(8) // ID
+                    .text("testId")
+                    .index(0)
+                    .line(1)
+                    .position(0)
+                    .start(0)
+                    .stop(5)
+                    .channel(0) // Default channel
+                    .get();
+
+            assertEquals(expectedSymbol, parsedSymbol);
         }
 
         @Test
-        void literalFormatter() {
-            SymbolFormatter literalFormatter = new SymbolFormatterBuilder().appendLiteral("Hello")
-                    .toFormatter();
-            assertTrue(TESTER.test(DEFAULT, literalFormatter.parse("Hello")));
+        void parsesSymbolWithExplicitDefaultChannel() {
+            String input = "[@0,0:5='testId',<ID>,channel=0,1:0]";
+            Symbol parsedSymbol = ANTLR_WITH_VOCAB.parse(input);
+
+            Symbol expectedSymbol = Symbol.of()
+                    .type(8) // ID
+                    .text("testId")
+                    .index(0)
+                    .line(1)
+                    .position(0)
+                    .start(0)
+                    .stop(5)
+                    .channel(0) // Explicitly default channel
+                    .get();
+
+            assertEquals(expectedSymbol, parsedSymbol);
         }
 
         @Test
-        void textFormatter() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder().appendLiteral("'")
-                    .appendText()
-                    .appendLiteral("'")
-                    .toFormatter();
-            Symbol symbol = formatter.parse("'var'");
-            assertEquals("var", symbol.text());
+        void parsesSymbolWithCustomChannel() {
+            String input = "[@1,6:11='custom',<ID>,channel=1,2:0]";
+            Symbol parsedSymbol = ANTLR_WITH_VOCAB.parse(input);
+
+            Symbol expectedSymbol = Symbol.of()
+                    .type(8) // ID
+                    .text("custom")
+                    .index(1)
+                    .line(2)
+                    .position(0)
+                    .start(6)
+                    .stop(11)
+                    .channel(1) // Custom channel
+                    .get();
+
+            assertEquals(expectedSymbol, parsedSymbol);
+        }
+    }
+
+    @Nested
+    class SimpleFormatterTest {
+        private static Vocabulary createVocabulary() {
+            String[] literalNames = new String[]{
+                    null, "'='", "'*'", "'/'", "'+'", "'-'", "'('", "')'"
+            };
+            String[] symbolicNames =
+                    new String[]{
+                            null, null, null, null, null, null, null, null, "ID", "INT", "NEWLINE",
+                            "WS"
+                    };
+            return new VocabularyImpl(literalNames, symbolicNames);
+        }
+
+        private final static Vocabulary VOCABULARY = createVocabulary();
+        private final static SymbolFormatter SIMPLE_WITH_VOCAB = SymbolFormatter.SIMPLE.withVocabulary(
+                VOCABULARY);
+        private final static SymbolFormatter SIMPLE_WITHOUT_VOCAB = SymbolFormatter.SIMPLE;
+
+        @Test
+        void formatsEOFCorrectly() {
+            Symbol eofSymbol = Symbol.of().type(Symbol.EOF).get();
+            assertEquals("EOF", SIMPLE_WITH_VOCAB.format(eofSymbol));
+            assertEquals("EOF", SIMPLE_WITHOUT_VOCAB.format(eofSymbol));
         }
 
         @Test
-        void escapedText() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder().appendLiteral("'")
-                    .appendText(TextOption.ESCAPED)
-                    .appendLiteral("'")
-                    .toFormatter();
-            Symbol symbol = formatter.parse("'\\new comment with \\n newline'");
-            assertEquals("\new comment with \n newline", symbol.text());
+        void formatsLiteralCorrectlyWithAndWithoutVocabulary() {
+            // Symbol for '+'
+            Symbol plusSymbol = Symbol.of()
+                    .type(4) // Corresponds to '+' in the vocabulary
+                    .text("+")
+                    .get();
+
+            // Test with vocabulary
+            assertEquals("'+'", SIMPLE_WITH_VOCAB.format(plusSymbol));
+
+            // Test without vocabulary (should fall back to symbolic representation)
+            assertEquals("(4 '+')", SIMPLE_WITHOUT_VOCAB.format(plusSymbol));
         }
 
         @Test
-        void symbolicFormatter() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder().appendSymbolicType()
-                    .toFormatter()
-                    .withVocabulary(ExpressionLexer.VOCABULARY);
-            Symbol symbol = formatter.parse("ID");
-            assertEquals(ExpressionLexer.ID, symbol.type());
+        void formatsSymbolicCorrectlyWithAndWithoutVocabulary() {
+            // Symbol for ID "testId"
+            Symbol idSymbol = Symbol.of()
+                    .type(8) // Corresponds to "ID" in the vocabulary
+                    .text("testId")
+                    .get();
+
+            // Test with vocabulary
+            assertEquals("(ID 'testId')", SIMPLE_WITH_VOCAB.format(idSymbol));
+
+            // Test without vocabulary
+            assertEquals("(8 'testId')", SIMPLE_WITHOUT_VOCAB.format(idSymbol));
         }
 
         @Test
-        void symbolicFormatterException() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder().appendSymbolicType()
-                    .toFormatter();
-            var e = assertThrows(SymbolParseException.class, () -> formatter.parse("ID"));
+        void formatsSymbolWithCustomChannel() {
+            // Literal symbol with custom channel
+            Symbol plusSymbolWithChannel = Symbol.of()
+                    .type(4) // '+'
+                    .text("+")
+                    .channel(1)
+                    .get();
+
+            // Symbolic symbol with custom channel
+            Symbol idSymbolWithChannel = Symbol.of()
+                    .type(8) // ID
+                    .text("custom")
+                    .channel(1)
+                    .get();
+
+            // Test literal with custom channel and vocabulary
+            assertEquals("'+':1", SIMPLE_WITH_VOCAB.format(plusSymbolWithChannel));
+            // Test literal with custom channel without vocabulary
+            assertEquals("(4:1 '+')", SIMPLE_WITHOUT_VOCAB.format(plusSymbolWithChannel));
+
+            // Test symbolic with custom channel and vocabulary
+            assertEquals("(ID:1 'custom')", SIMPLE_WITH_VOCAB.format(idSymbolWithChannel));
+            // Test symbolic with custom channel without vocabulary
+            assertEquals("(8:1 'custom')", SIMPLE_WITHOUT_VOCAB.format(idSymbolWithChannel));
+
+            // Test literal with default channel (should not show channel)
+            Symbol plusSymbolDefaultChannel = Symbol.of()
+                    .type(4)
+                    .text("+")
+                    .channel(0)
+                    .get();
+            assertEquals("'+'", SIMPLE_WITH_VOCAB.format(plusSymbolDefaultChannel));
+            assertEquals("(4 '+')", SIMPLE_WITHOUT_VOCAB.format(plusSymbolDefaultChannel));
+
+            // Test symbolic with default channel (should not show channel)
+            Symbol idSymbolDefaultChannel = Symbol.of()
+                    .type(8)
+                    .text("default")
+                    .channel(0)
+                    .get();
+            assertEquals("(ID 'default')", SIMPLE_WITH_VOCAB.format(idSymbolDefaultChannel));
+            assertEquals("(8 'default')", SIMPLE_WITHOUT_VOCAB.format(idSymbolDefaultChannel));
+        }
+
+        @Test
+        void testFormatterToString() {
+            // The toString for SIMPLE should represent the alternatives
+            String expectedToString = "<EOF> | l[:c] | (S[:c] \\'X\\')";
+            assertEquals(expectedToString, SIMPLE_WITH_VOCAB.toString());
+        }
+
+        @Test
+        void parsesEOFCorrectly() {
+            String input = "EOF";
+            Symbol parsedSymbol = SIMPLE_WITH_VOCAB.parse(input);
+            Symbol expectedSymbol = Symbol.of().type(Symbol.EOF).text("<EOF>").get();
+            assertEquals(expectedSymbol, parsedSymbol);
+        }
+
+        @Test
+        void parsesLiteralCorrectly() {
+            String input = "'+'";
+            Symbol parsedSymbol = SIMPLE_WITH_VOCAB.parse(input);
+            Symbol expectedSymbol = Symbol.of()
+                    .type(4) // '+'
+                    .text("+")
+                    .channel(0)
+                    .get();
+            assertEquals(expectedSymbol, parsedSymbol);
+
+            input = "'-':1";
+            parsedSymbol = SIMPLE_WITH_VOCAB.parse(input);
+            expectedSymbol = Symbol.of()
+                    .type(5) // '-'
+                    .text("-")
+                    .channel(1)
+                    .get();
+            assertEquals(expectedSymbol, parsedSymbol);
+        }
+
+        @Test
+        void parsesSymbolicCorrectly() {
+            String input = "(ID 'myVar')";
+            Symbol parsedSymbol = SIMPLE_WITH_VOCAB.parse(input);
+            Symbol expectedSymbol = Symbol.of()
+                    .type(8) // ID
+                    .text("myVar")
+                    .channel(0)
+                    .get();
+            assertEquals(expectedSymbol, parsedSymbol);
+
+            input = "(INT:2 '123')";
+            parsedSymbol = SIMPLE_WITH_VOCAB.parse(input);
+            expectedSymbol = Symbol.of()
+                    .type(9) // INT
+                    .text("123")
+                    .channel(2)
+                    .get();
+            assertEquals(expectedSymbol, parsedSymbol);
+        }
+
+        @Test
+        void parsesSymbolWithCustomChannel() {
+            String inputLiteral = "'+':5";
+            Symbol parsedLiteral = SIMPLE_WITH_VOCAB.parse(inputLiteral);
+            Symbol expectedLiteral = Symbol.of().type(4).text("+").channel(5).get();
+            assertEquals(expectedLiteral, parsedLiteral);
+
+            String inputSymbolic = "(ID:10 'variable')";
+            Symbol parsedSymbolic = SIMPLE_WITH_VOCAB.parse(inputSymbolic);
+            Symbol expectedSymbolic = Symbol.of().type(8).text("variable").channel(10).get();
+            assertEquals(expectedSymbolic, parsedSymbolic);
+        }
+
+        @Test
+        void parsesSymbolWithExplicitDefaultChannel() {
+            // For SIMPLE, explicit default channel is formatted as no channel part,
+            // so parsing "(ID 'text')" should result in channel 0.
+            String input = "(ID 'test')";
+            Symbol parsedSymbol = SIMPLE_WITH_VOCAB.parse(input);
+            Symbol expectedSymbol = Symbol.of()
+                    .type(8) // ID
+                    .text("test")
+                    .channel(0) // Default channel
+                    .get();
+            assertEquals(expectedSymbol, parsedSymbol);
+
+            // For literal, "+":0 would not be formatted as such, just "+", so no explicit test needed beyond parsesLiteralCorrectly
+        }
+    }
+
+    @Nested
+    class ParseListTest {
+
+        private final SymbolFormatter formatter = SymbolFormatter.SIMPLE.withVocabulary(VOCABULARY);
+
+        private static Vocabulary createVocabularyWithoutWS() {
+            String[] literalNames = new String[]{
+                    null, "'='", "'*'", "'/'", "'+'", "'-'", "'('", "')'"
+            };
+            String[] symbolicNames =
+                    new String[]{
+                            null, null, null, null, null, null, null, null, "ID", "INT", "NEWLINE",
+                            // No "WS"
+                    };
+            return new VocabularyImpl(literalNames, symbolicNames);
+        }
+
+        @Test
+        void testParseListWithImplicitIndexingAndWhitespace() {
+            String input = "(ID 'a') (ID 'b')";
+            java.util.List<Symbol> symbols = formatter.parseList(input);
+
+            assertEquals(2, symbols.size());
+
+            Symbol expected1 = Symbol.of().type(8).text("a").channel(0).index(0).get();
+            assertEquals(expected1, symbols.get(0));
+
+            Symbol expected2 = Symbol.of().type(8).text("b").channel(0).index(1).get();
+            assertEquals(expected2, symbols.get(1));
+        }
+
+        @Test
+        void testParseListWithVariousWhitespace() {
+            String input = "(ID 'a')\n\t(ID 'b')  '+'   "; // mixed symbols, with newlines, tabs, and trailing spaces
+            java.util.List<Symbol> symbols = formatter.parseList(input);
+
+            assertEquals(3, symbols.size());
+
+            Symbol expected1 = Symbol.of().type(8).text("a").channel(0).index(0).get();
+            assertEquals(expected1, symbols.get(0));
+
+            Symbol expected2 = Symbol.of().type(8).text("b").channel(0).index(1).get();
+            assertEquals(expected2, symbols.get(1));
+
+            Symbol expected3 = Symbol.of().type(4).text("+").channel(0).index(2).get();
+            assertEquals(expected3, symbols.get(2));
+        }
+
+        @Test
+        void testParseListWithoutWhitespaceSeparators() {
+            String input = "(ID 'a')(ID 'b')";
+            java.util.List<Symbol> symbols = formatter.parseList(input);
+
+            assertEquals(2, symbols.size());
+            Symbol expected1 = Symbol.of().type(8).text("a").channel(0).index(0).get();
+            assertEquals(expected1, symbols.get(0));
+
+            Symbol expected2 = Symbol.of().type(8).text("b").channel(0).index(1).get();
+            assertEquals(expected2, symbols.get(1));
+        }
+
+        @Test
+        void testParseEmptyList() {
+            String input = "   ";
+            java.util.List<Symbol> symbols = formatter.parseList(input);
+            assertTrue(symbols.isEmpty());
+
+            input = "";
+            symbols = formatter.parseList(input);
+            assertTrue(symbols.isEmpty());
+        }
+
+        @Test
+        void testParseListFailsWithWhitespaceWhenNotIgnored() {
+            SymbolFormatter formatterWithoutWS = SymbolFormatter.SIMPLE.withVocabulary(createVocabularyWithoutWS());
+            String input = "(ID 'a') (ID 'b')";
+
+            // The space between symbols is not a recognized whitespace token if the vocabulary does not contain 'WS'.
+            // Therefore, parsing should fail after the first symbol due to extraneous input.
+            SymbolParseException e = assertThrows(SymbolParseException.class, () -> formatterWithoutWS.parseList(input, false));
             assertEquals("""
-                    Parse failed at index 0:
-                    No vocabulary set
-                    
-                    >>ID
-                    """, e.getMessage());
-        }
-
-        @Test
-        void literalAndSymbolicParser() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder()
-                    .appendLiteral("type: ")
-                    .appendSymbolicType()
-                    .toFormatter()
-                    .withVocabulary(ExpressionLexer.VOCABULARY);
-            Symbol symbol = formatter.parse("type: ID");
-            assertEquals(ExpressionLexer.ID, symbol.type());
-        }
-
-        @Test
-        void literalAndSymbolicParserNoVocabulary() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder()
-                    .appendLiteral("type: ")
-                    .appendSymbolicType()
-                    .toFormatter();
-            var e = assertThrows(SymbolParseException.class, () -> formatter.parse("type: ID"));
-            assertEquals("""
-                    Parse failed at index 6:
-                    No vocabulary set
-                    
-                    type: >>ID
-                    """, e.getMessage());
-        }
-
-        @Test
-        void literalAndSymbolicParserMismatch() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder()
-                    .appendLiteral("type: ")
-                    .appendSymbolicType()
-                    .toFormatter()
-                    .withVocabulary(ExpressionLexer.VOCABULARY);
-            var e = assertThrows(SymbolParseException.class, () -> formatter.parse("typo: ID"));
-            assertEquals("""
-                    Parse failed at index 0:
-                    Expected literal 'type: ' but found 'typo: '
-                    
-                    >>typo: ID
-                    """, e.getMessage());
-        }
-
-        @Test
-        void literalAndSymbolicParserInvalidSymbol() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder()
-                    .appendLiteral("type: ")
-                    .appendSymbolicType()
-                    .toFormatter()
-                    .withVocabulary(ExpressionLexer.VOCABULARY);
-            var e = assertThrows(SymbolParseException.class, () -> formatter.parse("type: INVALID"));
-            assertEquals("""
-                    Parse failed at index 6:
-                    Unrecognized symbolic type name starting with 'INVAL'
-                    
-                    type: >>INVALID
-                    """, e.getMessage());
-        }
-
-        @Test
-        void invalidNegative() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder().appendInteger(SymbolField.TYPE)
-                    .toFormatter();
-            var e = assertThrows(SymbolParseException.class, () -> formatter.parse("-"));
-            assertEquals("""
-                    Parse failed at index 0:
-                    Expected an integer for field 'type' but found '-'
-                    
-                    >>-
-                    """, e.getMessage());
-        }
-
-        @Test
-        void multipleDashes() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder().appendInteger(SymbolField.TYPE)
-                    .toFormatter();
-            var e = assertThrows(SymbolParseException.class, () -> formatter.parse("--10"));
-            assertEquals("""
-                Parse failed at index 0:
-                Expected an integer for field 'type' but found '--1'
-
-                >>--10
-                """, e.getMessage());
-        }
-
-        @Test
-        void literalTypeParser() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder()
-                    .appendLiteralType()
-                    .toFormatter()
-                    .withVocabulary(ExpressionLexer.VOCABULARY);
-            Symbol parsed = formatter.parse("'='");
-            assertEquals(ExpressionLexer.T__0, parsed.type());
-        }
-
-        @Test
-        void literalTypeParserNoVocabulary() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder()
-                    .appendLiteralType()
-                    .toFormatter();
-            var e = assertThrows(SymbolParseException.class, () -> formatter.parse("'='"));
-            assertEquals("""
-                    Parse failed at index 0:
-                    No vocabulary set
-                    
-                    >>'='
-                    """, e.getMessage());
-        }
-
-        @Test
-        void takeLongestSymbolicMatch() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder().appendSymbolicType()
-                    .toFormatter()
-                    .withVocabulary(VOCABULARY);
-            Symbol parsed = formatter.parse("IDENTIFIER");
-            assertEquals(2, parsed.type());
-        }
-
-        @Test
-        void takeLongestLiteralMatch() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder().appendLiteralType()
-                    .toFormatter()
-                    .withVocabulary(VOCABULARY);
-            Symbol parsed = formatter.parse("'=='");
-            assertEquals(4, parsed.type());
-        }
-
-        @Test
-        void optionalPresent() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder()
-                    .appendSymbolicType()
-                    .startOptional()
-                    .appendLiteral(":")
-                    .appendInteger(SymbolField.CHANNEL, true)
-                    .endOptional()
-                    .toFormatter()
-                    .withVocabulary(VOCABULARY);
-            Symbol parsed = formatter.parse("ID:5");
-            assertEquals(1, parsed.type());
-            assertEquals(5, parsed.channel());
-        }
-
-        @Test
-        void optionalAbsent() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder()
-                    .appendSymbolicType()
-                    .startOptional()
-                    .appendLiteral(":")
-                    .appendInteger(SymbolField.CHANNEL, true)
-                    .endOptional()
-                    .toFormatter()
-                    .withVocabulary(VOCABULARY);
-            Symbol parsed = formatter.parse("ID");
-            assertEquals(1, parsed.type());
-            assertEquals(0, parsed.channel());
-        }
-
-        @Test
-        void appendPattern() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder()
-                    .appendPattern("N,B:E,C,P,R")
-                    .toFormatter();
-            Symbol parsed = formatter.parse("1,2:3,4,5,6");
-            assertEquals(1, parsed.index());
-            assertEquals(2, parsed.start());
-            assertEquals(3, parsed.stop());
-            assertEquals(4, parsed.channel());
-            assertEquals(5, parsed.position());
-            assertEquals(6, parsed.line());
-        }
-
-        @Test
-        void appendTypeSymbolicFirst() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder()
-                    .appendType(TypeFormat.SYMBOLIC_FIRST)
-                    .toFormatter()
-                    .withVocabulary(VOCABULARY);
-            assertEquals(1, formatter.parse("ID").type());
-            assertEquals(3, formatter.parse("'='").type());
-        }
-
-        @Test
-        void appendEOF() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder().appendEOF().toFormatter();
-            Symbol parsed = formatter.parse("EOF");
-            assertEquals(Symbol.EOF, parsed.type());
-            assertEquals("<EOF>", parsed.text());
-        }
-
-        @Test
-        void parseWithAlternativesShouldReturnFurthestError() {
-            SymbolFormatter partialMatch = SymbolFormatter.ofPattern("\\'a\\' \\'b\\'");
-            SymbolFormatter noMatch = SymbolFormatter.ofPattern("'x' 'y'");
-            SymbolFormatter formatter = partialMatch.withAlternative(noMatch);
-            FormatterParsePosition position = new FormatterParsePosition(0);
-            assertNull(formatter.parse("'a' 'c'", position));
-            assertEquals(5, position.getErrorIndex());
-        }
-
-        @Test
-        void conflictingFieldThrowsException() {
-            SymbolFormatter formatter = SymbolFormatter.ofPattern("X[l]")
-                    .withVocabulary(VOCABULARY);
-            String conflictingString = "assign'='";
-            var e = assertThrows(SymbolParseException.class, () -> formatter.parse(conflictingString));
-            assertEquals("""
-                    Cannot set the field 'text' with a different value""", e.getMessage());
-        }
-
-        @Test
-        void negativeNumberWithNonDigit() {
-            SymbolFormatter formatter = new SymbolFormatterBuilder().appendInteger(SymbolField.TYPE)
-                    .toFormatter();
-            var e = assertThrows(SymbolParseException.class, () -> formatter.parse("-a10"));
-            assertEquals("""
-                    Parse failed at index 0:
-                    Expected an integer for field 'type' but found '-a1'
-                    
-                    >>-a10
-                    """, e.getMessage());
-        }
-
-        @Test
-        void textInOptional() {
-            SymbolFormatter formatter = SymbolFormatter.ofPattern("[x:]S");
-            Symbol symbol = assertDoesNotThrow(() -> formatter.parse("myText:5"));
-            assertEquals("myText", symbol.text());
-            assertEquals(5, symbol.type());
+                            Parse failed at index 8:
+                            Expected 'EOF' but found ' (I'
+                            Expected literal '(' but found ' '
+                            Unrecognized literal type name starting with ' (ID '
+                            
+                            (ID 'a')>> (ID 'b')
+                            """, e.getMessage());
         }
     }
 }

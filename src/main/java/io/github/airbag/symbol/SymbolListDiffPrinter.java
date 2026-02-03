@@ -14,8 +14,6 @@ import java.util.List;
 
 public class SymbolListDiffPrinter {
 
-    private static final DiffAlgorithmFactory DEFAULT_DIFF = MyersDiff.factory();
-
     private final SymbolFormatter formatter;
 
     public SymbolListDiffPrinter(SymbolFormatter formatter) {
@@ -25,7 +23,7 @@ public class SymbolListDiffPrinter {
     public String printDiff(List<Symbol> expected, List<Symbol> actual) {
         Patch<Symbol> diffs = DiffUtils.diff(expected,
                 actual,
-                DEFAULT_DIFF.create(SymbolField.equalizer(formatter.getFields())),
+                MyersDiff.factory().create(SymbolField.equalizer(formatter.getFields())),
                 null,
                 true);
         List<TableRow> tableRows = getTableRows(diffs);

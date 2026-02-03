@@ -4,11 +4,7 @@ import io.github.airbag.tree.DerivationTree;
 
 import java.util.Map;
 
-public record TreeMatchResult(boolean succeeded, DerivationTree tree, Map<String, DerivationTree> labels) {
-
-    public DerivationTree getLabel() {
-        return tree();
-    }
+public record MatchResult(boolean isSuccess, DerivationTree tree, Map<String, DerivationTree> labels) {
 
     public DerivationTree getLabel(String label) {
         return labels.get(label);
