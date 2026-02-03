@@ -17,6 +17,12 @@ Well-written and comprehensive documentation is crucial for any project. It serv
 
 This project uses **Apache Maven** as its build system. Maven is a powerful project management tool that is based on the concept of a Project Object Model (POM). The `pom.xml` file in the root of the project contains all the information about the project and its dependencies.
 
+To test the project, use the following command:
+
+```bash
+mvn clean test
+```
+
 To build the project, you can use the following command:
 
 ```bash
