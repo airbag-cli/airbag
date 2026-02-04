@@ -2,6 +2,8 @@
 
 Airbag is a lightweight testing framework for ANTLR grammars in Java. It provides a simple and intuitive API to test both the lexer (tokenization) and the parser (tree structure) of your grammar, making it an ideal companion for grammar development and validation.
 
+**Airbag**: For the **I**ntegrity, **R**egression, and **B**ehavioral **A**nalysis of your **A**ntlr **G**rammars.
+
 ## Installation
 
 To use Airbag in your Maven project, add the following dependency to your `pom.xml`.
