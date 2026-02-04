@@ -40,16 +40,18 @@ graph TD
     A --> B(pair)
     A --> C(pair)
     B --> D(KEY)
-    B --> E(=)
+    B --> E(EQUALS)
     B --> F(STRING)
     C --> I(KEY)
-    C --> J(=)
+    C --> J(EQUALS)
     C --> K(INTEGER)
 
     D --> G["host"]
-    F --> H["&quot;localhost&quot;"]
-    I --> L["port"]
-    K --> M["8080"]
+    E --> H["="]
+    F --> L["&quot;localhost&quot;"]
+    I --> M["port"]
+    J --> N["="]
+    K --> Q["8080"]
 ```
 
 This tree is a much richer representation of the input. It understands that `"localhost"` is the value for the `host` key. Airbag is designed to help you test both of these stages independently to ensure they work exactly as you expect.
