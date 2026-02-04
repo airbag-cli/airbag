@@ -1,7 +1,9 @@
 # Getting Started
 
-Antlr is an is a very powerful lexer and parser generator tool. That can generate both in isolation. As such the primary 
-focus of airbag is to enable the testing of both components in total isolation.
+ANTLR is a powerful parser generator that can create lexers and parsers as distinct, independent components. 
+Airbag is a testing library built to leverage this separation, offering a robust framework to validate the behavior 
+of your lexer and parser in complete isolation. This ensures that each part of your grammar processing pipeline is 
+reliable and correct.
 
 ## Installation
 [Instructions on how to add the library as a dependency, e.g., Maven or Gradle snippet]
@@ -98,22 +100,28 @@ import io.github.airbag.Airbag;
 import io.github.airbag.symbol.Symbol;
 import io.github.airbag.symbol.SymbolProvider;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import java.util.List;
 
 class ExpressionLexerTest {
     
+    private Airbag airbag;
+    private SymbolProvider symbolProvider;
+    
+    @BeforeEach
+    void setup() {
+        airbag = Airbag.testLexer("io.github.airbag.gen.ExpressionLexer");
+        symbolProvider = airbag.getSymbolProvider();
+    }
+    
     @Test
     void testAssignment() {
-        // Get an airbag instance for the lexer from the generated lexer class
-        Airbag airbag = Airbag.testLexer("io.github.airbag.gen.ExpressionLexer");
-        SymbolProvider provider = airbag.getSymbolProvider();
-
         // 1. Create an expected list of symbols from a specification
         List<Symbol> expected = provider.fromSpec("""
                 (ID 'a')
-                ('=' '=')
+                '='
                 (INT '10')
-                ('+' '+')
+                '+'
                 (ID 'b')
                 EOF
                 """);
@@ -135,31 +143,42 @@ Next, we'll test the parser to verify that it builds the correct parse tree from
 import io.github.airbag.Airbag;
 import io.github.airbag.gen.ExpressionParser;
 import io.github.airbag.symbol.Symbol;
+import io.github.airbag.symbol.SymbolProvider;
 import io.github.airbag.tree.DerivationTree;
 import io.github.airbag.tree.TreeProvider;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+
 import java.util.List;
 
 class ExpressionParserTest {
 
+    private Airbag airbag;
+    private SymbolProvider symbolProvider;
+    private TreeProvider treeProvider;
+
+    @BeforeEach
+    void setup() {
+        airbag = Airbag.testParser(ExpressionParser.class);
+        treeProvider = airbag.getTreeProvider();
+        // Get the symbolFormatter from the TreeFormatter as a SymbolFormatter
+        // is not instantiated.
+        symbolProvider = treeProvider.getFormatter().getSymbolFormatter();
+    }
+
     @Test
     void testAdditionExpression() {
-        // Get an airbag instance for the parser from the generated parser class
-        Airbag airbag = Airbag.testParser(ExpressionParser.class);
-        TreeProvider treeProvider = airbag.getTreeProvider();
-
         // 1. Build the expected tree from a LISP-style specification
         DerivationTree expectedTree = treeProvider.fromSpec("""
-            (expr
-                (expr (INT '10'))
-                '+'
-                (expr (INT '5'))
-            )""");
+                (expr
+                    (expr (INT '10'))
+                    '+'
+                    (expr (INT '5'))
+                )""");
 
         // 2. Create the list of symbols for the parser to consume
-        List<Symbol> symbolList = treeProvider.getFormatter()
-                                              .getSymbolFormatter()
-                                              .parseList("(INT '10') '+' (INT '5')");
+        List<Symbol> symbolList = symbolProvider 
+                .parseList("(INT '10') '+' (INT '5')");
 
         // 3. Parse the symbol list to get the actual tree.
         // The second argument is the start rule.
