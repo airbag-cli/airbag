@@ -10,9 +10,9 @@ To use Airbag in your Maven project, add the following dependency to your `pom.x
 
 ```xml
 <dependency>
-    <groupId>io.github.airbag</groupId>
+    <groupId>io.github.airbag-cli</groupId>
     <artifactId>airbag</artifactId>
-    <version>0.0.1</version>
+    <version>0.1.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -25,8 +25,8 @@ You can easily verify that your lexer correctly tokenizes an input string by com
 
 ```java
 import io.github.airbag.Airbag;
+import io.github.airbag.symbol.Symbol;
 import io.github.airbag.symbol.SymbolProvider;
-import org.antlr.v4.runtime.Token;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -40,10 +40,10 @@ public class LexerTest {
         SymbolProvider tokenProvider = airbag.getSymbolProvider();
 
         // 2. Define the expected token stream using a clear specification
-        List<Token> expected = tokenProvider.fromSpec("(ID 'x') '=' (INT '5') EOF");
+        List<Symbol> expected = tokenProvider.fromSpec("(ID 'x') '=' (INT '5') EOF");
 
         // 3. Tokenize the actual input string
-        List<Token> actual = tokenProvider.fromInput("x = 5");
+        List<Symbol> actual = tokenProvider.fromInput("x = 5");
 
         // 4. Assert that the actual tokens match the expected specification
         airbag.assertSymbolList(expected, actual);
@@ -58,9 +58,8 @@ Airbag allows you to validate the structure of the generated parse tree against 
 ```java
 import io.github.airbag.Airbag;
 import io.github.airbag.symbol.SymbolProvider;
+import io.github.airbag.tree.DerivationTree;
 import io.github.airbag.tree.TreeProvider;
-import io.github.airbag.tree.ValidationTree;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.junit.jupiter.api.Test;
 
 public class ParserTest {
@@ -69,23 +68,26 @@ public class ParserTest {
     void testParseTreeStructure() {
         // 1. Initialize Airbag for your grammar
         Airbag airbag = Airbag.testGrammar("io.github.airbag.gen.Expression");
-        SymbolProvider tokenProvider = airbag.getSymbolProvider();
+        SymbolProvider symbolProvider = airbag.getSymbolProvider();
         TreeProvider treeProvider = airbag.getTreeProvider();
 
         // 2. Define the expected tree structure using a validation tree
-        ValidationTree expected = treeProvider.fromSpec("""
+        DerivationTree expected = treeProvider.fromSpec("""
                 (prog
                     (stat
-                        (ID 'x') '=' (expr (INT '5')) (NEWLINE '\n')
+                        (ID 'x')
+                        '='
+                        (expr (INT '5'))
+                        (NEWLINE '\\n')
                     )
                     EOF
                 )""");
 
         // 3. Generate the actual parse tree from an input string
-        ParseTree actual = treeProvider.fromSource(tokenProvider.fromInput("x = 5\\n"), "prog");
+        DerivationTree actual = treeProvider.fromSource(symbolProvider.fromInput("x = 5\n"), "prog");
 
         // 4. Assert that the generated tree has the expected structure
-        airbag.assertParseTree(expected, actual);
+        airbag.assertTree(expected, actual);
     }
 }
 ```
