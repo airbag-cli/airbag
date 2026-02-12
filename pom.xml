@@ -6,7 +6,7 @@
 
     <groupId>io.github.airbag-cli</groupId>
     <artifactId>airbag</artifactId>
-    <version>0.2.0</version>
+    <version>0.2.1</version>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>

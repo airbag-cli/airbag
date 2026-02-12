@@ -54,12 +54,11 @@ public class TreeFormatter {
      */
     public static final TreeFormatter ANTLR = new TreeFormatterBuilder().onRule(onRule -> onRule.appendLiteral(
                     "(").appendRule().appendLiteral(" ").appendChildren(" ").appendLiteral(")"))
-            .onTerminal(
-                    NodeFormatterBuilder::appendSymbol)
+            .onTerminal(NodeFormatterBuilder::appendSymbol)
             .onError(NodeFormatterBuilder::appendSymbol)
             .toFormatter()
-            .withSymbolFormatter(new SymbolFormatterBuilder().appendText(
-                    TextOption.ESCAPED).toFormatter());
+            .withSymbolFormatter(new SymbolFormatterBuilder().appendText(TextOption.ESCAPED)
+                    .toFormatter());
 
     /**
      * A simple formatter that produces a LISP-style S-expression format.
@@ -121,6 +120,38 @@ public class TreeFormatter {
         this.treePrinterParser = treePrinterParser;
     }
 
+    public static TreeFormatter indented(String indent) {
+        return new TreeFormatterBuilder().onRule(onRule -> onRule.appendLiteral("(")
+                        .appendWhitespace()
+                        .appendRule()
+                        .appendWhitespace("%n%s".formatted(indent))
+                        .appendIndent(indent)
+                        .appendChildren(sep -> sep.appendWhitespace("%n".formatted()).appendIndent(indent))
+                        .appendWhitespace("%n".formatted())
+                        .appendIndent(indent)
+                        .appendLiteral(")"))
+                .onTerminal(NodeFormatterBuilder::appendSymbol)
+                .onPattern(onPattern -> onPattern.appendLiteral("(")
+                        .appendWhitespace()
+                        .appendLiteral("<")
+                        .appendRule()
+                        .appendLiteral(">")
+                        .appendWhitespace(" ")
+                        .appendLiteral("(")
+                        .appendPattern()
+                        .appendLiteral(")")
+                        .appendWhitespace()
+                        .appendLiteral(")"))
+                .onError(onError -> onError.appendLiteral("(")
+                        .appendWhitespace()
+                        .appendLiteral("<error>")
+                        .appendWhitespace(" ")
+                        .appendSymbol()
+                        .appendWhitespace()
+                        .appendLiteral(")"))
+                .toFormatter();
+    }
+
     /**
      * Formats the given {@link DerivationTree} into a string according to this formatter's rules.
      *
@@ -130,7 +161,9 @@ public class TreeFormatter {
      *                          for a node type was not defined).
      */
     public String format(DerivationTree tree) {
-        NodeFormatContext ctx = new NodeFormatContext(symbolFormatter, patternFormatter, recognizer);
+        NodeFormatContext ctx = new NodeFormatContext(symbolFormatter,
+                patternFormatter,
+                recognizer);
         ctx.setNode(tree);
         StringBuilder buf = new StringBuilder();
         if (!treePrinterParser.format(ctx, buf)) {
@@ -180,7 +213,9 @@ public class TreeFormatter {
     public DerivationTree parse(CharSequence text, FormatterParsePosition position) {
         Objects.requireNonNull(text, "text");
         Objects.requireNonNull(position, "position");
-        RootParseContext rootCtx = new RootParseContext(symbolFormatter, patternFormatter, recognizer);
+        RootParseContext rootCtx = new RootParseContext(symbolFormatter,
+                patternFormatter,
+                recognizer);
         int result = treePrinterParser.parse(rootCtx, text, position.getIndex());
         if (result < 0) {
             position.setErrorIndex(rootCtx.getMaxError());
@@ -224,7 +259,10 @@ public class TreeFormatter {
      */
     public TreeFormatter withRecognizer(Recognizer<?, ?> recognizer) {
         if (recognizer == null) {
-            return new TreeFormatter(symbolFormatter.withVocabulary(null), patternFormatter.withRecognizer(null), null, treePrinterParser);
+            return new TreeFormatter(symbolFormatter.withVocabulary(null),
+                    patternFormatter.withRecognizer(null),
+                    null,
+                    treePrinterParser);
         }
         return new TreeFormatter(symbolFormatter.withVocabulary(recognizer.getVocabulary()),
                 patternFormatter.withRecognizer(recognizer),
