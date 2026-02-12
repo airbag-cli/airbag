@@ -1,8 +1,29 @@
-# Airbag
-
-Airbag is a lightweight testing framework for ANTLR grammars in Java. It provides a simple and intuitive API to test both the lexer (tokenization) and the parser (tree structure) of your grammar, making it an ideal companion for grammar development and validation.
+# Airbag Documentation
 
 **Airbag**: For the **I**ntegrity, **R**egression, and **B**ehavioral **A**nalysis of your **A**ntlr **G**rammars.
+
+## Why Airbag?
+
+Writing a grammar with ANTLR is a powerful way to process text, but testing it can be challenging. A small change to a
+grammar rule can have unexpected ripple effects, and it's often difficult to pinpoint whether a bug originates in the
+lexer (which groups characters into tokens) or the parser (which structures tokens into a tree).
+
+Airbag is a testing library built to solve this problem. It provides a robust framework to validate the behavior of your
+lexer and parser in **complete isolation**, ensuring that each stage of your grammar processing pipeline is reliable and
+correct.
+
+With Airbag, you can:
+
+* **Test your lexer** by asserting that a given input string produces an exact sequence of tokens.
+* **Test your parser** by asserting that a given sequence of tokens builds a precise parse tree.
+* **Write clear, readable tests** using simple string specifications for both tokens and trees.
+* **Prevent regressions** and gain confidence in your grammar as it evolves.
+
+## Table of Contents
+
+* [1. Core Concepts: Lexing and Parsing](./01-concepts.md)
+* [2. Testing a Lexer](./02-testing-lexers.md)
+* [3. Testing a Parser](./03-testing-parsers.md)
 
 ## Installation
 
@@ -140,7 +161,7 @@ public class ExpressionLexerTest {
 }
 ```
 
-Assuming your IDE setup is correct you can also just refer to class literal to test like in this
+Assuming your IDE setup is correct you can also just refer to class literal to test like in this 
 example
 
 ```java
@@ -215,5 +236,12 @@ public class ExpressionParserTest {
 
 Confirm that the setup is working with `mvn clean test`.
 
-As we see we can test the lexer and parser in total isolation. Whenever we change the grammar we just have to execute maven
+As we see we can test the lexer and parser in total isolation. Whenever we change the grammar we just have to execute maven 
 workflow to generate new classes and run the tests directly.
+
+### API Reference
+
+* [Symbols and SymbolFormatters](./reference/symbols.md)
+* [Derivation Trees and TreeFormatters](./reference/trees.md)
+* [Patterns](./reference/patterns.md)
+* [Queries](./reference/queries.md)

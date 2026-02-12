@@ -6,7 +6,7 @@
 
     <groupId>io.github.airbag-cli</groupId>
     <artifactId>airbag</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -19,6 +19,7 @@
             <groupId>org.antlr</groupId>
             <artifactId>antlr4-runtime</artifactId>
             <version>4.13.1</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>

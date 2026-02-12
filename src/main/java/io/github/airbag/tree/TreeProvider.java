@@ -19,7 +19,10 @@ import java.util.Objects;
  * </ol>
  * It requires an ANTLR-generated {@link Parser} class for its operations, using reflection to invoke parser rules.
  * <p>
- * This class is immutable and thread-safe.
+ * This class is a utility for creating {@link DerivationTree} instances from various sources, primarily for testing.
+ * While instances can be created to be effectively immutable, the {@link #setFormatter(TreeFormatter)} method
+ * allows for modification of its internal state, making it not inherently thread-safe. Care should be taken
+ * when sharing instances across threads if {@code setFormatter} is used.
  *
  * <h3>Usage Example</h3>
  * <pre>{@code

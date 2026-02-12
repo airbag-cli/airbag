@@ -217,9 +217,8 @@ public class NodeFormatterBuilder {
      *     .onRule(nodeBuilder -> nodeBuilder
      *         .appendRule()
      *         .appendChildren(separator -> separator
-     *             .appendLiteral("
-     * ")
-     *             .appendPadding("  ") // Indent each child
+     *             .appendLiteral("\n")
+     *             .appendIndent("  ") // Indent each child
      *         )
      *     )
      *     .toFormatter();
