@@ -5,6 +5,7 @@ package io.github.airbag.symbol;
  */
 public class SymbolParseException extends SymbolFormatterException {
 
+    private int line;
     private String input;
     private int position;
 
@@ -31,6 +32,18 @@ public class SymbolParseException extends SymbolFormatterException {
         this.position = position;
     }
 
+    public SymbolParseException(String input, int line, int position, String message) {
+        super(constructMessage(input,line , position, message));
+        this.input = input;
+        this.position = position;
+    }
+
+    public SymbolParseException(String message, int line, int position) {
+        super(message);
+        this.line = line;
+        this.position = position;
+    }
+
     /**
      * Constructs a detailed error message that includes the input string,
      * marks the position of the error, and provides the given message.
@@ -50,6 +63,15 @@ public class SymbolParseException extends SymbolFormatterException {
                 """.formatted(position, message, markedInput);
     }
 
+    private static String constructMessage(String input, int line, int charPositionInLine, String message) {
+        return """
+                Parse failed at line %d with position %d:
+                %s
+
+                %s
+                """.formatted(line, charPositionInLine, message, input);
+    }
+
     /**
      * Gets the input string that caused the parse exception.
      *
@@ -57,6 +79,11 @@ public class SymbolParseException extends SymbolFormatterException {
      */
     public String getInput() {
         return input;
+    }
+
+    public void setInput(String input) {
+        this.input = input;
+
     }
 
 
@@ -69,4 +96,7 @@ public class SymbolParseException extends SymbolFormatterException {
         return position;
     }
 
+    public int getLine() {
+        return line;
+    }
 }

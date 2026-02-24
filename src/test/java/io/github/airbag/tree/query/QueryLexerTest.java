@@ -15,7 +15,7 @@ public class QueryLexerTest {
 
     @Test
     void testLiterals() {
-        airbag.assertSymbols(" '/' '//' '*' '!' '//' '/' EOF", "/ // * ! ///");
+        airbag.assertSymbols(" '/' '*' '//' '*' '!' '//' '/' EOF", "/*//*!///");
     }
 
     @Test

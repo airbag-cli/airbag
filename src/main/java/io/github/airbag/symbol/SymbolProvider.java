@@ -1,9 +1,9 @@
 package io.github.airbag.symbol;
 
+import io.github.airbag.util.Utils;
 import org.antlr.v4.runtime.*;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -53,6 +53,7 @@ public class SymbolProvider {
             // for initialization and set the actual stream later for each tokenization operation.
             lexer = lexerClass.getConstructor(CharStream.class).newInstance((CharStream) null);
             lexer.removeErrorListeners();
+            lexer.addErrorListener(Utils.rethrowingErrorListener());
             formatter = SymbolFormatter.SIMPLE.withVocabulary(lexer.getVocabulary());
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
                  NoSuchMethodException e) {
@@ -76,10 +77,14 @@ public class SymbolProvider {
      */
     public List<Symbol> fromInput(String input) {
         //Setting the input stream has the side effect of resetting the lexer as well
-        lexer.setInputStream(CharStreams.fromString(input));
-        var tokenStream = new CommonTokenStream(lexer);
-        tokenStream.fill(); // Eagerly process the entire input stream
-        return tokenStream.getTokens().stream().map(Symbol::new).toList();
+        try {
+            lexer.setInputStream(CharStreams.fromString(input));
+            var tokenStream = new CommonTokenStream(lexer);
+            tokenStream.fill(); // Eagerly process the entire input stream
+            return tokenStream.getTokens().stream().map(Symbol::new).toList();
+        } catch (SymbolParseException e) {
+            throw new SymbolParseException(input, e.getLine(), e.getPosition(), e.getMessage());
+        }
     }
 
     /**

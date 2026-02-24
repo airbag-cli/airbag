@@ -1,5 +1,11 @@
 package io.github.airbag.util;
 
+import io.github.airbag.symbol.SymbolParseException;
+import org.antlr.v4.runtime.ANTLRErrorListener;
+import org.antlr.v4.runtime.BaseErrorListener;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiPredicate;
@@ -52,5 +58,19 @@ public class Utils {
         T[] result = Arrays.copyOf(array1, array1.length + array2.length);
         System.arraycopy(array2, 0, result, array1.length, array2.length);
         return result;
+    }
+
+    public static ANTLRErrorListener rethrowingErrorListener() {
+        return new BaseErrorListener() {
+            @Override
+            public void syntaxError(Recognizer<?, ?> recognizer,
+                                    Object offendingSymbol,
+                                    int line,
+                                    int charPositionInLine,
+                                    String msg,
+                                    RecognitionException e) {
+                throw new SymbolParseException(msg, line, charPositionInLine);
+            }
+        };
     }
 }
