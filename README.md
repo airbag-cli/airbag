@@ -102,9 +102,8 @@ Now we can just write a simple JUnit test like this.
 package io.github.airbag.expression;
 
 import io.github.airbag.Airbag;
-import io.github.airbag.symbol.Symbol;
-import io.github.airbag.symbol.SymbolFormatter;
-import io.github.airbag.symbol.SymbolProvider;
+import io.github.airbag.token.Token;
+import io.github.airbag.token.TokenProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -113,7 +112,7 @@ import java.util.List;
 public class ExpressionLexerTest {
 
     private Airbag airbag;
-    private SymbolProvider provider;
+    private TokenProvider provider;
 
     @BeforeEach
     void setup() {
@@ -124,7 +123,7 @@ public class ExpressionLexerTest {
     @Test
     void testID() {
         //Create an expected list of symbols
-        List<Symbol> expected = provider.fromSpec("""
+        List<Token> expected = provider.fromSpec("""
                 (ID 'x')
                 (ID 'myVariable')
                 (ID 'y')
@@ -132,10 +131,10 @@ public class ExpressionLexerTest {
                 """);
 
         //Let the lexer tokenize an actual input string
-        List<Symbol> actual = provider.fromInput("x myVariable y");
+        List<Token> actual = provider.fromInput("x myVariable y");
 
         //Compare the expected and actual list
-        airbag.assertSymbolList(expected, actual);
+        airbag.assertTokens(expected, actual);
     }
 }
 ```
@@ -148,8 +147,8 @@ example
 package io.github.airbag.expression;
 
 import io.github.airbag.Airbag;
-import io.github.airbag.symbol.Symbol;
-import io.github.airbag.symbol.SymbolFormatter;
+import io.github.airbag.token.Token;
+import io.github.airbag.token.TokenFormatter;
 import io.github.airbag.tree.DerivationTree;
 import io.github.airbag.tree.TreeProvider;
 import org.junit.jupiter.api.BeforeEach;
@@ -161,7 +160,7 @@ public class ExpressionParserTest {
 
     private Airbag airbag;
     private TreeProvider treeProvider;
-    private SymbolFormatter symbolFormatter;
+    private TokenFormatter symbolFormatter;
 
     @BeforeEach
     void setup() {
@@ -193,7 +192,7 @@ public class ExpressionParserTest {
                 )""");
 
         // Create a derivation tree from symbol list.
-        List<Symbol> symbolList = symbolFormatter.parseList("""
+        List<Token> symbolList = symbolFormatter.parseList("""
                 (ID 'x')
                 '='
                 (INT '10')

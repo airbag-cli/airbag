@@ -1,6 +1,6 @@
 package io.github.airbag.util;
 
-import io.github.airbag.symbol.SymbolParseException;
+import io.github.airbag.token.TokenParseException;
 import org.antlr.v4.runtime.ANTLRErrorListener;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.RecognitionException;
@@ -30,7 +30,7 @@ public class Utils {
      * @param list1     the first list.
      * @param list2     the second list.
      * @param predicate the predicate to use for comparing elements.
-     * @param <T>       the type of the elements in the lists.
+     * @param <T>       the getType of the elements in the lists.
      * @return {@code true} if the lists are equal, {@code false} otherwise.
      */
     public static <T> boolean listEquals(List<? extends T> list1,
@@ -51,7 +51,7 @@ public class Utils {
      *
      * @param array1 the first array
      * @param array2 the second array
-     * @param <T>    the type of the array.
+     * @param <T>    the getType of the array.
      * @return an array that is the concatenation of the input arrays.
      */
     public static <T> T[] concat(T[] array1, T[] array2) {
@@ -69,7 +69,7 @@ public class Utils {
                                     int charPositionInLine,
                                     String msg,
                                     RecognitionException e) {
-                throw new SymbolParseException(msg, line, charPositionInLine);
+                throw new TokenParseException(msg, line, charPositionInLine);
             }
         };
     }

@@ -1,6 +1,8 @@
 # Airbag Documentation
 
-**Airbag**: For the **I**ntegrity, **R**egression, and **B**ehavioral **A**nalysis of your **A**ntlr **G**rammars.
+### **Airbag**: For the **I**ntegrity, **R**egression, and **B**ehavioral **A**nalysis of your **A**ntlr **G**rammars.
+
+![Image](./images/logo.png)
 
 ## Why Airbag?
 
@@ -120,32 +122,21 @@ inside the antlr4 directory that mirror our package name. So in our example we p
 Now we can just write a simple JUnit test like this.
 
 ```java
-package io.github.airbag.expression;
-
-import io.github.airbag.Airbag;
-import io.github.airbag.symbol.Symbol;
-import io.github.airbag.symbol.SymbolFormatter;
-import io.github.airbag.symbol.SymbolProvider;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
 public class ExpressionLexerTest {
 
     private Airbag airbag;
-    private SymbolProvider provider;
+    private TokenProvider provider;
 
     @BeforeEach
     void setup() {
         airbag = Airbag.testLexer("io.github.airbag.expression.ExpressionLexer");
-        provider = airbag.getSymbolProvider();
+        provider = airbag.getTokenProvider();
     }
 
     @Test
     void testID() {
         //Create an expected list of symbols
-        List<Symbol> expected = provider.fromSpec("""
+        List<Token> expected = provider.fromSpec("""
                 (ID 'x')
                 (ID 'myVariable')
                 (ID 'y')
@@ -153,10 +144,10 @@ public class ExpressionLexerTest {
                 """);
 
         //Let the lexer tokenize an actual input string
-        List<Symbol> actual = provider.fromInput("x myVariable y");
+        List<Token> actual = provider.fromInput("x myVariable y");
 
         //Compare the expected and actual list
-        airbag.assertSymbolList(expected, actual);
+        airbag.assertTokens(expected, actual);
     }
 }
 ```
@@ -165,24 +156,11 @@ Assuming your IDE setup is correct you can also just refer to class literal to t
 example
 
 ```java
-
-package io.github.airbag.expression;
-
-import io.github.airbag.Airbag;
-import io.github.airbag.symbol.Symbol;
-import io.github.airbag.symbol.SymbolFormatter;
-import io.github.airbag.tree.DerivationTree;
-import io.github.airbag.tree.TreeProvider;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
 public class ExpressionParserTest {
 
     private Airbag airbag;
     private TreeProvider treeProvider;
-    private SymbolFormatter symbolFormatter;
+    private TokenFormatter symbolFormatter;
 
     @BeforeEach
     void setup() {
@@ -190,7 +168,7 @@ public class ExpressionParserTest {
         treeProvider = airbag.getTreeProvider();
         // Take the symbol formatter from the tree formatter as the Lexer
         // is not instantiated.
-        symbolFormatter = treeProvider.getFormatter().getSymbolFormatter();
+        symbolFormatter = treeProvider.getFormatter().getTokenFormatter();
     }
 
     @Test
@@ -214,7 +192,7 @@ public class ExpressionParserTest {
                 )""");
 
         // Create a derivation tree from symbol list.
-        List<Symbol> symbolList = symbolFormatter.parseList("""
+        List<Token> symbolList = symbolFormatter.parseList("""
                 (ID 'x')
                 '='
                 (INT '10')
@@ -241,7 +219,7 @@ workflow to generate new classes and run the tests directly.
 
 ### API Reference
 
-* [Symbols and SymbolFormatters](./reference/symbols.md)
+* [Tokens and TokenFormatters](./reference/tokens.md)
 * [Derivation Trees and TreeFormatters](./reference/trees.md)
 * [Patterns](./reference/patterns.md)
 * [Queries](./reference/queries.md)

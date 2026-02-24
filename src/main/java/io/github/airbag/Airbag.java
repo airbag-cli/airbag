@@ -1,9 +1,8 @@
 package io.github.airbag;
 
-import io.github.airbag.symbol.Symbol;
-import io.github.airbag.symbol.SymbolField;
-import io.github.airbag.symbol.SymbolFormatter;
-import io.github.airbag.symbol.SymbolProvider;
+import io.github.airbag.token.TokenField;
+import io.github.airbag.token.TokenFormatter;
+import io.github.airbag.token.TokenProvider;
 import io.github.airbag.tree.DerivationTree;
 import io.github.airbag.tree.TreeFormatter;
 import io.github.airbag.tree.TreeProvider;
@@ -11,6 +10,7 @@ import io.github.airbag.tree.Validator;
 import io.github.airbag.util.Utils;
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.Parser;
+import org.antlr.v4.runtime.Token;
 import org.opentest4j.AssertionFailedError;
 
 import java.util.Arrays;
@@ -21,7 +21,7 @@ import java.util.function.BiPredicate;
 
 /**
  * The Airbag class is the central component of the Airbag library.
- * It serves as a factory for creating {@link SymbolProvider} and {@link TreeProvider} instances,
+ * It serves as a factory for creating {@link TokenProvider} and {@link TreeProvider} instances,
  * which are essential for creating symbol streams and parse trees from ANTLR grammars.
  * <p>
  * This class simplifies the process of working with ANTLR grammars by providing a unified interface
@@ -35,9 +35,9 @@ import java.util.function.BiPredicate;
 public class Airbag {
 
     /**
-     * The Symbol provider for creating symbols from string or specification.
+     * The Token provider for creating symbols from string or specification.
      */
-    private final SymbolProvider symbolProvider;
+    private final TokenProvider symbolProvider;
 
     /**
      * The Tree provider for creating derivation trees.
@@ -51,7 +51,7 @@ public class Airbag {
      * @param lexerClass  The {@link Class} object for the ANTLR lexer.
      */
     private Airbag(Class<? extends Lexer> lexerClass, Class<? extends Parser> parserClass) {
-        symbolProvider = lexerClass == null ? null : new SymbolProvider(lexerClass);
+        symbolProvider = lexerClass == null ? null : new TokenProvider(lexerClass);
         treeProvider = parserClass == null ? null : new TreeProvider(parserClass);
     }
 
@@ -147,27 +147,27 @@ public class Airbag {
      *
      * @param expected The expected symbol. Must not be null.
      * @param actual   The actual symbol to check against the expected symbol. Must not be null.
-     * @param fields   A collection of {@link SymbolField} instances to use for comparison.
+     * @param fields   A collection of {@link TokenField} instances to use for comparison.
      * @throws AssertionFailedError if the actual symbol does not match the expected symbol based on the specified fields.
      */
-    public static void assertSymbol(Symbol expected,
-                                    Symbol actual,
-                                    Collection<SymbolField<?>> fields) {
-        assertSymbol(expected, actual, SymbolFormatter.fromFields(fields));
+    public static void assertToken(Token expected,
+                                   Token actual,
+                                   Collection<TokenField<?>> fields) {
+        assertToken(expected, actual, TokenFormatter.fromFields(fields));
     }
 
     /**
      * Asserts that the actual symbol matches the expected symbol, comparing only the specified fields.
-     * This is a convenience method that takes an array of {@link SymbolField} instances.
+     * This is a convenience method that takes an array of {@link TokenField} instances.
      * If the symbols do not match, an {@link AssertionFailedError} is thrown with a detailed message.
      *
      * @param expected The expected symbol. Must not be null.
      * @param actual   The actual symbol to check against the expected symbol. Must not be null.
-     * @param fields   An array of {@link SymbolField} instances to use for comparison.
+     * @param fields   An array of {@link TokenField} instances to use for comparison.
      * @throws AssertionFailedError if the actual symbol does not match the expected symbol based on the specified fields.
      */
-    public static void assertSymbol(Symbol expected, Symbol actual, SymbolField<?>... fields) {
-        assertSymbol(expected, actual, SymbolFormatter.fromFields(Arrays.asList(fields)));
+    public static void assertToken(Token expected, Token actual, TokenField<?>... fields) {
+        assertToken(expected, actual, TokenFormatter.fromFields(Arrays.asList(fields)));
     }
 
     /**
@@ -176,24 +176,24 @@ public class Airbag {
      *
      * @param expected  The expected symbol. Must not be null.
      * @param actual    The actual symbol to check against the expected symbol. Must not be null.
-     * @param formatter The {@link SymbolFormatter} to use for formatting and comparing symbols.
+     * @param formatter The {@link TokenFormatter} to use for formatting and comparing symbols.
      * @throws AssertionFailedError if the actual symbol does not match the expected symbol.
      */
-    public static void assertSymbol(Symbol expected, Symbol actual, SymbolFormatter formatter) {
-        assertSymbolList(List.of(expected), List.of(actual), formatter);
+    public static void assertToken(Token expected, Token actual, TokenFormatter formatter) {
+        assertTokens(List.of(expected), List.of(actual), formatter);
     }
 
     /**
      * Asserts that the actual symbol matches the expected symbol.
      * If the symbols do not match, an {@link AssertionFailedError} is thrown with a detailed message comparing the two symbols.
-     * The comparison is done using a "weak" equality check, which means that the token type and text must be the same, but other properties such as line and column numbers may differ.
+     * The comparison is done using a "weak" equality check, which means that the token getType and getText must be the same, but other properties such as getLine and column numbers may differ.
      *
      * @param expected The expected symbol. Must not be null.
      * @param actual   The actual symbol to check against the expected symbol. Must not be null.
      * @throws AssertionFailedError if the actual symbol does not match the expected symbol.
      */
-    public void assertSymbol(Symbol expected, Symbol actual) {
-        assertSymbolList(List.of(expected), List.of(actual));
+    public void assertToken(Token expected, Token actual) {
+        assertTokens(List.of(expected), List.of(actual));
     }
 
     /**
@@ -206,13 +206,13 @@ public class Airbag {
      * @param actual   The actual input string to tokenize and compare. Must not be null.
      * @throws AssertionFailedError if the tokenized actual input does not match the expected symbols.
      */
-    public void assertSymbols(String expected, String actual) {
+    public void assertTokens(String expected, String actual) {
         Objects.requireNonNull(symbolProvider, "No symbol provider instantiated.");
-        assertSymbolList(symbolProvider.fromSpec(expected), symbolProvider.fromInput(actual));
+        assertTokens(symbolProvider.fromSpec(expected), symbolProvider.fromInput(actual));
     }
 
     /**
-     * Asserts that the actual list of symbols matches the expected list using the formatter from the {@link SymbolProvider}.
+     * Asserts that the actual list of symbols matches the expected list using the formatter from the {@link TokenProvider}.
      * The comparison is done using a "weak" equality check, where only symbol fields captured by
      * the underlying formatter are compared.
      *
@@ -220,10 +220,10 @@ public class Airbag {
      * @param actual   The actual list of symbols to check against the expected list. Must not be null.
      * @throws AssertionFailedError if the actual list of symbols does not match the expected list.
      */
-    public void assertSymbolList(List<Symbol> expected, List<Symbol> actual) {
+    public void assertTokens(List<? extends Token> expected, List<? extends Token> actual) {
         Objects.requireNonNull(symbolProvider, "No symbol provider instantiated.");
-        SymbolFormatter formatter = symbolProvider.getFormatter();
-        assertSymbolList(expected, actual, formatter);
+        TokenFormatter formatter = symbolProvider.getFormatter();
+        assertTokens(expected, actual, formatter);
     }
 
     /**
@@ -237,11 +237,11 @@ public class Airbag {
      * @param formatter The formatter for formatting and comparing symbols.
      * @throws AssertionFailedError if the actual list of symbols does not match the expected list.
      */
-    public static void assertSymbolList(List<Symbol> expected,
-                                        List<Symbol> actual,
-                                        SymbolFormatter formatter) {
+    public static void assertTokens(List<? extends Token> expected,
+                                    List<? extends Token> actual,
+                                    TokenFormatter formatter) {
 
-        BiPredicate<Symbol, Symbol> equalizer = SymbolField.equalizer(formatter.getFields());
+        BiPredicate<Token, Token> equalizer = TokenField.equalizer(formatter.getFields());
         if (!Utils.listEquals(expected, actual, equalizer)) {
             throw new SymbolAssertionFailedError(formatter, expected, actual);
         }
@@ -252,7 +252,7 @@ public class Airbag {
      * <p>
      * The comparison is performed by a {@link Validator}, which traverses both trees and compares the symbols at each node.
      * The symbols are compared using a "weak" equality check by default. The exact fields to be compared
-     * can be configured on the {@link SymbolFormatter} instance obtained from the {@link TreeProvider}.
+     * can be configured on the {@link TokenFormatter} instance obtained from the {@link TreeProvider}.
      * <p>
      * If the trees do not match, an {@link AssertionFailedError} is thrown with a message indicating the mismatch,
      * containing the formatted expected and actual trees.
@@ -272,9 +272,9 @@ public class Airbag {
                     expectedString,
                     actualString);
         }
-        
-        SymbolFormatter symbolFormatter = treeFormatter.getSymbolFormatter();
-        Validator validator = new Validator(SymbolField.equalizer(symbolFormatter.getFields()));
+
+        TokenFormatter symbolFormatter = treeFormatter.getSymbolFormatter();
+        Validator validator = new Validator(TokenField.equalizer(symbolFormatter.getFields()));
         if (!validator.validate(expected, actual)) {
             throw new AssertionFailedError("Derivation trees do not match",
                     treeFormatter.format(expected),
@@ -283,12 +283,12 @@ public class Airbag {
     }
 
     /**
-     * Returns a {@link SymbolProvider} for the configured lexer.
-     * The {@link SymbolProvider} can be used to create a list of symbols.
+     * Returns a {@link TokenProvider} for the configured lexer.
+     * The {@link TokenProvider} can be used to create a list of symbols.
      *
-     * @return The configured {@link SymbolProvider} instance.
+     * @return The configured {@link TokenProvider} instance.
      */
-    public SymbolProvider getSymbolProvider() {
+    public TokenProvider getSymbolProvider() {
         return symbolProvider;
     }
 

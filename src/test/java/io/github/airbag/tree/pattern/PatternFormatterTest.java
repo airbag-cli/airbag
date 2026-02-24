@@ -1,8 +1,9 @@
 package io.github.airbag.tree.pattern;
 
 import io.github.airbag.gen.ExpressionParser;
-import io.github.airbag.symbol.Symbol;
-import io.github.airbag.symbol.SymbolField;
+import io.github.airbag.token.TokenField;
+import io.github.airbag.token.TokenFormatter;
+import org.antlr.v4.runtime.Token;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -19,9 +20,9 @@ class PatternFormatterTest {
 
     @Test
     void testFormatSymbol() {
-        var symbol = Symbol.of("[@5,1:2='my text',<10>,channel=2,3:4]");
-        var pattern = new PatternBuilder().appendSymbol(symbol, SymbolField.equalizer(SymbolField.simple())).toPattern();
-        assertEquals("(NEWLINE:2 'my text')", formatter.format(pattern));
+        var symbol = TokenFormatter.ANTLR.parse("[@5,1:2='my getText',<10>,getChannel=2,3:4]");
+        var pattern = new PatternBuilder().appendSymbol(symbol, TokenField.equalizer(TokenField.simple())).toPattern();
+        assertEquals("(NEWLINE:2 'my getText')", formatter.format(pattern));
     }
 
     @Test
@@ -50,9 +51,9 @@ class PatternFormatterTest {
 
     @Test
     void testFormatComplexPattern() {
-        var symbol = Symbol.of("[@5,1:2='var',<8>,3:4]");
+        var symbol = TokenFormatter.ANTLR.parse("[@5,1:2='var',<8>,3:4]");
         var pattern = new PatternBuilder()
-                .appendSymbol(symbol, SymbolField.equalizer(SymbolField.simple()))
+                .appendSymbol(symbol, TokenField.equalizer(TokenField.simple()))
                 .appendRuleTag(ExpressionParser.RULE_expr, "anotherRule")
                 .appendSymbolTag(ExpressionParser.T__3)
                 .toPattern();
@@ -70,8 +71,8 @@ class PatternFormatterTest {
         // Verify first element: SymbolPatternElement for (ID 'var')
         assertInstanceOf(PatternBuilder.SymbolPatternElement.class, parsedElements[0]);
         var parsedSymbolElement = (PatternBuilder.SymbolPatternElement) parsedElements[0];
-        assertEquals(ExpressionParser.ID, parsedSymbolElement.getSymbol().type());
-        assertEquals("var", parsedSymbolElement.getSymbol().text());
+        assertEquals(ExpressionParser.ID, parsedSymbolElement.getSymbol().getType());
+        assertEquals("var", parsedSymbolElement.getSymbol().getText());
         // Comparing BiPredicate is hard, so we'll trust the formatter's internal logic for now.
 
         // Verify second element: RuleTagPatternElement for <expr>

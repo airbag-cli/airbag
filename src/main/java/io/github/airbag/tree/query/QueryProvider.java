@@ -96,10 +96,10 @@ public class QueryProvider {
      * implementation (e.g., Wildcard, Token, Rule).
      *
      * @param navigator  The {@link QueryElement.Navigator} indicating how to traverse the tree.
-     * @param filter     The ANTLR {@link Token} representing the filter (e.g., rule name, token type, wildcard).
+     * @param filter     The ANTLR {@link Token} representing the filter (e.g., rule name, token getType, wildcard).
      * @param isInverted A boolean indicating if this element's match should be inverted.
      * @return A new {@link QueryElement} instance corresponding to the given parameters.
-     * @throws IllegalArgumentException If the filter token type is not recognized.
+     * @throws IllegalArgumentException If the filter token getType is not recognized.
      */
     private QueryElement createElement(QueryElement.Navigator navigator,
                                        Token filter,

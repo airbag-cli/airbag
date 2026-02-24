@@ -1,7 +1,6 @@
 package io.github.airbag.tree;
 
-import io.github.airbag.symbol.Symbol;
-import io.github.airbag.symbol.SymbolFormatter;
+import io.github.airbag.token.TokenFormatter;
 import io.github.airbag.tree.NodeFormatterBuilder.NodePrinterParser;
 import io.github.airbag.tree.TreeFormatterBuilder.CompositePrinterParser;
 import io.github.airbag.tree.pattern.Pattern;
@@ -132,7 +131,7 @@ public class TreeFormatterBuilderTest {
             @Test
             void testFormatRule() {
                 StringBuilder buf = new StringBuilder();
-                var ctx = new NodeFormatContext(SymbolFormatter.SIMPLE,
+                var ctx = new NodeFormatContext(TokenFormatter.SIMPLE,
                         PatternFormatter.SIMPLE,
                         MOCK_RECOGNIZER);
                 ctx.setNode(Node.Rule.root(0));
@@ -143,9 +142,9 @@ public class TreeFormatterBuilderTest {
             @Test
             void testFormatTerminal() {
                 StringBuilder buf = new StringBuilder();
-                var ctx = new NodeFormatContext(SymbolFormatter.SIMPLE.withVocabulary(
+                var ctx = new NodeFormatContext(TokenFormatter.SIMPLE.withVocabulary(
                         MOCK_RECOGNIZER.getVocabulary()), PatternFormatter.SIMPLE, MOCK_RECOGNIZER);
-                ctx.setNode(Node.Terminal.root(Symbol.of("(1 'myText')", SymbolFormatter.SIMPLE)));
+                ctx.setNode(Node.Terminal.root(TokenFormatter.SIMPLE.parse("(1 'myText')")));
                 TREE_PRINTER_PARSER.format(ctx, buf);
                 assertEquals("Terminal: (TOKEN1 'myText')", buf.toString());
             }
@@ -153,9 +152,9 @@ public class TreeFormatterBuilderTest {
             @Test
             void testFormatError() {
                 StringBuilder buf = new StringBuilder();
-                var ctx = new NodeFormatContext(SymbolFormatter.SIMPLE.withVocabulary(
+                var ctx = new NodeFormatContext(TokenFormatter.SIMPLE.withVocabulary(
                         MOCK_RECOGNIZER.getVocabulary()), PatternFormatter.SIMPLE, MOCK_RECOGNIZER);
-                ctx.setNode(Node.Error.root(Symbol.of("(1 'myText')", SymbolFormatter.SIMPLE)));
+                ctx.setNode(Node.Error.root(TokenFormatter.SIMPLE.parse("(1 'myText')")));
                 TREE_PRINTER_PARSER.format(ctx, buf);
                 assertEquals("Error: (TOKEN1 'myText')", buf.toString());
             }
@@ -163,7 +162,7 @@ public class TreeFormatterBuilderTest {
             @Test
             void testFormatPattern() {
                 StringBuilder buf = new StringBuilder();
-                var ctx = new NodeFormatContext(SymbolFormatter.SIMPLE.withVocabulary(
+                var ctx = new NodeFormatContext(TokenFormatter.SIMPLE.withVocabulary(
                         MOCK_RECOGNIZER.getVocabulary()), PatternFormatter.SIMPLE, MOCK_RECOGNIZER);
                 ctx.setNode(Node.Pattern.root(2, Pattern.NOTHING));
                 TREE_PRINTER_PARSER.format(ctx, buf);
@@ -172,7 +171,7 @@ public class TreeFormatterBuilderTest {
 
             @Test
             void testParseTerminalSuccess() {
-                SymbolFormatter symbolFormatter = SymbolFormatter.SIMPLE.withVocabulary(
+                TokenFormatter symbolFormatter = TokenFormatter.SIMPLE.withVocabulary(
                         MOCK_RECOGNIZER.getVocabulary());
                 PatternFormatter patternFormatter = PatternFormatter.SIMPLE;
                 RootParseContext rootCtx = new RootParseContext(symbolFormatter,
@@ -191,13 +190,13 @@ public class TreeFormatterBuilderTest {
                 var terminalNode = assertInstanceOf(DerivationTree.Terminal.class, node);
                 var parsedSymbol = terminalNode.symbol();
                 assertNotNull(parsedSymbol);
-                assertEquals(1, parsedSymbol.type());
-                assertEquals("myText", parsedSymbol.text());
+                assertEquals(1, parsedSymbol.getType());
+                assertEquals("myText", parsedSymbol.getText());
             }
 
             @Test
             void testParseErrorSuccess() {
-                SymbolFormatter symbolFormatter = SymbolFormatter.SIMPLE.withVocabulary(
+                TokenFormatter symbolFormatter = TokenFormatter.SIMPLE.withVocabulary(
                         MOCK_RECOGNIZER.getVocabulary());
                 PatternFormatter patternFormatter = PatternFormatter.SIMPLE;
                 RootParseContext rootCtx = new RootParseContext(symbolFormatter,
@@ -216,13 +215,13 @@ public class TreeFormatterBuilderTest {
                 var errorNode = assertInstanceOf(DerivationTree.Error.class, node);
                 var parsedSymbol = errorNode.symbol();
                 assertNotNull(parsedSymbol);
-                assertEquals(1, parsedSymbol.type());
-                assertEquals("myError", parsedSymbol.text());
+                assertEquals(1, parsedSymbol.getType());
+                assertEquals("myError", parsedSymbol.getText());
             }
 
             @Test
             void testParsePatternSuccess() {
-                SymbolFormatter symbolFormatter = SymbolFormatter.SIMPLE.withVocabulary(
+                TokenFormatter symbolFormatter = TokenFormatter.SIMPLE.withVocabulary(
                         MOCK_RECOGNIZER.getVocabulary());
                 PatternFormatter patternFormatter = PatternFormatter.SIMPLE;
                 RootParseContext rootCtx = new RootParseContext(symbolFormatter,
@@ -239,12 +238,12 @@ public class TreeFormatterBuilderTest {
 
                 var node = rootCtx.resolve(null);
                 var patternNode = assertInstanceOf(DerivationTree.Pattern.class, node);
-                assertEquals(2, patternNode.index()); // rule3 is at index 2
+                assertEquals(2, patternNode.index()); // rule3 is at getTokenIndex 2
             }
 
             @Test
             void testParseRuleSuccess() {
-                SymbolFormatter symbolFormatter = SymbolFormatter.SIMPLE.withVocabulary(
+                TokenFormatter symbolFormatter = TokenFormatter.SIMPLE.withVocabulary(
                         MOCK_RECOGNIZER.getVocabulary());
                 PatternFormatter patternFormatter = PatternFormatter.SIMPLE;
                 RootParseContext rootCtx = new RootParseContext(symbolFormatter,
@@ -261,7 +260,7 @@ public class TreeFormatterBuilderTest {
 
                 var node = rootCtx.resolve(null);
                 var ruleNode = assertInstanceOf(DerivationTree.Rule.class, node);
-                assertEquals(0, ruleNode.index()); // rule1 is at index 0
+                assertEquals(0, ruleNode.index()); // rule1 is at getTokenIndex 0
             }
         }
 
@@ -284,10 +283,10 @@ public class TreeFormatterBuilderTest {
         void testFormatWithChildren() {
             var node = Node.Rule.root(1);
             Node.Rule.attachTo(node, 2);
-            Node.Terminal.attachTo(node, Symbol.of("(1 'symbol1')", SymbolFormatter.SIMPLE));
-            Node.Terminal.attachTo(node, Symbol.of("(2 'symbol2')", SymbolFormatter.SIMPLE));
+            Node.Terminal.attachTo(node, TokenFormatter.SIMPLE.parse("(1 'symbol1')"));
+            Node.Terminal.attachTo(node, TokenFormatter.SIMPLE.parse("(2 'symbol2')"));
             var buf = new StringBuilder();
-            var ctx = new NodeFormatContext(SymbolFormatter.SIMPLE, PatternFormatter.SIMPLE, MOCK_RECOGNIZER);
+            var ctx = new NodeFormatContext(TokenFormatter.SIMPLE, PatternFormatter.SIMPLE, MOCK_RECOGNIZER);
             ctx.setNode(node);
             assertTrue(CHILDREN_PRINTER_PARSER.format(ctx, buf));
             assertEquals("Rule: rule3:Terminal: (1 'symbol1'):Terminal: (2 'symbol2')", buf.toString());
@@ -295,7 +294,7 @@ public class TreeFormatterBuilderTest {
 
         @Test
         void testParseMultipleChildren() {
-            SymbolFormatter symbolFormatter = SymbolFormatter.SIMPLE;
+            TokenFormatter symbolFormatter = TokenFormatter.SIMPLE;
             PatternFormatter patternFormatter = PatternFormatter.SIMPLE;
             RootParseContext rootCtx = new RootParseContext(symbolFormatter,
                     patternFormatter,
@@ -317,18 +316,18 @@ public class TreeFormatterBuilderTest {
 
             var child2 = parentNode.getChild(1);
             var terminalNode1 = assertInstanceOf(DerivationTree.Terminal.class, child2);
-            assertEquals(1, terminalNode1.symbol().type());
-            assertEquals("symbol1", terminalNode1.symbol().text());
+            assertEquals(1, terminalNode1.symbol().getType());
+            assertEquals("symbol1", terminalNode1.symbol().getText());
 
             var child3 = parentNode.getChild(2);
             var terminalNode2 = assertInstanceOf(DerivationTree.Terminal.class, child3);
-            assertEquals(2, terminalNode2.symbol().type());
-            assertEquals("symbol2", terminalNode2.symbol().text());
+            assertEquals(2, terminalNode2.symbol().getType());
+            assertEquals("symbol2", terminalNode2.symbol().getText());
         }
 
         @Test
         void testParseEmpty() {
-            SymbolFormatter symbolFormatter = SymbolFormatter.SIMPLE;
+            TokenFormatter symbolFormatter = TokenFormatter.SIMPLE;
             PatternFormatter patternFormatter = PatternFormatter.SIMPLE;
             RootParseContext rootCtx = new RootParseContext(symbolFormatter,
                     patternFormatter,
@@ -347,7 +346,7 @@ public class TreeFormatterBuilderTest {
 
         @Test
         void testParsePartialWithTrailingSeparator() {
-            SymbolFormatter symbolFormatter = SymbolFormatter.SIMPLE;
+            TokenFormatter symbolFormatter = TokenFormatter.SIMPLE;
             PatternFormatter patternFormatter = PatternFormatter.SIMPLE;
             RootParseContext rootCtx = new RootParseContext(symbolFormatter,
                     patternFormatter,

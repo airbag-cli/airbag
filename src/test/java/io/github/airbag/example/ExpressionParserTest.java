@@ -2,10 +2,10 @@ package io.github.airbag.example;
 
 import io.github.airbag.Airbag;
 import io.github.airbag.gen.ExpressionParser;
-import io.github.airbag.symbol.Symbol;
-import io.github.airbag.symbol.SymbolFormatter;
+import io.github.airbag.token.TokenFormatter;
 import io.github.airbag.tree.DerivationTree;
 import io.github.airbag.tree.TreeProvider;
+import org.antlr.v4.runtime.Token;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -15,7 +15,7 @@ public class ExpressionParserTest {
 
     private Airbag airbag;
     private TreeProvider treeProvider;
-    private SymbolFormatter symbolFormatter;
+    private TokenFormatter symbolFormatter;
 
     @BeforeEach
     void setup() {
@@ -30,7 +30,7 @@ public class ExpressionParserTest {
         DerivationTree expectedTree = treeProvider.fromSpec("(expr (INT '10'))");
 
         // Create a derivation tree from symbol list.
-        List<Symbol> symbolList = symbolFormatter.parseList("(INT '10')");
+        List<Token> symbolList = symbolFormatter.parseList("(INT '10')");
 
         // Pass the symbol list to the parser
         DerivationTree actualTree = treeProvider.fromInput(symbolList, "expr");
@@ -45,7 +45,7 @@ public class ExpressionParserTest {
         DerivationTree expectedTree = treeProvider.fromSpec("(expr (ID 'var'))");
 
         // Create a derivation tree from symbol list.
-        List<Symbol> symbolList = symbolFormatter.parseList("(ID 'var')");
+        List<Token> symbolList = symbolFormatter.parseList("(ID 'var')");
 
         // Pass the symbol list to the parser
         DerivationTree actualTree = treeProvider.fromInput(symbolList, "expr");
@@ -65,7 +65,7 @@ public class ExpressionParserTest {
             )""");
 
         // Create a derivation tree from symbol list.
-        List<Symbol> symbolList = symbolFormatter.parseList("'(' (ID 'var') ')'");
+        List<Token> symbolList = symbolFormatter.parseList("'(' (ID 'var') ')'");
 
         // Pass the symbol list to the parser
         DerivationTree actualTree = treeProvider.fromInput(symbolList, "expr");
@@ -85,7 +85,7 @@ public class ExpressionParserTest {
             )""");
 
         // Create a derivation tree from symbol list.
-        List<Symbol> symbolList = symbolFormatter.parseList("(INT '5') '*' (ID 'x')");
+        List<Token> symbolList = symbolFormatter.parseList("(INT '5') '*' (ID 'x')");
 
         // Pass the symbol list to the parser
         DerivationTree actualTree = treeProvider.fromInput(symbolList, "expr");
@@ -105,7 +105,7 @@ public class ExpressionParserTest {
             )""");
 
         // Create a derivation tree from symbol list.
-        List<Symbol> symbolList = symbolFormatter.parseList("(INT '5') '+' (ID 'x')");
+        List<Token> symbolList = symbolFormatter.parseList("(INT '5') '+' (ID 'x')");
 
         // Pass the symbol list to the parser
         DerivationTree actualTree = treeProvider.fromInput(symbolList, "expr");
@@ -120,7 +120,7 @@ public class ExpressionParserTest {
         DerivationTree expectedTree = treeProvider.fromSpec("(stat (NEWLINE '\\n'))");
 
         // Create a derivation tree from symbol list.
-        List<Symbol> symbolList = symbolFormatter.parseList("(NEWLINE '\\n')");
+        List<Token> symbolList = symbolFormatter.parseList("(NEWLINE '\\n')");
 
         // Pass the symbol list to the parser
         DerivationTree actualTree = treeProvider.fromInput(symbolList, "stat");
@@ -135,7 +135,7 @@ public class ExpressionParserTest {
         DerivationTree expectedTree = treeProvider.fromSpec("(stat (ID 'x') '=' (expr (INT '5')) (NEWLINE '\\n'))");
 
         // Create a derivation tree from symbol list.
-        List<Symbol> symbolList = symbolFormatter.parseList("(ID 'x') '=' (INT '5') (NEWLINE '\\n')");
+        List<Token> symbolList = symbolFormatter.parseList("(ID 'x') '=' (INT '5') (NEWLINE '\\n')");
 
         // Pass the symbol list to the parser
         DerivationTree actualTree = treeProvider.fromInput(symbolList, "stat");
@@ -158,7 +158,7 @@ public class ExpressionParserTest {
             )""");
 
         // Create a derivation tree from symbol list.
-        List<Symbol> symbolList = symbolFormatter.parseList("(INT '5') '+' (ID 'x') (NEWLINE '\\n')");
+        List<Token> symbolList = symbolFormatter.parseList("(INT '5') '+' (ID 'x') (NEWLINE '\\n')");
 
         // Pass the symbol list to the parser
         DerivationTree actualTree = treeProvider.fromInput(symbolList, "stat");
@@ -188,7 +188,7 @@ public class ExpressionParserTest {
                 )""");
 
         // Create a derivation tree from symbol list.
-        List<Symbol> symbolList = symbolFormatter.parseList("""
+        List<Token> symbolList = symbolFormatter.parseList("""
                 (ID 'x')
                 '='
                 (INT '10')
@@ -230,7 +230,7 @@ public class ExpressionParserTest {
                 )""");
 
         // Create a derivation tree from symbol list.
-        List<Symbol> symbolList = symbolFormatter.parseList("""
+        List<Token> symbolList = symbolFormatter.parseList("""
                 (ID 'x')
                 '='
                 (INT '10')

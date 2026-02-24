@@ -1,6 +1,7 @@
 package io.github.airbag.tree;
 
-import io.github.airbag.symbol.Symbol;
+import org.antlr.v4.runtime.CommonToken;
+import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.RuleNode;
@@ -27,10 +28,10 @@ public sealed interface DerivationTree permits Node, DerivationTree.Rule, Deriva
                 return node;
             }
             case ErrorNode errorNode -> {
-                return Node.Error.attachTo(parent,new Symbol(errorNode.getSymbol()));
+                return Node.Error.attachTo(parent,new CommonToken(errorNode.getSymbol()));
             }
             case TerminalNode terminalNode -> {
-                return Node.Terminal.attachTo(parent, new Symbol(terminalNode.getSymbol()));
+                return Node.Terminal.attachTo(parent, new CommonToken(terminalNode.getSymbol()));
             }
             default -> throw new IllegalStateException("Unexpected value: " + parseTree);
         }
@@ -43,7 +44,7 @@ public sealed interface DerivationTree permits Node, DerivationTree.Rule, Deriva
     List<DerivationTree> children();
 
     /**
-     * Checks for equal type and index.
+     * Checks for equal getType and getTokenIndex.
      */
     boolean matches(DerivationTree other);
 
@@ -98,12 +99,12 @@ public sealed interface DerivationTree permits Node, DerivationTree.Rule, Deriva
 
     sealed interface Terminal extends DerivationTree permits Node.Terminal {
 
-        Symbol symbol();
+        Token symbol();
     }
 
     sealed interface Error extends DerivationTree permits Node.Error {
 
-        Symbol symbol();
+        Token symbol();
     }
 
     sealed interface Pattern extends DerivationTree permits Node.Pattern {

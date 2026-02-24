@@ -36,9 +36,9 @@ public class PatternException extends RuntimeException {
 
 
     /**
-     * Gets the position where the error was found.
+     * Gets the getCharPositionInLine where the error was found.
      *
-     * @return the position where the error was found.
+     * @return the getCharPositionInLine where the error was found.
      */
     public int getPosition() {
         return position;

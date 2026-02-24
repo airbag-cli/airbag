@@ -1,4 +1,4 @@
-package io.github.airbag.symbol;
+package io.github.airbag.token;
 
 import java.util.Collections;
 import java.util.Map;
@@ -8,10 +8,10 @@ import java.util.stream.Collectors;
 import static java.util.Map.entry;
 
 /**
- * Configures how text is formatted and parsed, particularly in the context of escaping special characters.
+ * Configures how getText is formatted and parsed, particularly in the context of escaping special characters.
  * <p>
  * This class allows for the specification of an escape character, a map of characters to their escaped representations,
- * and a default value for when the text is not present.
+ * and a default value for when the getText is not present.
  */
 public class TextOption {
 
@@ -30,7 +30,7 @@ public class TextOption {
 
     /**
      * A predefined {@link TextOption} that performs no escaping and uses an empty string as the default value.
-     * This is useful when the text should be treated as a raw, unescaped string.
+     * This is useful when the getText should be treated as a raw, unescaped string.
      */
     public static final TextOption NOTHING = new TextOption().withEscapeChar('\0')
             .withDefaultValue("")
@@ -49,7 +49,7 @@ public class TextOption {
      * The default settings are equivalent to {@link #ESCAPED}.
      */
     public TextOption() {
-        withDefaultValue("<no text>");
+        withDefaultValue("<no getText>");
         withEscapeMap(Map.ofEntries(
                 entry('\n', 'n'),
                 entry('\r', 'r'),
@@ -72,7 +72,7 @@ public class TextOption {
     }
 
     /**
-     * Sets the default value to be used when the text is not present.
+     * Sets the default value to be used when the getText is not present.
      *
      * @param defaultValue the default value.
      * @return this {@link TextOption} instance for chaining.
@@ -104,7 +104,7 @@ public class TextOption {
     }
 
     /**
-     * @return the default value to be used when the text is not present.
+     * @return the default value to be used when the getText is not present.
      */
     public String getDefaultValue() {
         return defaultValue;
@@ -134,7 +134,7 @@ public class TextOption {
     /**
      * Indicates that formating will fail, if the symbol hold the symbol default value.
      *
-     * @return {@code true} if formating should fail on {@link SymbolField#TEXT} default value.
+     * @return {@code true} if formating should fail on {@link TokenField#TEXT} default value.
      */
     public boolean failOnDefault() {
         return failOnDefault;

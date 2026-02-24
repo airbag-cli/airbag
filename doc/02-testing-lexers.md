@@ -23,7 +23,7 @@ class MyLexerTest {
 }
 ```
 
-The `Airbag` instance provides access to a `SymbolProvider` via `airbag.getSymbolProvider()`. The `SymbolProvider` is responsible for converting raw input strings into `Symbol` lists and for parsing your expected symbol specifications.
+The `Airbag` instance provides access to a `TokenProvider` via `airbag.getTokenProvider()`. The `TokenProvider` is responsible for converting raw input strings into `Token` lists and for parsing your expected symbol specifications.
 
 ## Writing a Lexer Test
 
@@ -56,9 +56,9 @@ NEWLINE: '\r'?'\n';
 WS: [ \t]+ -> skip;
 ```
 
-### 2. Create Expected Symbols from a Specification
+### 2. Create Expected Tokens from a Specification
 
-You define the expected list of `Symbol` objects using a string specification, which `SymbolProvider` can parse. Airbag's default formatter (`SymbolFormatter.SIMPLE`) provides a clear, LISP-like syntax:
+You define the expected list of `Token` objects using a string specification, which `TokenProvider` can parse. Airbag's default formatter (`TokenFormatter.SIMPLE`) provides a clear, LISP-like syntax:
 
 *   `(ID 'text')`: For identifiers or keywords, where `ID` is the symbolic name and `'text'` is the matched string.
 *   `'+'`, `'-'`, etc.: For single-character literal tokens.
@@ -66,11 +66,13 @@ You define the expected list of `Symbol` objects using a string specification, w
 
 ```java
 // Inside your test method:
-import io.github.airbag.symbol.Symbol;
+
+import io.github.airbag.token.Token;
+
 import java.util.List;
 
 // 1. Create an expected list of symbols from a specification
-List<Symbol> expected = airbag.getSymbolProvider().fromSpec("""
+List<Token> expected = airbag.getTokenProvider().fromSpec("""
         (ID 'a')
         '='
         (INT '10')
@@ -81,47 +83,48 @@ List<Symbol> expected = airbag.getSymbolProvider().fromSpec("""
 ```
 Notice how easy it is to read and understand the expected token stream.
 
-### 3. Generate Actual Symbols from Input
+### 3. Generate Actual Tokens from Input
 
 Next, you pass the actual input string to your lexer to get the real token stream:
 
 ```java
 // 2. Let the lexer tokenize the actual input string
-List<Symbol> actual = airbag.getSymbolProvider().fromInput("a = 10 + b");
+List<Token> actual = airbag.getTokenProvider().fromInput("a = 10 + b");
 ```
 
 ### 4. Assert and Compare
 
-Finally, use `airbag.assertSymbolList()` to compare the expected and actual lists of symbols. If they don't match, Airbag will provide a detailed, human-readable diff.
+Finally, use `airbag.assertTokenList()` to compare the expected and actual lists of symbols. If they don't match, Airbag will provide a detailed, human-readable diff.
 
 ```java
 // 3. Compare the expected and actual lists of symbols
-airbag.assertSymbolList(expected, actual);
+airbag.assertTokenList(expected, actual);
 ```
 
 ## Complete Lexer Test Example
 
 ```java
 import io.github.airbag.Airbag;
-import io.github.airbag.symbol.Symbol;
+import io.github.airbag.token.Token;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+
 import java.util.List;
 
 class ExpressionLexerTest {
-    
+
     private Airbag airbag;
-    
+
     @BeforeEach
     void setup() {
         // Replace "io.github.airbag.gen.ExpressionLexer" with your actual lexer class
         airbag = Airbag.testLexer("io.github.airbag.gen.ExpressionLexer");
     }
-    
+
     @Test
     void testAssignment() {
         // 1. Create an expected list of symbols from a specification
-        List<Symbol> expected = airbag.getSymbolProvider().fromSpec("""
+        List<Token> expected = airbag.getTokenProvider().fromSpec("""
                 (ID 'a')
                 '='
                 (INT '10')
@@ -131,12 +134,12 @@ class ExpressionLexerTest {
                 """);
 
         // 2. Let the lexer tokenize the actual input string
-        List<Symbol> actual = airbag.getSymbolProvider().fromInput("a = 10 + b");
+        List<Token> actual = airbag.getTokenProvider().fromInput("a = 10 + b");
 
         // 3. Compare the expected and actual lists of symbols
-        airbag.assertSymbolList(expected, actual);
+        airbag.assertTokens(expected, actual);
     }
 }
 ```
 
-This clear, declarative style makes your lexer tests easy to write, understand, and maintain. For more advanced control over symbol formatting and parsing, refer to the [Customizing Symbol Formats](./reference/symbols.md) section.
+This clear, declarative style makes your lexer tests easy to write, understand, and maintain. For more advanced control over symbol formatting and parsing, refer to the [Customizing Token Formats](./reference/symbols.md) section.

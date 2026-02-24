@@ -1,7 +1,7 @@
 package io.github.airbag;
 
-import io.github.airbag.symbol.SymbolParseException;
-import io.github.airbag.symbol.SymbolProvider;
+import io.github.airbag.token.TokenParseException;
+import io.github.airbag.token.TokenProvider;
 import io.github.airbag.tree.TreeProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class AirbagTest {
 
     private Airbag airbag;
-    private SymbolProvider symbolProvider;
+    private TokenProvider symbolProvider;
     private TreeProvider treeProvider;
 
     @BeforeEach
@@ -24,7 +24,7 @@ public class AirbagTest {
 
     @Test
     void testFailureOnSyntaxError() {
-        var e = assertThrows(SymbolParseException.class, () -> symbolProvider.fromInput("$Failure$"));
+        var e = assertThrows(TokenParseException.class, () -> symbolProvider.fromInput("$Failure$"));
         assertEquals("""
             Parse failed at line 1 with position 0:
             token recognition error at: '$'

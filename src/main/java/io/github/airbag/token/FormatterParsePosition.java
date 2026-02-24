@@ -1,4 +1,4 @@
-package io.github.airbag.symbol;
+package io.github.airbag.token;
 
 import java.text.ParsePosition;
 import java.util.*;
@@ -7,7 +7,7 @@ import java.util.*;
  * {@code FormatterParsePosition} extends {@link ParsePosition} to provide
  * additional context during parsing or formatting operations. It allows for
  * the accumulation of multiple messages (e.g., warnings or errors) and
- * tracks a specific symbol index, which can be useful for more detailed
+ * tracks a specific symbol getTokenIndex, which can be useful for more detailed
  * error reporting or tracking progress within a structured input.
  * The messages are stored in a {@link NavigableSet} to maintain uniqueness and natural ordering.
  */
@@ -20,16 +20,16 @@ public class FormatterParsePosition extends ParsePosition {
     private final NavigableSet<String> messages = new TreeSet<>();
 
     /**
-     * An index pointing to a specific symbol within a *list of symbols* being parsed or formatted.
+     * An getTokenIndex pointing to a specific symbol within a *list of symbols* being parsed or formatted.
      * This is useful for tracking progress or identifying the current symbol when processing multiple symbols.
-     * A value of -1 indicates no specific symbol index has been set.
+     * A value of -1 indicates no specific symbol getTokenIndex has been set.
      */
     private int symbolIndex = -1;
 
     /**
-     * Create a new ParsePosition with the given initial index.
+     * Create a new ParsePosition with the given initial getTokenIndex.
      *
-     * @param index initial index
+     * @param index initial getTokenIndex
      */
     public FormatterParsePosition(int index) {
         super(index);
@@ -77,27 +77,27 @@ public class FormatterParsePosition extends ParsePosition {
     }
 
     /**
-     * Gets the currently tracked symbol index.
+     * Gets the currently tracked symbol getTokenIndex.
      *
-     * @return the symbol index, or -1 if no specific symbol index is set.
+     * @return the symbol getTokenIndex, or -1 if no specific symbol getTokenIndex is set.
      */
     public int getSymbolIndex() {
         return symbolIndex;
     }
 
     /**
-     * Sets the symbol index to track the current position within a list of symbols.
+     * Sets the symbol getTokenIndex to track the current getCharPositionInLine within a list of symbols.
      *
-     * @param symbolIndex the index of the symbol, or -1 to indicate no specific symbol is tracked.
+     * @param symbolIndex the getTokenIndex of the symbol, or -1 to indicate no specific symbol is tracked.
      */
     public void setSymbolIndex(int symbolIndex) {
         this.symbolIndex = symbolIndex;
     }
 
     /**
-     * Checks if a specific symbol index has been set (i.e., it's not -1).
+     * Checks if a specific symbol getTokenIndex has been set (i.e., it's not -1).
      *
-     * @return {@code true} if a symbol index is set, {@code false} otherwise.
+     * @return {@code true} if a symbol getTokenIndex is set, {@code false} otherwise.
      */
     public boolean isSymbolIndex() {
         return symbolIndex != -1;
@@ -110,7 +110,7 @@ public class FormatterParsePosition extends ParsePosition {
     public String toString() {
 
         return "FormatterParsePosition{" +
-               "index=" + getIndex() +
+               "getTokenIndex=" + getIndex() +
                ", symbolIndex=" + symbolIndex +
                ", messages=" + messages +
                '}';

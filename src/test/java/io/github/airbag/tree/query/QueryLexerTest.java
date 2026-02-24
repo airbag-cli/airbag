@@ -15,12 +15,12 @@ public class QueryLexerTest {
 
     @Test
     void testLiterals() {
-        airbag.assertSymbols(" '/' '*' '//' '*' '!' '//' '/' EOF", "/*//*!///");
+        airbag.assertTokens(" '/' '*' '//' '*' '!' '//' '/' EOF", "/*//*!///");
     }
 
     @Test
     void testFullQuery() {
-        airbag.assertSymbols("""
+        airbag.assertTokens("""
                 '!'
                 '//'
                 (RULE 'rule1')
@@ -36,7 +36,7 @@ public class QueryLexerTest {
 
     @Test
     void testQueryWithRuleIndexAtEnd() {
-        airbag.assertSymbols("'/' (RULE 'rule') '/' (INDEX '15') '/' EOF", "/rule/15/");
+        airbag.assertTokens("'/' (RULE 'rule') '/' (INDEX '15') '/' EOF", "/rule/15/");
     }
 
 }

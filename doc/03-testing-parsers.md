@@ -25,7 +25,7 @@ class MyParserTest {
 }
 ```
 
-The `Airbag` instance provides access to a `TreeProvider` via `airbag.getTreeProvider()`. This `TreeProvider` is responsible for building `DerivationTree` objects both from string specifications and by running your actual ANTLR parser. It also gives you access to the `SymbolFormatter` used for parsing symbol lists.
+The `Airbag` instance provides access to a `TreeProvider` via `airbag.getTreeProvider()`. This `TreeProvider` is responsible for building `DerivationTree` objects both from string specifications and by running your actual ANTLR parser. It also gives you access to the `TokenFormatter` used for parsing symbol lists.
 
 ## Writing a Parser Test
 
@@ -80,28 +80,29 @@ In this specification:
 *   `'text'` denotes a terminal node (token), where `'text'` is the token's literal value.
 *   `(INT '10')` is a terminal node where `INT` is the symbolic type and `'10'` is its text.
 
-### 3. Create the List of Symbols for the Parser to Consume
+### 3. Create the List of Tokens for the Parser to Consume
 
-Your parser expects a stream of tokens (symbols) as its input. You can create this list using the `SymbolFormatter` from the `TreeProvider`:
+Your parser expects a stream of tokens (symbols) as its input. You can create this list using the `TokenFormatter` from the `TreeProvider`:
 
 ```java
-import io.github.airbag.symbol.Symbol;
+import io.github.airbag.token.Token;
+
 import java.util.List;
 
 // 2. Create the list of symbols for the parser to consume
-List<Symbol> symbolList = airbag.getTreeProvider()
+List<Token> symbolList = airbag.getTreeProvider()
         .getFormatter()
-        .getSymbolFormatter()
+        .getTokenFormatter()
         .parseList("(INT '10') '+' (INT '5')");
 ```
 
-### 4. Parse the Symbol List to Get the Actual Tree
+### 4. Parse the Token List to Get the Actual Tree
 
 Now, feed the generated symbol list to your parser, specifying the entry rule (e.g., `"expr"`):
 
 ```java
 // 3. Parse the symbol list to get the actual tree.
-// The second argument is the start rule.
+// The second argument is the getStartIndex rule.
 DerivationTree actualTree = airbag.getTreeProvider().fromInput(symbolList, "expr");
 ```
 
@@ -119,7 +120,7 @@ airbag.assertTree(expectedTree, actualTree);
 ```java
 import io.github.airbag.Airbag;
 import io.github.airbag.gen.ExpressionParser;
-import io.github.airbag.symbol.Symbol;
+import io.github.airbag.token.Token;
 import io.github.airbag.tree.DerivationTree;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
@@ -147,13 +148,13 @@ class ExpressionParserTest {
                 )""");
 
         // 2. Create the list of symbols for the parser to consume
-        List<Symbol> symbolList = airbag.getTreeProvider()
+        List<Token> symbolList = airbag.getTreeProvider()
                 .getFormatter()
-                .getSymbolFormatter()
+                .getTokenFormatter()
                 .parseList("(INT '10') '+' (INT '5')");
 
         // 3. Parse the symbol list to get the actual tree.
-        // The second argument is the start rule.
+        // The second argument is the getStartIndex rule.
         DerivationTree actualTree = airbag.getTreeProvider().fromInput(symbolList, "expr");
 
         // 4. Compare the expected and actual trees
