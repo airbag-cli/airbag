@@ -99,15 +99,6 @@ inside the antlr4 directory that mirror our package name. So in our example we p
 Now we can just write a simple JUnit test like this.
 
 ```java
-package io.github.airbag.expression;
-
-import io.github.airbag.Airbag;
-import io.github.airbag.token.Token;
-import io.github.airbag.token.TokenProvider;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
 
 public class ExpressionLexerTest {
 
@@ -117,7 +108,7 @@ public class ExpressionLexerTest {
     @BeforeEach
     void setup() {
         airbag = Airbag.testLexer("io.github.airbag.expression.ExpressionLexer");
-        provider = airbag.getSymbolProvider();
+        provider = airbag.getTokenProvider();
     }
 
     @Test
@@ -144,18 +135,6 @@ example
 
 ```java
 
-package io.github.airbag.expression;
-
-import io.github.airbag.Airbag;
-import io.github.airbag.token.Token;
-import io.github.airbag.token.TokenFormatter;
-import io.github.airbag.tree.DerivationTree;
-import io.github.airbag.tree.TreeProvider;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
 public class ExpressionParserTest {
 
     private Airbag airbag;
@@ -168,13 +147,13 @@ public class ExpressionParserTest {
         treeProvider = airbag.getTreeProvider();
         // Take the symbol formatter from the tree formatter as the Lexer
         // is not instantiated.
-        symbolFormatter = treeProvider.getFormatter().getSymbolFormatter();
+        symbolFormatter = treeProvider.getFormatter().getTokenFormatter();
     }
 
     @Test
     void testProg() {
         // Build expected tree from specification
-        DerivationTree expectedTree = treeProvider.expected("""
+        Tree expectedTree = treeProvider.expected("""
                 (prog
                     (stat
                         (ID 'x')
@@ -204,7 +183,7 @@ public class ExpressionParserTest {
                 EOF""");
 
         // Pass the symbol list to the parser
-        DerivationTree actualTree = treeProvider.fromInput(symbolList, "prog");
+        Tree actualTree = treeProvider.actual(symbolList, "prog");
 
         //Compare the expected and actual tree
         airbag.assertTree(expectedTree, actualTree);
