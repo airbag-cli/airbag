@@ -1,6 +1,8 @@
 package io.github.airbag.tree;
 
 import org.antlr.v4.runtime.CommonToken;
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.*;
 
@@ -45,16 +47,41 @@ public sealed interface DerivationTree extends Tree permits Node, DerivationTree
         }
     }
 
+    static ParseTree toParseTree(ParserRuleContext parent, DerivationTree d) {
+        switch(d) {
+            case Error error -> {
+                var errorNode = new ErrorNodeImpl(error.symbol());
+                parent.addErrorNode(errorNode);
+                return errorNode;
+            }
+            case Pattern pattern -> {
+                throw new IllegalArgumentException("Cannot convert pattern nodes");
+            }
+            case Rule rule -> {
+                var ruleNode = new ParserRuleContext(parent, -1) {
+                    @Override
+                    public int getRuleIndex() {
+                        return rule.index();
+                    }
+                };
+                for (var child : d.children()) {
+                    toParseTree(ruleNode, child);
+                }
+                return ruleNode;
+            }
+            case Terminal terminal -> {
+                var terminalNode = new TerminalNodeImpl(terminal.symbol());
+                parent.addChild(terminalNode);
+                return terminalNode;
+            }
+        }
+    }
+
     int index();
 
     DerivationTree getParent();
 
     List<DerivationTree> children();
-
-    /**
-     * Checks for equal getType and getTokenIndex.
-     */
-    boolean matches(DerivationTree other);
 
     default int size() {
         return children().size();

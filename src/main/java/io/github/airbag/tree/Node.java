@@ -69,11 +69,6 @@ public abstract sealed class Node implements DerivationTree permits Node.Rule, N
     }
 
     @Override
-    public boolean matches(DerivationTree other) {
-        return depth() == other.depth() && index() == other.index();
-    }
-
-    @Override
     public String toString() {
         return TreeFormatter.SIMPLE.format(this);
     }
@@ -106,11 +101,6 @@ public abstract sealed class Node implements DerivationTree permits Node.Rule, N
 
         public static Node.Rule attachTo(DerivationTree parent, int index) {
             return new Node.Rule(parent, index);
-        }
-
-        @Override
-        public boolean matches(DerivationTree other) {
-            return other instanceof DerivationTree.Rule && super.matches(other);
         }
 
         @Override
@@ -148,11 +138,6 @@ public abstract sealed class Node implements DerivationTree permits Node.Rule, N
         }
 
         @Override
-        public boolean matches(DerivationTree other) {
-            return other instanceof DerivationTree.Terminal && super.matches(other);
-        }
-
-        @Override
         public Token getPayload() {
             return symbol();
         }
@@ -184,11 +169,6 @@ public abstract sealed class Node implements DerivationTree permits Node.Rule, N
         @Override
         public Token symbol() {
             return symbol;
-        }
-
-        @Override
-        public boolean matches(DerivationTree other) {
-            return other instanceof DerivationTree.Error && super.matches(other);
         }
 
 
