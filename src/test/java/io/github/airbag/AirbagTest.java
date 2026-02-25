@@ -24,7 +24,7 @@ public class AirbagTest {
 
     @Test
     void testFailureOnSyntaxError() {
-        var e = assertThrows(TokenParseException.class, () -> symbolProvider.fromInput("$Failure$"));
+        var e = assertThrows(TokenParseException.class, () -> symbolProvider.actual("$Failure$"));
         assertEquals("""
             Parse failed at line 1 with position 0:
             token recognition error at: '$'

@@ -23,7 +23,7 @@ public class ExpressionLexerTest {
     @Test
     void testID() {
         //Create an expected list of symbols
-        List<Token> expected = provider.fromSpec("""
+        List<Token> expected = provider.expected("""
                 (ID 'x')
                 (ID 'myVariable')
                 (ID 'y')
@@ -31,7 +31,7 @@ public class ExpressionLexerTest {
                 """);
 
         //Let the lexer tokenize an actual input string
-        List<Token> actual = provider.fromInput("x myVariable y");
+        List<Token> actual = provider.actual("x myVariable y");
 
         //Compare the expected and actual list
         airbag.assertTokens(expected, actual);
@@ -50,14 +50,14 @@ public class ExpressionLexerTest {
         provider.setFormatter(TokenFormatter.ANTLR);
 
         //Expected
-        List<Token> expected = provider.fromSpec("""
+        List<Token> expected = provider.expected("""
                 [@0,0:0='\\n',<NEWLINE>,1:0]
                 [@1,2:3='\\r\\n',<NEWLINE>,2:1]
                 [@2,4:3='<EOF>',<EOF>,3:0]
                 """);
 
         //Actual
-        List<Token> actual = provider.fromInput("\n \r\n");
+        List<Token> actual = provider.actual("\n \r\n");
 
         //Compare results
         airbag.assertTokens(expected, actual);
@@ -70,7 +70,7 @@ public class ExpressionLexerTest {
         provider.setFormatter(formatter);
 
         //Expected
-        List<Token> expected = provider.fromSpec("""
+        List<Token> expected = provider.expected("""
                 ID: "x"
                 INT: "10"
                 LITERAL: "'-'"
@@ -78,7 +78,7 @@ public class ExpressionLexerTest {
                 EOF: "<EOF>\"""");
 
         //Actual
-        List<Token> actual = provider.fromInput("x 10 - +");
+        List<Token> actual = provider.actual("x 10 - +");
 
         //Compare results
         airbag.assertTokens(expected, actual);

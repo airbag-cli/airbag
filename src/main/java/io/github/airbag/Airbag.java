@@ -3,7 +3,6 @@ package io.github.airbag;
 import io.github.airbag.token.TokenField;
 import io.github.airbag.token.TokenFormatter;
 import io.github.airbag.token.TokenProvider;
-import io.github.airbag.tree.DerivationTree;
 import io.github.airbag.tree.TreeFormatter;
 import io.github.airbag.tree.TreeProvider;
 import io.github.airbag.tree.Validator;
@@ -11,6 +10,7 @@ import io.github.airbag.util.Utils;
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.Tree;
 import org.opentest4j.AssertionFailedError;
 
 import java.util.Arrays;
@@ -208,7 +208,7 @@ public class Airbag {
      */
     public void assertTokens(String expected, String actual) {
         Objects.requireNonNull(symbolProvider, "No symbol provider instantiated.");
-        assertTokens(symbolProvider.fromSpec(expected), symbolProvider.fromInput(actual));
+        assertTokens(symbolProvider.expected(expected), symbolProvider.actual(actual));
     }
 
     /**
@@ -262,7 +262,7 @@ public class Airbag {
      * @throws AssertionFailedError if the actual derivation tree does not match the expected tree or if one of them is null.
      * @throws NullPointerException if the {@link TreeProvider} was not configured for this Airbag instance.
      */
-    public void assertTree(DerivationTree expected, DerivationTree actual) {
+    public void assertTree(Tree expected, Tree actual) {
         Objects.requireNonNull(treeProvider, "No tree provider instantiated");
         TreeFormatter treeFormatter = treeProvider.getFormatter();
         if (expected == null || actual == null) {

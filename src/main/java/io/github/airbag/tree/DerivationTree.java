@@ -2,33 +2,41 @@ package io.github.airbag.tree;
 
 import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.tree.ErrorNode;
-import org.antlr.v4.runtime.tree.ParseTree;
-import org.antlr.v4.runtime.tree.RuleNode;
-import org.antlr.v4.runtime.tree.TerminalNode;
+import org.antlr.v4.runtime.tree.*;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 
-public sealed interface DerivationTree permits Node, DerivationTree.Rule, DerivationTree.Terminal, DerivationTree.Error, DerivationTree.Pattern {
+public sealed interface DerivationTree extends Tree permits Node, DerivationTree.Rule, DerivationTree.Terminal, DerivationTree.Error, DerivationTree.Pattern {
+
+    static DerivationTree from(Tree tree) {
+        if (tree instanceof DerivationTree derivationTree) {
+            return derivationTree;
+        } else if (tree instanceof ParseTree parseTree) {
+            return from(parseTree);
+        } else {
+            throw new IllegalArgumentException("Unknown implementation of Tree");
+        }
+    }
 
     static DerivationTree from(ParseTree parseTree) {
         return from(null, parseTree);
     }
 
-    static DerivationTree from(DerivationTree parent ,ParseTree parseTree) {
-        switch(parseTree) {
+    static DerivationTree from(DerivationTree parent, ParseTree parseTree) {
+        switch (parseTree) {
             case RuleNode ruleNode -> {
-                DerivationTree node = Node.Rule.attachTo(parent, ruleNode.getRuleContext().getRuleIndex());
+                DerivationTree node = Node.Rule.attachTo(parent,
+                        ruleNode.getRuleContext().getRuleIndex());
                 for (int i = 0; i < ruleNode.getChildCount(); i++) {
                     from(node, ruleNode.getChild(i));
                 }
                 return node;
             }
             case ErrorNode errorNode -> {
-                return Node.Error.attachTo(parent,new CommonToken(errorNode.getSymbol()));
+                return Node.Error.attachTo(parent, new CommonToken(errorNode.getSymbol()));
             }
             case TerminalNode terminalNode -> {
                 return Node.Terminal.attachTo(parent, new CommonToken(terminalNode.getSymbol()));
@@ -61,15 +69,21 @@ public sealed interface DerivationTree permits Node, DerivationTree.Rule, Deriva
      *
      * @return the distance to root
      */
-    default int depth() {
+     static int depth(Tree t) {
         int depth = 0;
-        DerivationTree node = this;
-        while (node.getParent() != node) {
+        Tree node = t;
+        while (node != null && node.getParent() != node) {
             node = node.getParent();
             depth++;
         }
         return depth;
     }
+
+    default int depth() {
+         return depth(this);
+    }
+
+
 
     /**
      * The biggest distance to any subnode
@@ -87,7 +101,7 @@ public sealed interface DerivationTree permits Node, DerivationTree.Rule, Deriva
             }
         }
         int maxDepth = terminalNodes.stream()
-                .map(DerivationTree::depth)
+                .map(n -> n.depth())
                 .max(Integer::compareTo)
                 .orElse(0);
         return maxDepth - depth();

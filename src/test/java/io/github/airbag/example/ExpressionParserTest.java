@@ -3,9 +3,9 @@ package io.github.airbag.example;
 import io.github.airbag.Airbag;
 import io.github.airbag.gen.ExpressionParser;
 import io.github.airbag.token.TokenFormatter;
-import io.github.airbag.tree.DerivationTree;
 import io.github.airbag.tree.TreeProvider;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.Tree;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -27,13 +27,13 @@ public class ExpressionParserTest {
     @Test
     void testIntExpr() {
         // Build expected tree from specification
-        DerivationTree expectedTree = treeProvider.fromSpec("(expr (INT '10'))");
+        Tree expectedTree = treeProvider.expected("(expr (INT '10'))");
 
         // Create a derivation tree from symbol list.
         List<Token> symbolList = symbolFormatter.parseList("(INT '10')");
 
         // Pass the symbol list to the parser
-        DerivationTree actualTree = treeProvider.fromInput(symbolList, "expr");
+        Tree actualTree = treeProvider.actual(symbolList, "expr");
 
         //Compare the expected and actual tree
         airbag.assertTree(expectedTree, actualTree);
@@ -42,13 +42,13 @@ public class ExpressionParserTest {
     @Test
     void testIdExpr() {
         // Build expected tree from specification
-        DerivationTree expectedTree = treeProvider.fromSpec("(expr (ID 'var'))");
+        Tree expectedTree = treeProvider.expected("(expr (ID 'var'))");
 
         // Create a derivation tree from symbol list.
         List<Token> symbolList = symbolFormatter.parseList("(ID 'var')");
 
         // Pass the symbol list to the parser
-        DerivationTree actualTree = treeProvider.fromInput(symbolList, "expr");
+        Tree actualTree = treeProvider.actual(symbolList, "expr");
 
         //Compare the expected and actual tree
         airbag.assertTree(expectedTree, actualTree);
@@ -57,7 +57,7 @@ public class ExpressionParserTest {
     @Test
     void testExprInParenthesis() {
         // Build expected tree from specification
-        DerivationTree expectedTree = treeProvider.fromSpec("""
+        Tree expectedTree = treeProvider.expected("""
             (expr
                 '('
                  (expr (ID 'var'))
@@ -68,7 +68,7 @@ public class ExpressionParserTest {
         List<Token> symbolList = symbolFormatter.parseList("'(' (ID 'var') ')'");
 
         // Pass the symbol list to the parser
-        DerivationTree actualTree = treeProvider.fromInput(symbolList, "expr");
+        Tree actualTree = treeProvider.actual(symbolList, "expr");
 
         //Compare the expected and actual tree
         airbag.assertTree(expectedTree, actualTree);
@@ -77,7 +77,7 @@ public class ExpressionParserTest {
     @Test
     void testMultiplicationExpr() {
         // Build expected tree from specification
-        DerivationTree expectedTree = treeProvider.fromSpec("""
+        Tree expectedTree = treeProvider.expected("""
             (expr
                 (expr (INT '5'))
                 '*'
@@ -88,7 +88,7 @@ public class ExpressionParserTest {
         List<Token> symbolList = symbolFormatter.parseList("(INT '5') '*' (ID 'x')");
 
         // Pass the symbol list to the parser
-        DerivationTree actualTree = treeProvider.fromInput(symbolList, "expr");
+        Tree actualTree = treeProvider.actual(symbolList, "expr");
 
         //Compare the expected and actual tree
         airbag.assertTree(expectedTree, actualTree);
@@ -97,7 +97,7 @@ public class ExpressionParserTest {
     @Test
     void testAdditionExpr() {
         // Build expected tree from specification
-        DerivationTree expectedTree = treeProvider.fromSpec("""
+        Tree expectedTree = treeProvider.expected("""
             (expr
                 (expr (INT '5'))
                 '+'
@@ -108,7 +108,7 @@ public class ExpressionParserTest {
         List<Token> symbolList = symbolFormatter.parseList("(INT '5') '+' (ID 'x')");
 
         // Pass the symbol list to the parser
-        DerivationTree actualTree = treeProvider.fromInput(symbolList, "expr");
+        Tree actualTree = treeProvider.actual(symbolList, "expr");
 
         //Compare the expected and actual tree
         airbag.assertTree(expectedTree, actualTree);
@@ -117,13 +117,13 @@ public class ExpressionParserTest {
     @Test
     void testNewlineStatement() {
         // Build expected tree from specification
-        DerivationTree expectedTree = treeProvider.fromSpec("(stat (NEWLINE '\\n'))");
+        Tree expectedTree = treeProvider.expected("(stat (NEWLINE '\\n'))");
 
         // Create a derivation tree from symbol list.
         List<Token> symbolList = symbolFormatter.parseList("(NEWLINE '\\n')");
 
         // Pass the symbol list to the parser
-        DerivationTree actualTree = treeProvider.fromInput(symbolList, "stat");
+        Tree actualTree = treeProvider.actual(symbolList, "stat");
 
         //Compare the expected and actual tree
         airbag.assertTree(expectedTree, actualTree);
@@ -132,13 +132,13 @@ public class ExpressionParserTest {
     @Test
     void testAssignmentStatement() {
         // Build expected tree from specification
-        DerivationTree expectedTree = treeProvider.fromSpec("(stat (ID 'x') '=' (expr (INT '5')) (NEWLINE '\\n'))");
+        Tree expectedTree = treeProvider.expected("(stat (ID 'x') '=' (expr (INT '5')) (NEWLINE '\\n'))");
 
         // Create a derivation tree from symbol list.
         List<Token> symbolList = symbolFormatter.parseList("(ID 'x') '=' (INT '5') (NEWLINE '\\n')");
 
         // Pass the symbol list to the parser
-        DerivationTree actualTree = treeProvider.fromInput(symbolList, "stat");
+        Tree actualTree = treeProvider.actual(symbolList, "stat");
 
         //Compare the expected and actual tree
         airbag.assertTree(expectedTree, actualTree);
@@ -147,7 +147,7 @@ public class ExpressionParserTest {
     @Test
     void testExpressionStatement() {
         // Build expected tree from specification
-        DerivationTree expectedTree = treeProvider.fromSpec("""
+        Tree expectedTree = treeProvider.expected("""
             (stat
                 (expr
                     (expr (INT '5'))
@@ -161,7 +161,7 @@ public class ExpressionParserTest {
         List<Token> symbolList = symbolFormatter.parseList("(INT '5') '+' (ID 'x') (NEWLINE '\\n')");
 
         // Pass the symbol list to the parser
-        DerivationTree actualTree = treeProvider.fromInput(symbolList, "stat");
+        Tree actualTree = treeProvider.actual(symbolList, "stat");
 
         //Compare the expected and actual tree
         airbag.assertTree(expectedTree, actualTree);
@@ -170,7 +170,7 @@ public class ExpressionParserTest {
     @Test
     void testProg() {
         // Build expected tree from specification
-        DerivationTree expectedTree = treeProvider.fromSpec("""
+        Tree expectedTree = treeProvider.expected("""
                 (prog
                     (stat
                         (ID 'x')
@@ -201,7 +201,7 @@ public class ExpressionParserTest {
                 """);
 
         // Pass the symbol list to the parser
-        DerivationTree actualTree = treeProvider.fromInput(symbolList, "prog");
+        Tree actualTree = treeProvider.actual(symbolList, "prog");
 
         //Compare the expected and actual tree
         airbag.assertTree(expectedTree, actualTree);
@@ -210,7 +210,7 @@ public class ExpressionParserTest {
     @Test
     void testProgWithPattern() {
         // Build expected tree from specification
-        DerivationTree expectedTree = treeProvider.fromSpec("""
+        Tree expectedTree = treeProvider.expected("""
                 (prog
                     (<stat>
                         (
@@ -243,7 +243,7 @@ public class ExpressionParserTest {
                 """);
 
         // Pass the symbol list to the parser
-        DerivationTree actualTree = treeProvider.fromInput(symbolList, "prog");
+        Tree actualTree = treeProvider.actual(symbolList, "prog");
 
         //Compare the expected and actual tree
         airbag.assertTree(expectedTree, actualTree);

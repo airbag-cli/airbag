@@ -75,7 +75,7 @@ public class TokenProvider {
      * @see org.antlr.v4.runtime.CharStreams#fromString(String)
      * @see org.antlr.v4.runtime.CommonTokenStream
      */
-    public List<Token> fromInput(String input) {
+    public List<Token> actual(String input) {
         //Setting the input stream has the side effect of resetting the lexer as well
         try {
             lexer.setInputStream(CharStreams.fromString(input));
@@ -105,7 +105,7 @@ public class TokenProvider {
      * @see TokenFormatter#parseList(CharSequence)
      * @see TokenFormatter#SIMPLE
      */
-    public List<Token> fromSpec(String input) {
+    public List<Token> expected(String input) {
         return formatter.parseList(input);
     }
 
@@ -113,12 +113,12 @@ public class TokenProvider {
      * Formats a given {@link Token} into a string using the currently configured formatter.
      * <p>
      * By default, this method uses the {@link TokenFormatter#SIMPLE} formatter, which produces
-     * a string representation that is compatible with the {@link #fromSpec(String)} method.
+     * a string representation that is compatible with the {@link #expected(String)} method.
      * The formatter can be customized for different output styles using {@link #setFormatter(TokenFormatter)}.
      *
      * @param symbol The symbol to be formatted.
      * @return A string representation of the symbol.
-     * @see #fromSpec(String)
+     * @see #expected(String)
      * @see #setFormatter(TokenFormatter)
      * @see TokenFormatter#SIMPLE
      */
@@ -142,7 +142,7 @@ public class TokenProvider {
      * Gets the current {@link TokenFormatter} instance used by this provider.
      * <p>
      * This is the formatter responsible for the behavior of the {@link #format(Token)}
-     * and {@link #fromSpec(String)} methods.
+     * and {@link #expected(String)} methods.
      *
      * @return The current symbol formatter.
      * @see #setFormatter(TokenFormatter)

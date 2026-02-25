@@ -123,7 +123,7 @@ public class ExpressionLexerTest {
     @Test
     void testID() {
         //Create an expected list of symbols
-        List<Token> expected = provider.fromSpec("""
+        List<Token> expected = provider.expected("""
                 (ID 'x')
                 (ID 'myVariable')
                 (ID 'y')
@@ -131,7 +131,7 @@ public class ExpressionLexerTest {
                 """);
 
         //Let the lexer tokenize an actual input string
-        List<Token> actual = provider.fromInput("x myVariable y");
+        List<Token> actual = provider.actual("x myVariable y");
 
         //Compare the expected and actual list
         airbag.assertTokens(expected, actual);
@@ -174,7 +174,7 @@ public class ExpressionParserTest {
     @Test
     void testProg() {
         // Build expected tree from specification
-        DerivationTree expectedTree = treeProvider.fromSpec("""
+        DerivationTree expectedTree = treeProvider.expected("""
                 (prog
                     (stat
                         (ID 'x')

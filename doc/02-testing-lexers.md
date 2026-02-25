@@ -72,7 +72,7 @@ import io.github.airbag.token.Token;
 import java.util.List;
 
 // 1. Create an expected list of symbols from a specification
-List<Token> expected = airbag.getTokenProvider().fromSpec("""
+List<Token> expected = airbag.getTokenProvider().expected("""
         (ID 'a')
         '='
         (INT '10')
@@ -89,7 +89,7 @@ Next, you pass the actual input string to your lexer to get the real token strea
 
 ```java
 // 2. Let the lexer tokenize the actual input string
-List<Token> actual = airbag.getTokenProvider().fromInput("a = 10 + b");
+List<Token> actual = airbag.getTokenProvider().actual("a = 10 + b");
 ```
 
 ### 4. Assert and Compare
@@ -124,7 +124,7 @@ class ExpressionLexerTest {
     @Test
     void testAssignment() {
         // 1. Create an expected list of symbols from a specification
-        List<Token> expected = airbag.getTokenProvider().fromSpec("""
+        List<Token> expected = airbag.getTokenProvider().expected("""
                 (ID 'a')
                 '='
                 (INT '10')
@@ -134,7 +134,7 @@ class ExpressionLexerTest {
                 """);
 
         // 2. Let the lexer tokenize the actual input string
-        List<Token> actual = airbag.getTokenProvider().fromInput("a = 10 + b");
+        List<Token> actual = airbag.getTokenProvider().actual("a = 10 + b");
 
         // 3. Compare the expected and actual lists of symbols
         airbag.assertTokens(expected, actual);

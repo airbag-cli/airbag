@@ -2,6 +2,7 @@ package io.github.airbag.tree;
 
 
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.Tree;
 
 import java.util.Objects;
 import java.util.function.BiPredicate;
@@ -12,6 +13,10 @@ public class Validator {
 
     public Validator(BiPredicate<Token, Token> equalizer) {
         this.equalizer = Objects.requireNonNull(equalizer);
+    }
+
+    public boolean validate(Tree t1, Tree t2) {
+        return validate(DerivationTree.from(t1), DerivationTree.from(t2));
     }
 
     public boolean validate(DerivationTree t1, DerivationTree t2) {

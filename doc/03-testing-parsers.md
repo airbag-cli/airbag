@@ -67,7 +67,7 @@ Airbag allows you to define your expected parse tree using a readable, LISP-styl
 import io.github.airbag.tree.DerivationTree;
 
 // 1. Build the expected tree from a LISP-style specification
-DerivationTree expectedTree = airbag.getTreeProvider().fromSpec("""
+Tree expectedTree = airbag.getTreeProvider().expected("""
         (expr
             (expr (INT '10'))
             '+'
@@ -103,7 +103,7 @@ Now, feed the generated symbol list to your parser, specifying the entry rule (e
 ```java
 // 3. Parse the symbol list to get the actual tree.
 // The second argument is the getStartIndex rule.
-DerivationTree actualTree = airbag.getTreeProvider().fromInput(symbolList, "expr");
+Tree actualTree = airbag.getTreeProvider().actual(symbolList, "expr");
 ```
 
 ### 5. Assert and Compare
@@ -118,15 +118,6 @@ airbag.assertTree(expectedTree, actualTree);
 ## Complete Parser Test Example
 
 ```java
-import io.github.airbag.Airbag;
-import io.github.airbag.gen.ExpressionParser;
-import io.github.airbag.token.Token;
-import io.github.airbag.tree.DerivationTree;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.BeforeEach;
-
-import java.util.List;
-
 class ExpressionParserTest {
 
     private Airbag airbag;
@@ -140,7 +131,7 @@ class ExpressionParserTest {
     @Test
     void testAdditionExpression() {
         // 1. Build the expected tree from a LISP-style specification
-        DerivationTree expectedTree = airbag.getTreeProvider().fromSpec("""
+        Tree expectedTree = airbag.getTreeProvider().expected("""
                 (expr
                     (expr (INT '10'))
                     '+'
@@ -155,7 +146,7 @@ class ExpressionParserTest {
 
         // 3. Parse the symbol list to get the actual tree.
         // The second argument is the getStartIndex rule.
-        DerivationTree actualTree = airbag.getTreeProvider().fromInput(symbolList, "expr");
+        Tree actualTree = airbag.getTreeProvider().actual(symbolList, "expr");
 
         // 4. Compare the expected and actual trees
         airbag.assertTree(expectedTree, actualTree);

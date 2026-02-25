@@ -5,6 +5,7 @@ import io.github.airbag.tree.TreeFormatterBuilder.TreePrinterParser;
 import io.github.airbag.tree.pattern.PatternFormatter;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Vocabulary;
+import org.antlr.v4.runtime.tree.Tree;
 
 import java.text.ParsePosition;
 import java.util.Objects;
@@ -159,11 +160,11 @@ public class TreeFormatter {
      * @throws RuntimeException if formatting fails for any reason (e.g., a required format
      *                          for a node getType was not defined).
      */
-    public String format(DerivationTree tree) {
+    public String format(Tree tree) {
         NodeFormatContext ctx = new NodeFormatContext(symbolFormatter,
                 patternFormatter,
                 recognizer);
-        ctx.setNode(tree);
+        ctx.setNode(DerivationTree.from(tree));
         StringBuilder buf = new StringBuilder();
         if (!treePrinterParser.format(ctx, buf)) {
             throw new RuntimeException("Cannot format %s".formatted(tree));

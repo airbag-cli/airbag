@@ -2,6 +2,7 @@ package io.github.airbag.tree;
 
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.Tree;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -13,8 +14,8 @@ import java.util.Objects;
  * <p>
  * This class provides two main ways to construct a tree:
  * <ol>
- *   <li>{@link #fromInput(List, String)}: Simulates the ANTLR parsing process from a list of {@link org.antlr.v4.runtime.Token} objects.</li>
- *   <li>{@link #fromSpec(String)}: Deserializes a tree from a string specification using a {@link TreeFormatter}.</li>
+ *   <li>{@link #actual(List, String)}: Simulates the ANTLR parsing process from a list of {@link org.antlr.v4.runtime.Token} objects.</li>
+ *   <li>{@link #expected(String)}: Deserializes a tree from a string specification using a {@link TreeFormatter}.</li>
  * </ol>
  * It requires an ANTLR-generated {@link Parser} class for its operations, using reflection to invoke parser rules.
  * <p>
@@ -82,7 +83,7 @@ public class TreeProvider {
     /**
      * Creates a new {@link TreeProvider} with the specified {@link TreeFormatter}.
      * <p>
-     * This is required to use the {@link #fromSpec(String)} method.
+     * This is required to use the {@link #expected(String)} method.
      *
      * @param formatter The formatter to use for parsing string specifications.
      * @return A new {@link TreeProvider} instance configured with the formatter.
@@ -104,13 +105,23 @@ public class TreeProvider {
      * @throws RuntimeException if the specified rule method cannot be found or invoked, or if a
      *                          parse error occurs (due to the {@link BailErrorStrategy}).
      */
-    public DerivationTree fromInput(List<? extends Token> symbolList, String rule) {
+    public Tree actual(List<? extends Token> symbolList, String rule) {
         TokenSource tokenSource = new ListTokenSource(symbolList);
         parser.setTokenStream(new CommonTokenStream(tokenSource));
         try {
             Method ruleMethod = parser.getClass().getMethod(rule);
-            ParseTree parseTree = (ParseTree) ruleMethod.invoke(parser);
-            return DerivationTree.from(parseTree);
+            return (ParseTree) ruleMethod.invoke(parser);
+        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    public Tree actual(TokenSource tokenSource, String rule) {
+        parser.setTokenStream(new CommonTokenStream(tokenSource));
+        try {
+            Method ruleMethod = parser.getClass().getMethod(rule);
+            return (ParseTree) ruleMethod.invoke(parser);
         } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
@@ -128,7 +139,7 @@ public class TreeProvider {
      *                               {@link #withFormatter(TreeFormatter)} beforehand.
      * @throws RuntimeException      if the string cannot be parsed by the configured formatter.
      */
-    public DerivationTree fromSpec(String stringTree) {
+    public Tree expected(String stringTree) {
         return formatter.parse(stringTree);
     }
 

@@ -1,6 +1,7 @@
 package io.github.airbag.tree;
 
 
+import io.github.airbag.tree.pattern.Pattern;
 import org.antlr.v4.runtime.Token;
 
 import java.util.ArrayList;
@@ -77,6 +78,16 @@ public abstract sealed class Node implements DerivationTree permits Node.Rule, N
         return TreeFormatter.SIMPLE.format(this);
     }
 
+    @Override
+    public int getChildCount() {
+        return size();
+    }
+
+    @Override
+    public String toStringTree() {
+        return toString();
+    }
+
     public final static class Rule extends Node implements DerivationTree.Rule {
 
         /**
@@ -100,6 +111,11 @@ public abstract sealed class Node implements DerivationTree permits Node.Rule, N
         @Override
         public boolean matches(DerivationTree other) {
             return other instanceof DerivationTree.Rule && super.matches(other);
+        }
+
+        @Override
+        public Integer getPayload() {
+            return index();
         }
     }
 
@@ -135,6 +151,11 @@ public abstract sealed class Node implements DerivationTree permits Node.Rule, N
         public boolean matches(DerivationTree other) {
             return other instanceof DerivationTree.Terminal && super.matches(other);
         }
+
+        @Override
+        public Token getPayload() {
+            return symbol();
+        }
     }
 
     public final static class Error extends Node implements DerivationTree.Error {
@@ -169,6 +190,12 @@ public abstract sealed class Node implements DerivationTree permits Node.Rule, N
         public boolean matches(DerivationTree other) {
             return other instanceof DerivationTree.Error && super.matches(other);
         }
+
+
+        @Override
+        public Token getPayload() {
+            return symbol();
+        }
     }
 
     public final static class Pattern extends Node implements DerivationTree.Pattern {
@@ -196,6 +223,11 @@ public abstract sealed class Node implements DerivationTree permits Node.Rule, N
 
         @Override
         public io.github.airbag.tree.pattern.Pattern getPattern() {
+            return pattern;
+        }
+
+        @Override
+        public io.github.airbag.tree.pattern.Pattern getPayload() {
             return pattern;
         }
     }
