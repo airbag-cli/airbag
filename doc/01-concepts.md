@@ -19,9 +19,9 @@ For example, given the input string for a simple configuration:
 
 The lexer would produce a flat stream of tokens like this:
 
-|   Text   | `"localhost"` | `port` |  `=`  | `8080` |
-|:--------:|:-------------:|:------:|:-----:|:------:|
-| **Type** |     `ID`      |  `EQ`  | `STR` |  `ID`  | 
+|   Text   | `host` | `=`  | `"localhost"` | `port` | `=`  | `8080` |
+|:--------:|:------:|:----:|:-------------:|:------:|:----:|:------:|
+| **Type** | `KEY`  | `EQ` |     `ID`      | `KEY`  | `EQ` |  `INT` | 
 
 This token stream is much easier to work with than the original raw string.
 
@@ -40,11 +40,11 @@ graph TD
     A --> B(pair)
     A --> C(pair)
     B --> D(KEY 'host')
-    B --> E(EQUALS '=')
-    B --> F(STRING '"localhost"')
+    B --> E(EQ '=')
+    B --> F(KEY '"localhost"')
     C --> I(KEY 'port')
-    C --> J(EQUALS '=')
-    C --> K(INTEGER '8080')
+    C --> J(EQ '=')
+    C --> K(INT '8080')
 ```
 
 ## Why Test Them Separately?
