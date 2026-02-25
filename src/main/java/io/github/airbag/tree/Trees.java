@@ -1,6 +1,7 @@
 package io.github.airbag.tree;
 
-import io.github.airbag.symbol.Symbol;
+
+import org.antlr.v4.runtime.Token;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,9 +28,9 @@ public class Trees {
         }
     }
 
-    public static List<Symbol> getSymbols(DerivationTree t) {
+    public static List<Token> getSymbols(DerivationTree t) {
         List<DerivationTree> descendants = getDescendants(true, t);
-        List<Symbol> symbols = new ArrayList<>();
+        List<Token> symbols = new ArrayList<>();
         for (var node : descendants) {
             if (node instanceof DerivationTree.Terminal terminal) {
                 symbols.add(terminal.symbol());

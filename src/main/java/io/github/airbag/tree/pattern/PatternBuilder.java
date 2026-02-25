@@ -1,8 +1,9 @@
 package io.github.airbag.tree.pattern;
 
-import io.github.airbag.symbol.Symbol;
-import io.github.airbag.symbol.SymbolField;
+import io.github.airbag.token.TokenBuilder;
+import io.github.airbag.token.TokenField;
 import io.github.airbag.tree.DerivationTree;
+import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.Tree;
 
 import java.util.ArrayList;
@@ -83,44 +84,44 @@ public class PatternBuilder {
     }
 
     /**
-     * Appends a {@link Symbol} element to the pattern.
+     * Appends a {@link Token} element to the pattern.
      * <p>
      * This element will match a terminal node (a leaf in the parse tree) if its underlying
      * symbol is considered equal to the provided {@code symbol}.
      * <p>
      * By default, equality is determined by comparing a "simple" set of fields:
-     * {@link SymbolField#TEXT}, {@link SymbolField#TYPE}, {@link SymbolField#LINE},
-     * and {@link SymbolField#POSITION}.
+     * {@link TokenField#TEXT}, {@link TokenField#TYPE}, {@link TokenField#LINE},
+     * and {@link TokenField#POSITION}.
      *
-     * @param symbol The {@link Symbol} to match.
+     * @param symbol The {@link Token} to match.
      * @return This builder.
-     * @see #appendSymbol(Symbol, BiPredicate)
-     * @see SymbolField#equalizer(Set)
+     * @see #appendSymbol(Token, BiPredicate)
+     * @see TokenField#equalizer(Set)
      */
-    public PatternBuilder appendSymbol(Symbol symbol) {
-        return appendSymbol(symbol, SymbolField.equalizer(SymbolField.simple()));
+    public PatternBuilder appendSymbol(Token symbol) {
+        return appendSymbol(symbol, TokenField.equalizer(TokenField.simple()));
     }
 
     /**
-     * Appends a {@link Symbol} element to the pattern with custom matching logic.
+     * Appends a {@link Token} element to the pattern with custom matching logic.
      * <p>
      * This element will match a terminal node if the provided {@code equalizer}
      * predicate returns {@code true} when comparing the node's symbol with the
      * given {@code symbol}.
      * <p>
-     * This allows for flexible matching based on specific fields of a {@link Symbol}.
-     * For example, to match any symbol of a certain type regardless of its text:
+     * This allows for flexible matching based on specific fields of a {@link Token}.
+     * For example, to match any symbol of a certain getType regardless of its getText:
      * <pre>{@code
-     * BiPredicate<Symbol, Symbol> typeMatcher = SymbolField.equalizer(Set.of(SymbolField.TYPE));
-     * builder.appendSymbol(Symbol.of().type(MyLexer.ID).get(), typeMatcher);
+     * BiPredicate<Token, Token> typeMatcher = TokenField.equalizer(Set.of(TokenField.TYPE));
+     * builder.appendSymbol(new TokenBuilder().getType(MyLexer.ID).get(), typeMatcher);
      * }</pre>
      *
-     * @param symbol    The {@link Symbol} to use for the comparison.
+     * @param symbol    The {@link Token} to use for the comparison.
      * @param equalizer A {@link BiPredicate} that defines the equality condition between
      *                  the symbol in the tree and the provided {@code symbol}.
      * @return This builder.
      */
-    public PatternBuilder appendSymbol(Symbol symbol, BiPredicate<Symbol, Symbol> equalizer) {
+    public PatternBuilder appendSymbol(Token symbol, BiPredicate<Token, Token> equalizer) {
         treePatternList.add(new SymbolPatternElement(symbol, equalizer));
         return this;
     }
@@ -129,10 +130,10 @@ public class PatternBuilder {
      * Appends a rule tag element to the pattern.
      * <p>
      * This element will match a non-terminal node (an internal node in the parse tree)
-     * if it corresponds to the specified parser rule index. This is used to match
+     * if it corresponds to the specified parser rule getTokenIndex. This is used to match
      * specific grammar constructs.
      *
-     * @param ruleIndex The index of the parser rule to match (e.g., {@code MyParser.RULE_expression}).
+     * @param ruleIndex The getTokenIndex of the parser rule to match (e.g., {@code MyParser.RULE_expression}).
      * @return This builder.
      */
     public PatternBuilder appendRuleTag(int ruleIndex) {
@@ -143,12 +144,12 @@ public class PatternBuilder {
     /**
      * Appends a labeled rule tag element to the pattern.
      * <p>
-     * This element matches a non-terminal node corresponding to the specified parser rule index.
+     * This element matches a non-terminal node corresponding to the specified parser rule getTokenIndex.
      * If the match is successful, the matched {@link Tree} node is captured and associated
      * with the given {@code label}. The captured tree can be retrieved from the
      * {@link MatchResult} object.
      *
-     * @param ruleIndex The index of the parser rule to match.
+     * @param ruleIndex The getTokenIndex of the parser rule to match.
      * @param label     The label to associate with the matched subtree. If null or empty,
      *                  the node is not labeled.
      * @return This builder.
@@ -161,11 +162,11 @@ public class PatternBuilder {
     /**
      * Appends a symbol tag element to the pattern.
      * <p>
-     * This is a convenience method to match a terminal node based on its token type.
-     * It is equivalent to creating a symbol with only the type field and using a
-     * type-only equalizer.
+     * This is a convenience method to match a terminal node based on its token getType.
+     * It is equivalent to creating a symbol with only the getType field and using a
+     * getType-only equalizer.
      *
-     * @param symbolIndex The token type index to match (e.g., {@code MyLexer.ID}).
+     * @param symbolIndex The token getType getTokenIndex to match (e.g., {@code MyLexer.ID}).
      * @return This builder.
      */
     public PatternBuilder appendSymbolTag(int symbolIndex) {
@@ -176,11 +177,11 @@ public class PatternBuilder {
     /**
      * Appends a labeled symbol tag element to the pattern.
      * <p>
-     * This convenience method matches a terminal node by its token type. If the match is successful,
+     * This convenience method matches a terminal node by its token getType. If the match is successful,
      * the matched terminal node is captured and associated with the given {@code label}.
      * The captured tree can be retrieved from the {@link MatchResult}.
      *
-     * @param symbolIndex The token type index to match.
+     * @param symbolIndex The token getType getTokenIndex to match.
      * @param label       The label to associate with the matched terminal node. If null or empty,
      *                    the node is not labeled.
      * @return This builder.
@@ -266,7 +267,7 @@ public class PatternBuilder {
     /**
      * A {@link TreePatternElement} that matches any single tree node.
      * <p>
-     * This wildcard element always successfully matches, regardless of the type or content
+     * This wildcard element always successfully matches, regardless of the getType or content
      * of the tree node it is applied to.
      */
     static class WildcardPatternElement implements TreePatternElement {
@@ -278,22 +279,22 @@ public class PatternBuilder {
     }
 
     /**
-     * A {@link TreePatternElement} that matches a specific {@link Symbol} in a terminal node.
+     * A {@link TreePatternElement} that matches a specific {@link Token} in a terminal node.
      * <p>
      * This element compares the symbol of a terminal node in the target tree with a
      * predefined symbol using a specified equality predicate.
      */
     static class SymbolPatternElement implements TreePatternElement {
 
-        private final Symbol symbol;
-        private final BiPredicate<Symbol, Symbol> equalizer;
+        private final Token symbol;
+        private final BiPredicate<Token, Token> equalizer;
 
         /**
          * Constructs a new {@code SymbolPatternElement}.
-         * @param symbol The {@link Symbol} to compare against.
+         * @param symbol The {@link Token} to compare against.
          * @param equalizer The {@link BiPredicate} to determine equality between symbols.
          */
-        public SymbolPatternElement(Symbol symbol, BiPredicate<Symbol, Symbol> equalizer) {
+        public SymbolPatternElement(Token symbol, BiPredicate<Token, Token> equalizer) {
             this.symbol = symbol;
             this.equalizer = equalizer;
         }
@@ -311,10 +312,10 @@ public class PatternBuilder {
         }
 
         /**
-         * Returns the {@link Symbol} used by this element for comparison.
-         * @return The reference {@link Symbol}.
+         * Returns the {@link Token} used by this element for comparison.
+         * @return The reference {@link Token}.
          */
-        public Symbol getSymbol() {
+        public Token getSymbol() {
             return symbol;
         }
 
@@ -325,7 +326,7 @@ public class PatternBuilder {
     }
 
     /**
-     * A {@link TreePatternElement} that matches a non-terminal node based on its rule index.
+     * A {@link TreePatternElement} that matches a non-terminal node based on its rule getTokenIndex.
      * <p>
      * Optionally, if a label is provided, the matched rule node is captured and associated
      * with that label in the {@link PatternContext}.
@@ -337,7 +338,7 @@ public class PatternBuilder {
 
         /**
          * Constructs a new {@code RuleTagPatternElement} without a label.
-         * @param ruleIndex The ANTLR rule index to match.
+         * @param ruleIndex The ANTLR rule getTokenIndex to match.
          */
         public RuleTagPatternElement(int ruleIndex) {
             this.ruleIndex = ruleIndex;
@@ -346,7 +347,7 @@ public class PatternBuilder {
 
         /**
          * Constructs a new {@code RuleTagPatternElement} with an optional label.
-         * @param ruleIndex The ANTLR rule index to match.
+         * @param ruleIndex The ANTLR rule getTokenIndex to match.
          * @param tag An optional label to capture the matched node.
          */
         public RuleTagPatternElement(int ruleIndex, String tag) {
@@ -367,8 +368,8 @@ public class PatternBuilder {
         }
 
         /**
-         * Returns the rule index this element is configured to match.
-         * @return The rule index.
+         * Returns the rule getTokenIndex this element is configured to match.
+         * @return The rule getTokenIndex.
          */
         public int type() {
             return ruleIndex;
@@ -384,10 +385,10 @@ public class PatternBuilder {
     }
 
     /**
-     * A {@link TreePatternElement} that matches a terminal node based on its symbol type.
+     * A {@link TreePatternElement} that matches a terminal node based on its symbol getType.
      * <p>
      * This is a specialized form of {@link SymbolPatternElement} that focuses solely on
-     * matching the {@link SymbolField#TYPE} of a terminal node's symbol.
+     * matching the {@link TokenField#TYPE} of a terminal node's symbol.
      * Optionally, if a label is provided, the matched terminal node is captured.
      */
     static class SymbolTagPatternElement implements TreePatternElement {
@@ -397,7 +398,7 @@ public class PatternBuilder {
 
         /**
          * Constructs a new {@code SymbolTagPatternElement} without a label.
-         * @param symbolIndex The ANTLR token type index to match.
+         * @param symbolIndex The ANTLR token getType getTokenIndex to match.
          */
         public SymbolTagPatternElement(int symbolIndex) {
             this(symbolIndex, null);
@@ -405,12 +406,12 @@ public class PatternBuilder {
 
         /**
          * Constructs a new {@code SymbolTagPatternElement} with an optional label.
-         * @param symbolIndex The ANTLR token type index to match.
+         * @param symbolIndex The ANTLR token getType getTokenIndex to match.
          * @param tag An optional label to capture the matched node.
          */
         public SymbolTagPatternElement(int symbolIndex, String tag) {
-            symbolPattern = new SymbolPatternElement(Symbol.of().type(symbolIndex).get(),
-                    SymbolField.equalizer(Set.of(SymbolField.TYPE)));
+            symbolPattern = new SymbolPatternElement(new TokenBuilder().type(symbolIndex).get(),
+                    TokenField.equalizer(Set.of(TokenField.TYPE)));
             this.tag = tag == null || tag.isEmpty() ? null : tag;
         }
 
@@ -424,11 +425,11 @@ public class PatternBuilder {
         }
 
         /**
-         * Returns the symbol type index this element is configured to match.
-         * @return The symbol type index.
+         * Returns the symbol getType getTokenIndex this element is configured to match.
+         * @return The symbol getType getTokenIndex.
          */
         public int type() {
-            return symbolPattern.getSymbol().type();
+            return symbolPattern.getSymbol().getType();
         }
 
         /**

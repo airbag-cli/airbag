@@ -1,16 +1,22 @@
 package io.github.airbag.tree;
 
-import io.github.airbag.symbol.Symbol;
+
+import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.Tree;
 
 import java.util.Objects;
 import java.util.function.BiPredicate;
 
 public class Validator {
 
-    private BiPredicate<Symbol, Symbol> equalizer;
+    private BiPredicate<Token, Token> equalizer;
 
-    public Validator(BiPredicate<Symbol, Symbol> equalizer) {
+    public Validator(BiPredicate<Token, Token> equalizer) {
         this.equalizer = Objects.requireNonNull(equalizer);
+    }
+
+    public boolean validate(Tree t1, Tree t2) {
+        return validate(DerivationTree.from(t1), DerivationTree.from(t2));
     }
 
     public boolean validate(DerivationTree t1, DerivationTree t2) {
@@ -59,11 +65,11 @@ public class Validator {
         };
     }
 
-    public BiPredicate<Symbol, Symbol> getEqualizer() {
+    public BiPredicate<Token, Token> getEqualizer() {
         return equalizer;
     }
 
-    public void setEqualizer(BiPredicate<Symbol, Symbol> equalizer) {
+    public void setEqualizer(BiPredicate<Token, Token> equalizer) {
         this.equalizer = Objects.requireNonNull(equalizer);
     }
 }

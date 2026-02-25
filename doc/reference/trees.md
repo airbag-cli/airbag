@@ -121,7 +121,7 @@ Here are the key methods of `NodeFormatterBuilder`:
 
 *   **`appendChildren(Consumer<NodeFormatterBuilder> childSeparator)`**: An advanced version where the separator between children can be defined using its own `NodeFormatterBuilder`. This allows for complex separators like newlines and indentation.
     ```java
-    // Formats each child on a new line, indented
+    // Formats each child on a new getLine, indented
     nodeBuilder.appendChildren(separatorBuilder -> separatorBuilder
         .appendLiteral("\n")
         .appendIndent("  ") // Indents with two spaces per level
@@ -144,13 +144,13 @@ Here are the key methods of `NodeFormatterBuilder`:
 
 Once a `TreeFormatter` is built using `toFormatter()`, you can further customize its behavior:
 
-*   **Configuring `SymbolFormatter` (`withSymbolFormatter(SymbolFormatter)`)**:
+* **Configuring `SymbolFormatter` (`withSymbolFormatter(SymbolFormatter)`)**:
     You can specify how the `Symbol` objects within `Terminal` and `Error` nodes are formatted. This is particularly useful if you want a different `Symbol` representation than the default `SymbolFormatter.SIMPLE`.
     (Refer to the [Customizing Symbol Formats](./symbols.md) documentation for details on `SymbolFormatter`).
 
-    ```java
-    import io.github.airbag.symbol.SymbolFormatter;
-    import io.github.airbag.symbol.SymbolFormatterBuilder;
+      ```java
+
+    import io.github.airbag.token.TokenFormatterBuilder;
 
     // Create a custom SymbolFormatter that prints 'TEXT:TYPE'
     SymbolFormatter customSymFormatter = new SymbolFormatterBuilder()
@@ -158,9 +158,7 @@ Once a `TreeFormatter` is built using `toFormatter()`, you can further customize
         .toFormatter();
 
     TreeFormatter customizedFormatter = yourTreeFormatter.withSymbolFormatter(customSymFormatter);
-    ```
-
-*   **Providing ANTLR `Recognizer` Context (`withRecognizer(Recognizer)`)**:
+    ```TLR `Recognizer` Context (`withRecognizer(Recognizer)`)**:
     For `TreeFormatter` to display rule names (e.g., "expr") instead of just integer rule indices (e.g., "0"), you must provide an ANTLR `Recognizer` (typically your generated `Parser` instance). This gives the formatter access to the grammar's vocabulary and rule names.
 
     ```java

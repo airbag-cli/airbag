@@ -38,7 +38,7 @@ public class RuleVocabularyTest {
         assertNull(vocabulary.getSymbolicName(3)); // Just outside bounds
         assertNull(vocabulary.getSymbolicName(100)); // Far out of bounds
 
-        // Test -1 token type
+        // Test -1 token getType
         assertNull(vocabulary.getSymbolicName(-1));
     }
 
@@ -55,7 +55,7 @@ public class RuleVocabularyTest {
         assertNull(vocabulary.getDisplayName(2));
         assertNull(vocabulary.getDisplayName(99));
 
-        // Test -1 token type
+        // Test -1 token getType
         assertNull(vocabulary.getDisplayName(-1));
     }
 }

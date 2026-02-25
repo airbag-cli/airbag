@@ -1,16 +1,17 @@
 package io.github.airbag.tree;
 
 import io.github.airbag.gen.ExpressionParser;
-import io.github.airbag.symbol.Symbol;
-import io.github.airbag.symbol.SymbolFormatter;
-import io.github.airbag.symbol.SymbolFormatterBuilder;
-import io.github.airbag.symbol.TypeFormat;
+import io.github.airbag.token.TokenBuilder;
+import io.github.airbag.token.TokenFormatter;
+import io.github.airbag.token.TokenFormatterBuilder;
+import io.github.airbag.token.TypeFormat;
 import io.github.airbag.tree.NodeFormatterBuilder.IntegerRulePrinterParser;
 import io.github.airbag.tree.NodeFormatterBuilder.LiteralPrinterParser;
 import io.github.airbag.tree.NodeFormatterBuilder.StringRuleNamePrinterParser;
 import io.github.airbag.tree.pattern.PatternBuilder;
 import io.github.airbag.tree.pattern.PatternFormatter;
 import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.VocabularyImpl;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -23,7 +24,7 @@ public class NodeFormatterBuilderTest {
         return new RootParseContext(null, null, null);
     }
 
-    static RootParseContext createCtx(SymbolFormatter formatter) {
+    static RootParseContext createCtx(TokenFormatter formatter) {
         return new RootParseContext(formatter, null, null);
     }
 
@@ -99,7 +100,7 @@ public class NodeFormatterBuilderTest {
             assertEquals("Expected literal '=>' but found '='", ctx.getErrorMessages());
             assertEquals(0, ctx.getMaxError());
 
-            // Literal is "=>", input is "a=" but position is 1, so effectively input is "="
+            // Literal is "=>", input is "a=" but getCharPositionInLine is 1, so effectively input is "="
             ctx = createCtx();
             assertEquals(~1, parser.parse(ctx, "a=", 1));
             assertFalse(ctx.getErrorMessages().isEmpty());
@@ -148,7 +149,7 @@ public class NodeFormatterBuilderTest {
         void testFormatOtherNodeTypes() {
             var printer = new IntegerRulePrinterParser();
             var buf = new StringBuilder();
-            var terminalNode = Node.Terminal.attachTo(null, Symbol.of().type(0).get());
+            var terminalNode = Node.Terminal.attachTo(null, new TokenBuilder().type(0).get());
             var ctx = new NodeFormatContext(null, null, null);
             ctx.setNode(terminalNode);
 
@@ -229,7 +230,7 @@ public class NodeFormatterBuilderTest {
 
             assertEquals(~0, parser.parse(ruleCtx, "abc", 0));
             assertFalse(rootCtx.getErrorMessages().isEmpty());
-            assertEquals("Expected an integer for a rule index but found 'abc'",
+            assertEquals("Expected an integer for a rule getTokenIndex but found 'abc'",
                     rootCtx.getErrorMessages());
             assertEquals(0, rootCtx.getMaxError());
         }
@@ -242,7 +243,7 @@ public class NodeFormatterBuilderTest {
 
             assertEquals(~0, parser.parse(ruleCtx, "", 0));
             assertFalse(rootCtx.getErrorMessages().isEmpty());
-            assertEquals("Expected an integer for a rule index but found '<text end>'",
+            assertEquals("Expected an integer for a rule getTokenIndex but found '<getText end>'",
                     rootCtx.getErrorMessages());
             assertEquals(0, rootCtx.getMaxError());
         }
@@ -333,7 +334,7 @@ public class NodeFormatterBuilderTest {
         void testFormatRuleNodeWithIndexOutOfBounds() {
             var printer = new StringRuleNamePrinterParser();
             var buf = new StringBuilder();
-            var ruleNode = Node.Rule.attachTo(null, 99); // Out of bounds index
+            var ruleNode = Node.Rule.attachTo(null, 99); // Out of bounds getTokenIndex
             var ctx = new NodeFormatContext(null, null, PARSER);
             ctx.setNode(ruleNode);
 
@@ -345,7 +346,7 @@ public class NodeFormatterBuilderTest {
         void testFormatOtherNodeTypes() {
             var printer = new StringRuleNamePrinterParser();
             var buf = new StringBuilder();
-            var terminalNode = Node.Terminal.attachTo(null, Symbol.of().type(0).get());
+            var terminalNode = Node.Terminal.attachTo(null, new TokenBuilder().type(0).get());
             var ctx = new NodeFormatContext(null, null, PARSER);
             ctx.setNode(terminalNode);
 
@@ -419,7 +420,7 @@ public class NodeFormatterBuilderTest {
 
             assertEquals(~0, parser.parse(ruleCtx, "", 0));
             assertFalse(rootCtx.getErrorMessages().isEmpty());
-            assertEquals("Unrecognized rule name starting with '<text end>'",
+            assertEquals("Unrecognized rule name starting with '<getText end>'",
                     rootCtx.getErrorMessages());
             assertEquals(0, rootCtx.getMaxError());
         }
@@ -450,20 +451,20 @@ public class NodeFormatterBuilderTest {
     @Nested
     class SymbolPrinterParserTest {
 
-        private final SymbolFormatter SYMBOL_FORMATTER = SymbolFormatter.SIMPLE;
-        private final SymbolFormatter CUSTOM_FIXED_TEXT_FORMATTER = new SymbolFormatterBuilder().appendLiteral(
+        private final TokenFormatter SYMBOL_FORMATTER = TokenFormatter.SIMPLE;
+        private final TokenFormatter CUSTOM_FIXED_TEXT_FORMATTER = new TokenFormatterBuilder().appendLiteral(
                 "FixedText").toFormatter();
-        private final SymbolFormatter CUSTOM_TYPE_ONLY_FORMATTER = new SymbolFormatterBuilder().appendType(
+        private final TokenFormatter CUSTOM_TYPE_ONLY_FORMATTER = new TokenFormatterBuilder().appendType(
                 TypeFormat.SYMBOLIC_FIRST).toFormatter();
 
         @Test
         void testFormatTerminalNode() {
-            var symbol = Symbol.of().type(1).text("hello").get();
+            var symbol = new TokenBuilder().type(1).text("hello").get();
             var printer = new NodeFormatterBuilder.SymbolPrinterParser();
             var buf = new StringBuilder();
 
             var terminalNode = Node.Terminal.attachTo(null, symbol);
-            var ctx = new NodeFormatContext(SymbolFormatter.SIMPLE, null, null);
+            var ctx = new NodeFormatContext(TokenFormatter.SIMPLE, null, null);
             ctx.setNode(terminalNode);
 
             assertTrue(printer.format(ctx, buf));
@@ -472,12 +473,12 @@ public class NodeFormatterBuilderTest {
 
         @Test
         void testFormatErrorNode() {
-            var symbol = Symbol.of().type(2).text("error_token").get();
+            var symbol = new TokenBuilder().type(2).text("error_token").get();
             var printer = new NodeFormatterBuilder.SymbolPrinterParser();
             var buf = new StringBuilder();
 
             var errorNode = Node.Error.attachTo(null, symbol);
-            var ctx = new NodeFormatContext(SymbolFormatter.SIMPLE, null, null);
+            var ctx = new NodeFormatContext(TokenFormatter.SIMPLE, null, null);
             ctx.setNode(errorNode);
 
             assertTrue(printer.format(ctx, buf));
@@ -490,7 +491,7 @@ public class NodeFormatterBuilderTest {
             var buf = new StringBuilder();
 
             var ruleNode = Node.Rule.attachTo(null, 0);
-            var ctx = new NodeFormatContext(SymbolFormatter.SIMPLE, null, null);
+            var ctx = new NodeFormatContext(TokenFormatter.SIMPLE, null, null);
             ctx.setNode(ruleNode);
 
             assertFalse(printer.format(ctx, buf));
@@ -502,7 +503,7 @@ public class NodeFormatterBuilderTest {
             var printer = new NodeFormatterBuilder.SymbolPrinterParser();
             var buf = new StringBuilder();
 
-            var ctx = new NodeFormatContext(SymbolFormatter.SIMPLE, null, null);
+            var ctx = new NodeFormatContext(TokenFormatter.SIMPLE, null, null);
 
             assertFalse(printer.format(ctx, buf));
             assertTrue(buf.isEmpty());
@@ -513,7 +514,7 @@ public class NodeFormatterBuilderTest {
             var printer = new NodeFormatterBuilder.SymbolPrinterParser();
             var buf = new StringBuilder();
 
-            var symbol = Symbol.of().type(0).text("T").get();
+            var symbol = new TokenBuilder().type(0).text("T").get();
             // No symbol formatter in context
             var ctx = new NodeFormatContext(null, null, null);
             ctx.setNode(Node.Terminal.attachTo(null, symbol));
@@ -524,20 +525,20 @@ public class NodeFormatterBuilderTest {
         @Test
         void testParseSuccessIntoTerminalContext() {
             var parser = new NodeFormatterBuilder.SymbolPrinterParser();
-            var rootCtx = createCtx(SymbolFormatter.SIMPLE);
+            var rootCtx = createCtx(TokenFormatter.SIMPLE);
             var terminalCtx = rootCtx.new Terminal(rootCtx);
 
-            // SIMPLE formatter formats as "(type 'text')" or "'literal'" or "EOF"
+            // SIMPLE formatter formats as "(getType 'getText')" or "'literal'" or "EOF"
             // For parsing, it will try alternatives.
             // Example: "('literal_text')"
             String input = "(4 'parsed_text')";
             int parsedLength = input.length();
 
             assertEquals(parsedLength, parser.parse(terminalCtx, input + "remainder", 0));
-            // Check the parsed symbol's text. Type will be -1 (EOF or default for literals without explicit type)
+            // Check the parsed symbol's getText. Type will be -1 (EOF or default for literals without explicit getType)
             DerivationTree.Terminal terminalNode = assertInstanceOf(DerivationTree.Terminal.class,
                     terminalCtx.resolve(null));
-            assertEquals("parsed_text", terminalNode.symbol().text());
+            assertEquals("parsed_text", terminalNode.symbol().getText());
             assertTrue(rootCtx.getErrorMessages().isEmpty());
         }
 
@@ -545,7 +546,7 @@ public class NodeFormatterBuilderTest {
         void testParseSuccessLiteralIntoTerminalContext() {
             var parser = new NodeFormatterBuilder.SymbolPrinterParser();
             String[] literals = new String[]{null, "'a_literal'"};
-            var rootCtx = createCtx(SymbolFormatter.SIMPLE.withVocabulary(new VocabularyImpl(
+            var rootCtx = createCtx(TokenFormatter.SIMPLE.withVocabulary(new VocabularyImpl(
                     literals,
                     null)));
             var terminalCtx = rootCtx.new Terminal(rootCtx);
@@ -559,14 +560,14 @@ public class NodeFormatterBuilderTest {
                     terminalCtx.root().getErrorMessages());
             DerivationTree.Terminal terminalNode = assertInstanceOf(DerivationTree.Terminal.class,
                     terminalCtx.resolve(null));
-            assertEquals("a_literal", terminalNode.symbol().text());
+            assertEquals("a_literal", terminalNode.symbol().getText());
             assertTrue(rootCtx.getErrorMessages().isEmpty());
         }
 
         @Test
         void testParseSuccessEOFIntoTerminalContext() {
             var parser = new NodeFormatterBuilder.SymbolPrinterParser();
-            var rootCtx = createCtx(SymbolFormatter.SIMPLE);
+            var rootCtx = createCtx(TokenFormatter.SIMPLE);
             var terminalCtx = rootCtx.new Terminal(rootCtx);
 
             String input = "EOF";
@@ -575,16 +576,16 @@ public class NodeFormatterBuilderTest {
             assertEquals(parsedLength, parser.parse(terminalCtx, input + "remainder", 0));
             DerivationTree.Terminal terminalNode = assertInstanceOf(DerivationTree.Terminal.class,
                     terminalCtx.resolve(null));
-            Symbol symbol = terminalNode.symbol();
-            assertEquals(Symbol.EOF, symbol.type());
-            assertEquals("<EOF>", symbol.text()); // Text will be "EOF" for EOF symbol
+            Token symbol = terminalNode.symbol();
+            assertEquals(Token.EOF, symbol.getType());
+            assertEquals("<EOF>", symbol.getText()); // Text will be "EOF" for EOF symbol
             assertTrue(rootCtx.getErrorMessages().isEmpty());
         }
 
         @Test
         void testParseSuccessIntoErrorContext() {
             var parser = new NodeFormatterBuilder.SymbolPrinterParser();
-            var rootCtx = createCtx(SymbolFormatter.SIMPLE);
+            var rootCtx = createCtx(TokenFormatter.SIMPLE);
             var errorCtx = rootCtx.new Error(rootCtx);
 
             String input = "(-5 'error_text')";
@@ -593,14 +594,14 @@ public class NodeFormatterBuilderTest {
             assertEquals(parsedLength, parser.parse(errorCtx, input + "remainder", 0));
             DerivationTree.Error errorNode = assertInstanceOf(DerivationTree.Error.class,
                     errorCtx.resolve(null));
-            assertEquals("error_text", errorNode.symbol().text());
+            assertEquals("error_text", errorNode.symbol().getText());
             assertTrue(rootCtx.getErrorMessages().isEmpty());
         }
 
         @Test
         void testParseFailureReportsErrorWithCustomFormatter() {
             var parser = new NodeFormatterBuilder.SymbolPrinterParser();
-            var rootCtx = createCtx(SymbolFormatter.SIMPLE);
+            var rootCtx = createCtx(TokenFormatter.SIMPLE);
             var terminalCtx = rootCtx.new Terminal(rootCtx);
 
             // Input does not match "FixedText" pattern
@@ -626,12 +627,12 @@ public class NodeFormatterBuilderTest {
         @Test
         void testParseWithWrongContextTypeThrowsRuntimeException() {
             var parser = new NodeFormatterBuilder.SymbolPrinterParser();
-            var rootCtx = createCtx(SymbolFormatter.SIMPLE);
-            var ruleCtx = rootCtx.new Rule(rootCtx); // Incorrect context type
+            var rootCtx = createCtx(TokenFormatter.SIMPLE);
+            var ruleCtx = rootCtx.new Rule(rootCtx); // Incorrect context getType
 
             assertThrows(RuntimeException.class,
-                    () -> parser.parse(ruleCtx, "(4 'text')", 0),
-                    "Wrong context type");
+                    () -> parser.parse(ruleCtx, "(4 'getText')", 0),
+                    "Wrong context getType");
         }
 
         @Test
@@ -641,22 +642,22 @@ public class NodeFormatterBuilderTest {
             var terminalCtx = rootCtx.new Terminal(rootCtx);
 
             assertThrows(IndexOutOfBoundsException.class,
-                    () -> parser.parse(terminalCtx, "('text')", -1));
+                    () -> parser.parse(terminalCtx, "('getText')", -1));
             assertThrows(IndexOutOfBoundsException.class,
-                    () -> parser.parse(terminalCtx, "('text')", "('text')".length() + 1));
+                    () -> parser.parse(terminalCtx, "('getText')", "('getText')".length() + 1));
         }
 
         @Test
         void testParseEmptyStringFailureWithCustomTypeFormatter() {
             var parser = new NodeFormatterBuilder.SymbolPrinterParser();
-            var rootCtx = createCtx(SymbolFormatter.SIMPLE);
+            var rootCtx = createCtx(TokenFormatter.SIMPLE);
             var terminalCtx = rootCtx.new Terminal(rootCtx);
 
             assertEquals(~0, parser.parse(terminalCtx, "", 0));
             assertFalse(rootCtx.getErrorMessages().isEmpty());
             assertEquals("""
-                    Expected 'EOF' but found '<text end>'
-                    Expected literal '(' but found '<text end>'
+                    Expected 'EOF' but found '<getText end>'
+                    Expected literal '(' but found '<getText end>'
                     No vocabulary set""", rootCtx.getErrorMessages());
             assertEquals(0, rootCtx.getMaxError());
         }
@@ -731,7 +732,7 @@ public class NodeFormatterBuilderTest {
         void testFormatOtherNodeTypesReturnsFalse() {
             var printer = new NodeFormatterBuilder.RulePrinterParser();
             var buf = new StringBuilder();
-            var terminalNode = Node.Terminal.attachTo(null, Symbol.of().type(0).get());
+            var terminalNode = Node.Terminal.attachTo(null, new TokenBuilder().type(0).get());
             var ctx = new NodeFormatContext(null, null, PARSER);
             ctx.setNode(terminalNode);
 
@@ -790,7 +791,7 @@ public class NodeFormatterBuilderTest {
             assertEquals(~0, parser.parse(ruleCtx, "unknown", 0));
             assertFalse(rootCtx.getErrorMessages().isEmpty());
             assertEquals(
-                    "Expected an integer for a rule index but found 'unk'\nUnrecognized rule name starting with 'unkno'",
+                    "Expected an integer for a rule getTokenIndex but found 'unk'\nUnrecognized rule name starting with 'unkno'",
                     rootCtx.getErrorMessages());
             assertEquals(0,
                     rootCtx.getMaxError()); // Max error should be from StringRuleNamePrinterParser
@@ -805,7 +806,7 @@ public class NodeFormatterBuilderTest {
             assertEquals(~0, parser.parse(ruleCtx, "", 0));
             assertFalse(rootCtx.getErrorMessages().isEmpty());
             assertEquals(
-                    "Expected an integer for a rule index but found '<text end>'\nUnrecognized rule name starting with '<text end>'",
+                    "Expected an integer for a rule getTokenIndex but found '<getText end>'\nUnrecognized rule name starting with '<getText end>'",
                     rootCtx.getErrorMessages());
             assertEquals(0, rootCtx.getMaxError());
         }
@@ -844,7 +845,7 @@ public class NodeFormatterBuilderTest {
             var ctx = createCtx();
 
             assertThrows(UnsupportedOperationException.class,
-                    () -> childrenPrinterParser.parse(ctx, "any text", 0));
+                    () -> childrenPrinterParser.parse(ctx, "any getText", 0));
         }
 
         @Test
@@ -938,7 +939,7 @@ public class NodeFormatterBuilderTest {
             assertEquals(0, ctx.getMaxError());
 
             assertEquals(3,
-                    parser.parse(ctx, "abc", 3)); // no whitespace, should return current position
+                    parser.parse(ctx, "abc", 3)); // no whitespace, should return current getCharPositionInLine
             assertTrue(ctx.getErrorMessages().isEmpty());
         }
 
@@ -983,7 +984,7 @@ public class NodeFormatterBuilderTest {
         void testParseWithOffset() {
             var parser = new NodeFormatterBuilder.WhitespacePrinterParser("", false);
             var ctx = createCtx();
-            assertEquals(7, parser.parse(ctx, "abc  \t\nxyz", 3)); // starts at ' ' (index 3)
+            assertEquals(7, parser.parse(ctx, "abc  \t\nxyz", 3)); // starts at ' ' (getTokenIndex 3)
             assertTrue(ctx.getErrorMessages().isEmpty());
             assertEquals(0, ctx.getMaxError());
         }
@@ -1028,7 +1029,7 @@ public class NodeFormatterBuilderTest {
             ctx.setNode(ruleNode);
             assertFalse(printer.format(ctx, buf));
             assertTrue(buf.isEmpty());
-            var terminalNode = Node.Terminal.attachTo(null, Symbol.of().type(0).get());
+            var terminalNode = Node.Terminal.attachTo(null, new TokenBuilder().type(0).get());
             ctx.setNode(terminalNode);
             assertFalse(printer.format(ctx, buf));
             assertTrue(buf.isEmpty());
@@ -1076,10 +1077,10 @@ public class NodeFormatterBuilderTest {
         void testParseWithWrongContextTypeThrowsRuntimeException() {
             var parser = new NodeFormatterBuilder.PatternPrinterParser();
             var rootCtx = new RootParseContext(null, PATTERN_FORMATTER, null);
-            var ruleCtx = rootCtx.new Rule(rootCtx); // Incorrect context type
+            var ruleCtx = rootCtx.new Rule(rootCtx); // Incorrect context getType
             assertThrows(RuntimeException.class,
                     () -> parser.parse(ruleCtx, "<label:prog>", 0),
-                    "Wrong context type");
+                    "Wrong context getType");
         }
 
 

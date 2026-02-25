@@ -1,12 +1,8 @@
 package io.github.airbag.tree.query;
 
-import io.github.airbag.symbol.Symbol;
-import io.github.airbag.symbol.SymbolFormatter;
 import io.github.airbag.tree.DerivationTree;
-import io.github.airbag.tree.Node;
 import io.github.airbag.tree.TreeFormatter;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
@@ -65,7 +61,7 @@ public class QueryTest {
         QueryElement element = new QueryElement.Token(QueryElement.Navigator.ALL, false, 1);
         Query query = new Query(new QueryElement[]{element});
         List<DerivationTree> result = query.evaluate(root);
-        assertEquals(2, result.size(), "Should find two nodes with token type 1");
+        assertEquals(2, result.size(), "Should find two nodes with token getType 1");
         assertTrue(result.contains(childToken1));
         assertTrue(result.contains(grandchildToken1));
     }
@@ -77,7 +73,7 @@ public class QueryTest {
         QueryElement element = new QueryElement.Token(QueryElement.Navigator.DESCENDANTS, false, 1);
         Query query = new Query(new QueryElement[]{element});
         List<DerivationTree> result = query.evaluate(root);
-        assertEquals(2, result.size(), "Should find two nodes with token type 1");
+        assertEquals(2, result.size(), "Should find two nodes with token getType 1");
         assertTrue(result.contains(childToken1));
         assertTrue(result.contains(grandchildToken1));
     }

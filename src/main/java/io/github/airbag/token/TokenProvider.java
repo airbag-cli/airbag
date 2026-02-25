@@ -1,4 +1,4 @@
-package io.github.airbag.symbol;
+package io.github.airbag.token;
 
 import io.github.airbag.util.Utils;
 import org.antlr.v4.runtime.*;
@@ -7,7 +7,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
 /**
- * Provides a simplified way to generate and format lists of {@link Symbol} objects.
+ * Provides a simplified way to generate and format lists of {@link Token} objects.
  * <p>
  * This utility class abstracts the boilerplate code required to set up an ANTLR lexer
  * and produce symbol lists from input strings. It also provides configurable utilities
@@ -15,10 +15,10 @@ import java.util.List;
  * and debugging components that work with symbols.
  *
  * @see org.antlr.v4.runtime.Lexer
- * @see Symbol
- * @see SymbolFormatter
+ * @see Token
+ * @see TokenFormatter
  */
-public class SymbolProvider {
+public class TokenProvider {
 
     /**
      * The ANTLR lexer instance used for creating symbols from input strings.
@@ -28,18 +28,18 @@ public class SymbolProvider {
     /**
      * The formatter used to convert symbols back to strings.
      */
-    private SymbolFormatter formatter;
+    private TokenFormatter formatter;
 
     /**
-     * Constructs a new SymbolProvider for a specific ANTLR lexer.
+     * Constructs a new TokenProvider for a specific ANTLR lexer.
      * <p>
      * This constructor uses reflection to create an instance of the provided {@code lexerClass}.
      * It assumes that the lexer class has a public constructor that accepts a {@link CharStream}
      * as its sole argument, which is standard for ANTLR-generated lexers.
      * <p>
-     * This also initializes a default symbol formatter ({@link SymbolFormatter#SIMPLE}) using the
+     * This also initializes a default symbol formatter ({@link TokenFormatter#SIMPLE}) using the
      * vocabulary from the provided lexer. This default can be overridden using
-     * {@link #setFormatter(SymbolFormatter)}.
+     * {@link #setFormatter(TokenFormatter)}.
      *
      * @param lexerClass The class of the ANTLR-generated lexer to be used for tokenization.
      *                   For example, {@code MyGrammarLexer.class}.
@@ -48,13 +48,13 @@ public class SymbolProvider {
      *                                  accepting a {@link CharStream}, or if any other reflection-related
      *                                  error occurs during instantiation.
      */
-    public SymbolProvider(Class<? extends Lexer> lexerClass) {
+    public TokenProvider(Class<? extends Lexer> lexerClass) {
         try {// Instantiate the lexer. ANTLR lexers require a CharStream, but we can pass null
             // for initialization and set the actual stream later for each tokenization operation.
             lexer = lexerClass.getConstructor(CharStream.class).newInstance((CharStream) null);
             lexer.removeErrorListeners();
             lexer.addErrorListener(Utils.rethrowingErrorListener());
-            formatter = SymbolFormatter.SIMPLE.withVocabulary(lexer.getVocabulary());
+            formatter = TokenFormatter.SIMPLE.withVocabulary(lexer.getVocabulary());
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
                  NoSuchMethodException e) {
             throw new IllegalArgumentException("Failed to instantiate the provided Lexer class. " +
@@ -64,65 +64,65 @@ public class SymbolProvider {
     }
 
     /**
-     * Generates a list of {@link Symbol}s from a raw input string.
+     * Generates a list of {@link Token}s from a raw input string.
      * <p>
      * This method takes a string, sets it as the input for the configured lexer,
      * and consumes the entire input to produce a complete list of symbols.
      *
      * @param input The source string to be tokenized by the lexer. Cannot be {@code null}.
-     * @return A {@link List} of {@link Symbol} objects generated from the input string.
+     * @return A {@link List} of {@link Token} objects generated from the input string.
      * The list will include the end-of-file (EOF) symbol.
      * @see org.antlr.v4.runtime.CharStreams#fromString(String)
      * @see org.antlr.v4.runtime.CommonTokenStream
      */
-    public List<Symbol> fromInput(String input) {
+    public List<Token> actual(String input) {
         //Setting the input stream has the side effect of resetting the lexer as well
         try {
             lexer.setInputStream(CharStreams.fromString(input));
             var tokenStream = new CommonTokenStream(lexer);
             tokenStream.fill(); // Eagerly process the entire input stream
-            return tokenStream.getTokens().stream().map(Symbol::new).toList();
-        } catch (SymbolParseException e) {
-            throw new SymbolParseException(input, e.getLine(), e.getPosition(), e.getMessage());
+            return tokenStream.getTokens();
+        } catch (TokenParseException e) {
+            throw new TokenParseException(input, e.getLine(), e.getPosition(), e.getMessage());
         }
     }
 
     /**
-     * Generates a list of {@link Symbol}s from a structured string specification.
+     * Generates a list of {@link Token}s from a structured string specification.
      * <p>
      * This method iteratively parses a string containing one or more symbol specifications
      * using the provider's currently configured symbol formatter. By default, this is
-     * {@link SymbolFormatter#SIMPLE}, so the input string should conform to its format.
+     * {@link TokenFormatter#SIMPLE}, so the input string should conform to its format.
      * The behavior of this method can be altered by providing a different formatter
-     * via {@link #setFormatter(SymbolFormatter)}.
+     * via {@link #setFormatter(TokenFormatter)}.
      * <p>
      * Whitespace between symbol specifications is ignored.
      *
      * @param input The string containing the symbol specifications.
-     * @return A {@link List} of {@link Symbol} objects generated from the specification.
+     * @return A {@link List} of {@link Token} objects generated from the specification.
      * @throws IllegalArgumentException if any part of the input string cannot be parsed.
-     * @see #setFormatter(SymbolFormatter)
-     * @see SymbolFormatter#parseList(CharSequence)
-     * @see SymbolFormatter#SIMPLE
+     * @see #setFormatter(TokenFormatter)
+     * @see TokenFormatter#parseList(CharSequence)
+     * @see TokenFormatter#SIMPLE
      */
-    public List<Symbol> fromSpec(String input) {
+    public List<Token> expected(String input) {
         return formatter.parseList(input);
     }
 
     /**
-     * Formats a given {@link Symbol} into a string using the currently configured formatter.
+     * Formats a given {@link Token} into a string using the currently configured formatter.
      * <p>
-     * By default, this method uses the {@link SymbolFormatter#SIMPLE} formatter, which produces
-     * a string representation that is compatible with the {@link #fromSpec(String)} method.
-     * The formatter can be customized for different output styles using {@link #setFormatter(SymbolFormatter)}.
+     * By default, this method uses the {@link TokenFormatter#SIMPLE} formatter, which produces
+     * a string representation that is compatible with the {@link #expected(String)} method.
+     * The formatter can be customized for different output styles using {@link #setFormatter(TokenFormatter)}.
      *
      * @param symbol The symbol to be formatted.
      * @return A string representation of the symbol.
-     * @see #fromSpec(String)
-     * @see #setFormatter(SymbolFormatter)
-     * @see SymbolFormatter#SIMPLE
+     * @see #expected(String)
+     * @see #setFormatter(TokenFormatter)
+     * @see TokenFormatter#SIMPLE
      */
-    public String format(Symbol symbol) {
+    public String format(Token symbol) {
         return formatter.format(symbol);
     }
 
@@ -130,24 +130,24 @@ public class SymbolProvider {
      * Overrides the default symbol formatter for this provider.
      * <p>
      * The provided formatter will be automatically configured with this provider's
-     * {@link Vocabulary}, ensuring that it can correctly resolve symbol type names.
+     * {@link Vocabulary}, ensuring that it can correctly resolve symbol getType names.
      *
-     * @param symbolFormatter The new formatter to use for the {@link #format(Symbol)} method.
+     * @param symbolFormatter The new formatter to use for the {@link #format(Token)} method.
      */
-    public void setFormatter(SymbolFormatter symbolFormatter) {
+    public void setFormatter(TokenFormatter symbolFormatter) {
         this.formatter = symbolFormatter.withVocabulary(lexer.getVocabulary());
     }
 
     /**
-     * Gets the current {@link SymbolFormatter} instance used by this provider.
+     * Gets the current {@link TokenFormatter} instance used by this provider.
      * <p>
-     * This is the formatter responsible for the behavior of the {@link #format(Symbol)}
-     * and {@link #fromSpec(String)} methods.
+     * This is the formatter responsible for the behavior of the {@link #format(Token)}
+     * and {@link #expected(String)} methods.
      *
      * @return The current symbol formatter.
-     * @see #setFormatter(SymbolFormatter)
+     * @see #setFormatter(TokenFormatter)
      */
-    public SymbolFormatter getFormatter() {
+    public TokenFormatter getFormatter() {
         return formatter;
     }
 

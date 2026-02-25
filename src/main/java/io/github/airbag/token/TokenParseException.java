@@ -1,44 +1,44 @@
-package io.github.airbag.symbol;
+package io.github.airbag.token;
 
 /**
  * An exception that is thrown when a symbol cannot be parsed.
  */
-public class SymbolParseException extends SymbolFormatterException {
+public class TokenParseException extends TokenFormatterException {
 
     private int line;
     private String input;
     private int position;
 
     /**
-     * Constructs a new {@code SymbolParseException} with the specified detail message.
+     * Constructs a new {@code TokenParseException} with the specified detail message.
      *
      * @param message the detail message (which is saved for later retrieval by the {@link Throwable#getMessage()} method).
      */
-    public SymbolParseException(String message) {
+    public TokenParseException(String message) {
         super(message);
     }
 
     /**
-     * Constructs a new {@code SymbolParseException} with the specified input, position, and detail message.
-     * The message is formatted to include the input and the error position.
+     * Constructs a new {@code TokenParseException} with the specified input, getCharPositionInLine, and detail message.
+     * The message is formatted to include the input and the error getCharPositionInLine.
      *
      * @param input    the input string that caused the parse exception.
-     * @param position the position in the input string where the error was found.
+     * @param position the getCharPositionInLine in the input string where the error was found.
      * @param message  the detail message explaining the parse error.
      */
-    public SymbolParseException(String input, int position, String message) {
+    public TokenParseException(String input, int position, String message) {
         super(constructMessage(input, position, message));
         this.input = input;
         this.position = position;
     }
 
-    public SymbolParseException(String input, int line, int position, String message) {
+    public TokenParseException(String input, int line, int position, String message) {
         super(constructMessage(input,line , position, message));
         this.input = input;
         this.position = position;
     }
 
-    public SymbolParseException(String message, int line, int position) {
+    public TokenParseException(String message, int line, int position) {
         super(message);
         this.line = line;
         this.position = position;
@@ -46,10 +46,10 @@ public class SymbolParseException extends SymbolFormatterException {
 
     /**
      * Constructs a detailed error message that includes the input string,
-     * marks the position of the error, and provides the given message.
+     * marks the getCharPositionInLine of the error, and provides the given message.
      *
      * @param input    The input string.
-     * @param position The index in the input where the error occurred.
+     * @param position The getTokenIndex in the input where the error occurred.
      * @param message  The specific error message.
      * @return A formatted string detailing the parse failure.
      */
@@ -88,9 +88,9 @@ public class SymbolParseException extends SymbolFormatterException {
 
 
     /**
-     * Gets the position where the error was found.
+     * Gets the getCharPositionInLine where the error was found.
      *
-     * @return the position where the error was found.
+     * @return the getCharPositionInLine where the error was found.
      */
     public int getPosition() {
         return position;

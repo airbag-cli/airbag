@@ -1,10 +1,10 @@
 package io.github.airbag.tree;
 
-import io.github.airbag.symbol.Symbol;
-import io.github.airbag.symbol.SymbolFormatter;
-import io.github.airbag.symbol.FormatterParsePosition;
+import io.github.airbag.token.TokenFormatter;
+import io.github.airbag.token.FormatterParsePosition;
 import io.github.airbag.tree.pattern.Pattern;
 import io.github.airbag.tree.pattern.PatternFormatter;
+import org.antlr.v4.runtime.Token;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,13 +33,13 @@ import java.util.function.Consumer;
  * via the {@link TreeFormatterBuilder#onRule(Consumer)},
  * {@link TreeFormatterBuilder#onTerminal(Consumer)}, and
  * {@link TreeFormatterBuilder#onError(Consumer)} methods. This allows for defining
- * distinct formats for each type of node within a tree.
+ * distinct formats for each getType of node within a tree.
  *
  * <p><b>Example: Defining Node Formats</b></p>
  * <pre>{@code
  * // This example defines a different format for rule nodes and terminal nodes.
  * // Rule nodes will be rendered as "(<rule_name> ...children... )"
- * // Terminal nodes will be rendered as "TOKEN_NAME:'text'"
+ * // Terminal nodes will be rendered as "TOKEN_NAME:'getText'"
  *
  * TreeFormatter treeFormatter = new TreeFormatterBuilder()
  *     .onRule(ruleNode -> ruleNode
@@ -50,11 +50,11 @@ import java.util.function.Consumer;
  *         .appendLiteral(")")
  *     )
  *     .onTerminal(terminalNode -> terminalNode
- *         .appendSymbol() // Uses the configured SymbolFormatter
+ *         .appendSymbol() // Uses the configured TokenFormatter
  *     )
  *     .toFormatter()
  *     .withSymbolFormatter(
- *         new SymbolFormatterBuilder().appendPattern("S:\\'x\\'").toFormatter()
+ *         new TokenFormatterBuilder().appendPattern("S:\\'x\\'").toFormatter()
  *     );
  *
  * // Example output for a simple tree:
@@ -98,7 +98,7 @@ public class NodeFormatterBuilder {
      * <b>Formatting:</b> This component always appends the specified string to the output.
      * <p>
      * <b>Parsing:</b> This component expects to find the exact same literal string in the
-     * input. If the literal is not found at the current position, parsing of this
+     * input. If the literal is not found at the current getCharPositionInLine, parsing of this
      * component fails.
      *
      * @param literal The literal string to append. Must not be null.
@@ -110,24 +110,24 @@ public class NodeFormatterBuilder {
     }
 
     /**
-     * Appends a printer/parser for a node's underlying {@link Symbol}.
+     * Appends a printer/parser for a node's underlying {@link Token}.
      * <p>
      * This component is polymorphic and only applies to terminal nodes of the tree
      * (i.e., {@link DerivationTree.Terminal} and {@link DerivationTree.Error}).
      * <p>
      * <b>Formatting:</b> If the current node is a terminal or error node, this component
-     * formats the associated {@link Symbol} using the {@link SymbolFormatter} configured
+     * formats the associated {@link Token} using the {@link TokenFormatter} configured
      * in the parent {@link TreeFormatter}. If the node is a {@link DerivationTree.Rule},
      * this component does nothing and formatting succeeds.
      * <p>
-     * <b>Parsing:</b> This component attempts to parse a {@link Symbol} from the input
-     * string using the configured {@link SymbolFormatter}. The parsed symbol is then
+     * <b>Parsing:</b> This component attempts to parse a {@link Token} from the input
+     * string using the configured {@link TokenFormatter}. The parsed symbol is then
      * used to construct a {@link DerivationTree.Terminal} or {@link DerivationTree.Error} node.
      * This component must be present in a node format if the tree contains terminal nodes.
      *
      * @return This builder.
-     * @see SymbolFormatter
-     * @see TreeFormatter#withSymbolFormatter(SymbolFormatter)
+     * @see TokenFormatter
+     * @see TreeFormatter#withSymbolFormatter(TokenFormatter)
      */
     public NodeFormatterBuilder appendSymbol() {
         printerParsers.add(new SymbolPrinterParser());
@@ -142,14 +142,14 @@ public class NodeFormatterBuilder {
      * <b>Formatting:</b> If the current node is a rule node, this component attempts to
      * format its identity. It first tries to get the rule's name from the ANTLR
      * {@link org.antlr.v4.runtime.Recognizer}. If successful, it appends the name. If the
-     * recognizer is not available or the rule index is out of bounds, it falls back to
-     * appending the integer rule index. If the node is not a rule node, this component
+     * recognizer is not available or the rule getTokenIndex is out of bounds, it falls back to
+     * appending the integer rule getTokenIndex. If the node is not a rule node, this component
      * does nothing and formatting succeeds.
      * <p>
      * <b>Parsing:</b> It attempts to parse a rule identity from the input. It first tries
      * to match a known rule name from the recognizer. If that fails or no recognizer is
-     * available, it attempts to parse an integer rule index. The result is used to set
-     * the index of the parsed rule node.
+     * available, it attempts to parse an integer rule getTokenIndex. The result is used to set
+     * the getTokenIndex of the parsed rule node.
      *
      * @return This builder.
      */
@@ -212,7 +212,7 @@ public class NodeFormatterBuilder {
      *
      * <p><b>Example: Children on new lines with indentation</b></p>
      * <pre>{@code
-     * // Produces a format where each child is on a new line and indented.
+     * // Produces a format where each child is on a new getLine and indented.
      * new TreeFormatterBuilder()
      *     .onRule(nodeBuilder -> nodeBuilder
      *         .appendRule()
@@ -317,18 +317,18 @@ public class NodeFormatterBuilder {
          * Formats a value from a {@link NodeFormatContext} into a string buffer.
          *
          * @param ctx the context holding the node and other values to be formatted.
-         * @param buf the buffer to append the formatted text to.
+         * @param buf the buffer to append the formatted getText to.
          * @return {@code true} if the formatting was successful, {@code false} otherwise.
          */
         boolean format(NodeFormatContext ctx, StringBuilder buf);
 
         /**
-         * Parses a text string, consuming characters and updating the {@link NodeParseContext}.
+         * Parses a getText string, consuming characters and updating the {@link NodeParseContext}.
          *
          * @param ctx      the context to store the parsed values.
-         * @param text     the text to parse.
-         * @param position the position to start parsing from.
-         * @return the new position after a successful parse, or a negative value if parsing fails.
+         * @param text     the getText to parse.
+         * @param position the getCharPositionInLine to getStartIndex parsing from.
+         * @return the new getCharPositionInLine after a successful parse, or a negative value if parsing fails.
          */
         int parse(NodeParseContext ctx, CharSequence text, int position);
     }
@@ -342,7 +342,7 @@ public class NodeFormatterBuilder {
 
     private static String textLookahead(CharSequence text, int position, int lookahead) {
         if (position == text.length()) {
-            return "<text end>";
+            return "<getText end>";
         }
         return text.subSequence(position, Math.min(text.length(), position + lookahead)).toString();
     }
@@ -389,12 +389,12 @@ public class NodeFormatterBuilder {
         public boolean format(NodeFormatContext ctx, StringBuilder buf) {
             return switch (ctx.node()) {
                 case DerivationTree.Terminal terminalNode -> {
-                    SymbolFormatter formatter = ctx.symbolFormatter();
+                    TokenFormatter formatter = ctx.symbolFormatter();
                     buf.append(formatter.format(terminalNode.symbol()));
                     yield true;
                 }
                 case DerivationTree.Error errorNode -> {
-                    SymbolFormatter formatter = ctx.symbolFormatter();
+                    TokenFormatter formatter = ctx.symbolFormatter();
                     buf.append(formatter.format(errorNode.symbol()));
                     yield true;
                 }
@@ -406,12 +406,12 @@ public class NodeFormatterBuilder {
         public int parse(NodeParseContext ctx, CharSequence text, int position) {
             validatePosition(text, position);
             FormatterParsePosition parsePosition = new FormatterParsePosition(position);
-            SymbolFormatter symbolFormatter = ctx.symbolFormatter();
+            TokenFormatter symbolFormatter = ctx.symbolFormatter();
             if (symbolFormatter == null) {
                 ctx.root().recordError(position, "No symbol formatter set.");
                 return ~position;
             }
-            Symbol symbol = symbolFormatter.parse(text, parsePosition);
+            Token symbol = symbolFormatter.parse(text, parsePosition);
             if (parsePosition.getErrorIndex() >= 0) {
                 String[] messages = parsePosition.getMessages().toArray(new String[0]);
                 int index = parsePosition.getIndex();
@@ -425,7 +425,7 @@ public class NodeFormatterBuilder {
             } else if (ctx instanceof RootParseContext.Error errorCtx) {
                 errorCtx.setSymbol(symbol);
             } else {
-                throw new RuntimeException("Wrong context type");
+                throw new RuntimeException("Wrong context getType");
             }
             return parsePosition.getIndex();
         }
@@ -455,7 +455,7 @@ public class NodeFormatterBuilder {
             if (numberEnd < 0) {
                 ctx.root()
                         .recordError(~numberEnd,
-                                "Expected an integer for a rule index but found '%s'".formatted(
+                                "Expected an integer for a rule getTokenIndex but found '%s'".formatted(
                                         textLookahead(text, position, 3)));
                 return numberEnd;
             }
@@ -668,7 +668,7 @@ public class NodeFormatterBuilder {
             if (ctx instanceof RootParseContext.Pattern patternCtx) {
                 patternCtx.setPattern(pattern);
             } else {
-                throw new RuntimeException("Wrong context type");
+                throw new RuntimeException("Wrong context getType");
             }
             return parsePosition.getIndex();
         }

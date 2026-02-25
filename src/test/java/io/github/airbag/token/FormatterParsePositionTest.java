@@ -1,4 +1,4 @@
-package io.github.airbag.symbol;
+package io.github.airbag.token;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,12 +17,12 @@ class FormatterParsePositionTest {
 
     @Test
     void testConstructorAndInitialIndex() {
-        assertEquals(0, position.getIndex(), "Initial index should be 0");
+        assertEquals(0, position.getIndex(), "Initial getTokenIndex should be 0");
         assertFalse(position.isSymbolIndex(), "isSymbolIndex should be false initially");
         assertTrue(position.getMessages().isEmpty(), "Messages should be empty initially");
 
         FormatterParsePosition newPosition = new FormatterParsePosition(5);
-        assertEquals(5, newPosition.getIndex(), "Initial index should be 5");
+        assertEquals(5, newPosition.getIndex(), "Initial getTokenIndex should be 5");
     }
 
     @Test
@@ -36,7 +36,7 @@ class FormatterParsePositionTest {
         position.appendMessage("Error 2");
         assertEquals(2, messages.size(), "Should have two messages");
         assertTrue(messages.contains("Error 2"), "Messages should contain 'Error 2'");
-        
+
         // Test appending duplicate message, should not increase size due to TreeSet
         position.appendMessage("Error 1");
         assertEquals(2, messages.size(), "Should still have two messages after appending duplicate");
@@ -66,40 +66,40 @@ class FormatterParsePositionTest {
 
     @Test
     void testSymbolIndex() {
-        assertEquals(-1, position.getSymbolIndex(), "Symbol index should be -1 initially");
+        assertEquals(-1, position.getSymbolIndex(), "Token getTokenIndex should be -1 initially");
         assertFalse(position.isSymbolIndex(), "isSymbolIndex should be false initially");
 
         position.setSymbolIndex(10);
-        assertEquals(10, position.getSymbolIndex(), "Symbol index should be 10");
-        assertTrue(position.isSymbolIndex(), "isSymbolIndex should be true after setting a valid index");
+        assertEquals(10, position.getSymbolIndex(), "Token getTokenIndex should be 10");
+        assertTrue(position.isSymbolIndex(), "isSymbolIndex should be true after setting a valid getTokenIndex");
 
         position.setSymbolIndex(-1);
-        assertEquals(-1, position.getSymbolIndex(), "Symbol index should be -1 after resetting");
+        assertEquals(-1, position.getSymbolIndex(), "Token getTokenIndex should be -1 after resetting");
         assertFalse(position.isSymbolIndex(), "isSymbolIndex should be false after resetting to -1");
     }
 
     @Test
     void testToString() {
         // Test default state
-        String expectedDefault = "FormatterParsePosition{index=0, symbolIndex=-1, messages=[]}";
+        String expectedDefault = "FormatterParsePosition{getTokenIndex=0, symbolIndex=-1, messages=[]}";
         assertEquals(expectedDefault, position.toString(), "toString should match default state");
 
         // Test with messages
         position.appendMessage("Error A");
         position.appendMessage("Error B");
         // Messages are stored in a TreeSet, so they will be sorted alphabetically
-        String expectedWithMessages = "FormatterParsePosition{index=0, symbolIndex=-1, messages=[Error A, Error B]}";
+        String expectedWithMessages = "FormatterParsePosition{getTokenIndex=0, symbolIndex=-1, messages=[Error A, Error B]}";
         assertEquals(expectedWithMessages, position.toString(), "toString should include messages");
 
         // Test with symbolIndex
         position.setSymbolIndex(5);
-        String expectedWithSymbolIndex = "FormatterParsePosition{index=0, symbolIndex=5, messages=[Error A, Error B]}";
+        String expectedWithSymbolIndex = "FormatterParsePosition{getTokenIndex=0, symbolIndex=5, messages=[Error A, Error B]}";
         assertEquals(expectedWithSymbolIndex, position.toString(), "toString should include symbolIndex");
 
-        // Test with different initial index
+        // Test with different initial getTokenIndex
         FormatterParsePosition indexedPosition = new FormatterParsePosition(10);
         indexedPosition.appendMessage("Indexed Error");
-        String expectedIndexed = "FormatterParsePosition{index=10, symbolIndex=-1, messages=[Indexed Error]}";
-        assertEquals(expectedIndexed, indexedPosition.toString(), "toString should reflect initial index and messages");
+        String expectedIndexed = "FormatterParsePosition{getTokenIndex=10, symbolIndex=-1, messages=[Indexed Error]}";
+        assertEquals(expectedIndexed, indexedPosition.toString(), "toString should reflect initial getTokenIndex and messages");
     }
 }

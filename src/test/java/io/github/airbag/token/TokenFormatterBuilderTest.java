@@ -1,7 +1,8 @@
-package io.github.airbag.symbol;
+package io.github.airbag.token;
 
-import io.github.airbag.symbol.SymbolFormatterBuilder.SymbolPrinterParser;
-import io.github.airbag.symbol.SymbolFormatterBuilder.TextPrinterParser;
+import io.github.airbag.token.TokenFormatterBuilder.TokenPrinterParser;
+import io.github.airbag.token.TokenFormatterBuilder.TextPrinterParser;
+import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.Vocabulary;
 import org.antlr.v4.runtime.VocabularyImpl;
 import org.junit.jupiter.api.Nested;
@@ -13,9 +14,9 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class SymbolFormatterBuilderTest {
+public class TokenFormatterBuilderTest {
 
-    private static final Symbol SYMBOL = Symbol.of()
+    private static final Token SYMBOL = new TokenBuilder()
             .index(0)
             .start(-1)
             .stop(2)
@@ -26,9 +27,9 @@ public class SymbolFormatterBuilderTest {
             .position(6)
             .get();
 
-    private static final SymbolFormatContext FORMAT_CTX = new SymbolFormatContext(SYMBOL, null);
+    private static final TokenFormatContext FORMAT_CTX = new TokenFormatContext(SYMBOL, null);
 
-    private static final String INPUT = "  <-10>   'My text is \\' quoted' --10\t\r\n  ";
+    private static final String INPUT = "  <-10>   'My getText is \\' quoted' --10\t\r\n  ";
 
     @Nested
     class IntegerPrinterParserTest {
@@ -38,7 +39,7 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testIntegerPrinterPositiveNumber() {
-            var integerPrinter = new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.INDEX,
+            var integerPrinter = new TokenFormatterBuilder.IntegerPrinterParser(TokenField.INDEX,
                     false);
             StringBuilder buf = new StringBuilder();
             boolean b = assertDoesNotThrow(() -> integerPrinter.format(FORMAT_CTX, buf));
@@ -48,7 +49,7 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testIntegerPrinterNegativeNumber() {
-            var integerPrinter = new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.CHANNEL,
+            var integerPrinter = new TokenFormatterBuilder.IntegerPrinterParser(TokenField.CHANNEL,
                     false);
             StringBuilder buf = new StringBuilder();
             boolean b = assertDoesNotThrow(() -> integerPrinter.format(FORMAT_CTX, buf));
@@ -58,9 +59,9 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testPrintDefaultValue() {
-            var strictPrinter = new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.START,
+            var strictPrinter = new TokenFormatterBuilder.IntegerPrinterParser(TokenField.START,
                     true);
-            var lenientPrinter = new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.START,
+            var lenientPrinter = new TokenFormatterBuilder.IntegerPrinterParser(TokenField.START,
                     false);
             StringBuilder buf = new StringBuilder();
             boolean b = assertDoesNotThrow(() -> strictPrinter.format(FORMAT_CTX, buf));
@@ -73,22 +74,22 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testPeekEmptyInput() {
-            var integerPrinterParser = new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.TYPE);
-            var ctx = new SymbolParseContext(null, null);
+            var integerPrinterParser = new TokenFormatterBuilder.IntegerPrinterParser(TokenField.TYPE);
+            var ctx = new TokenParseContext(null, null);
             assertEquals(~0, integerPrinterParser.peek(ctx, "", 0));
         }
 
         @Test
         void testParseEmptyInput() {
-            var integerPrinterParser = new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.TYPE);
-            var ctx = new SymbolParseContext(null, null);
+            var integerPrinterParser = new TokenFormatterBuilder.IntegerPrinterParser(TokenField.TYPE);
+            var ctx = new TokenParseContext(null, null);
             assertEquals(~0, integerPrinterParser.parse(ctx, "", 0));
         }
 
         @Test
         void testPeekWithInvalidPosition() {
-            var integerPrinterParser = new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.TYPE);
-            var ctx = new SymbolParseContext(null, null);
+            var integerPrinterParser = new TokenFormatterBuilder.IntegerPrinterParser(TokenField.TYPE);
+            var ctx = new TokenParseContext(null, null);
             assertThrows(IndexOutOfBoundsException.class,
                     () -> integerPrinterParser.peek(ctx, INPUT, 100));
             assertThrows(IndexOutOfBoundsException.class,
@@ -97,16 +98,16 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testPeekWithInvalidNumber() {
-            var integerPrinterParser = new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.TYPE);
-            var ctx = new SymbolParseContext(null, null);
+            var integerPrinterParser = new TokenFormatterBuilder.IntegerPrinterParser(TokenField.TYPE);
+            var ctx = new TokenParseContext(null, null);
             assertEquals(~1, integerPrinterParser.peek(ctx, " --10", 1));
             assertEquals(~0, integerPrinterParser.peek(ctx, " --10", 0));
         }
 
         @Test
         void testParseWithInvalidNumber() {
-            var integerPrinterParser = new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.TYPE);
-            var ctx = new SymbolParseContext(null, null);
+            var integerPrinterParser = new TokenFormatterBuilder.IntegerPrinterParser(TokenField.TYPE);
+            var ctx = new TokenParseContext(null, null);
             assertEquals(~1, integerPrinterParser.parse(ctx, " --10", 1));
             assertEquals("Expected an integer for field 'type' but found '--1'",
                     ctx.getErrorMessage());
@@ -114,35 +115,35 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testParseWithNegativeNumber() {
-            var integerPrinterParser = new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.TYPE);
-            var ctx = new SymbolParseContext(null, null);
+            var integerPrinterParser = new TokenFormatterBuilder.IntegerPrinterParser(TokenField.TYPE);
+            var ctx = new TokenParseContext(null, null);
             assertEquals(5, integerPrinterParser.parse(ctx, " --10", 2));
-            Symbol symbol = ctx.resolveFields();
-            assertEquals(-10, symbol.type());
+            Token symbol = ctx.resolveFields();
+            assertEquals(-10, symbol.getType());
         }
 
         @Test
         void testParseWithPositiveNumber() {
-            var integerPrinterParser = new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.TYPE);
-            var ctx = new SymbolParseContext(null, null);
+            var integerPrinterParser = new TokenFormatterBuilder.IntegerPrinterParser(TokenField.TYPE);
+            var ctx = new TokenParseContext(null, null);
             assertEquals(5, integerPrinterParser.parse(ctx, " 1050 -1000", 1));
-            Symbol symbol = ctx.resolveFields();
-            assertEquals(1050, symbol.type());
+            Token symbol = ctx.resolveFields();
+            assertEquals(1050, symbol.getType());
         }
 
         @Test
         void testParseWithLeadingZeros() {
-            var integerPrinterParser = new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.TYPE);
-            var ctx = new SymbolParseContext(null, null);
+            var integerPrinterParser = new TokenFormatterBuilder.IntegerPrinterParser(TokenField.TYPE);
+            var ctx = new TokenParseContext(null, null);
             assertEquals(5, integerPrinterParser.parse(ctx, " 0050 -1000", 1));
-            Symbol symbol = ctx.resolveFields();
-            assertEquals(50, symbol.type());
+            Token symbol = ctx.resolveFields();
+            assertEquals(50, symbol.getType());
         }
 
         @Test
         void testParseIntegerOverflow() {
-            var integerPrinterParser = new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.TYPE);
-            var ctx = new SymbolParseContext(null, null);
+            var integerPrinterParser = new TokenFormatterBuilder.IntegerPrinterParser(TokenField.TYPE);
+            var ctx = new TokenParseContext(null, null);
             String overflowValue = " " + "2147483648"; // Integer.MAX_VALUE + 1
             assertEquals(~1, integerPrinterParser.parse(ctx, overflowValue, 1));
             assertTrue(ctx.getErrorMessage().contains("is out of range for field 'type'"));
@@ -150,8 +151,8 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testParseIntegerUnderflow() {
-            var integerPrinterParser = new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.TYPE);
-            var ctx = new SymbolParseContext(null, null);
+            var integerPrinterParser = new TokenFormatterBuilder.IntegerPrinterParser(TokenField.TYPE);
+            var ctx = new TokenParseContext(null, null);
             String underflowValue = " " + "-2147483649"; // Integer.MIN_VALUE - 1
             assertEquals(~1, integerPrinterParser.parse(ctx, underflowValue, 1));
             assertTrue(ctx.getErrorMessage().contains("is out of range for field 'type'"));
@@ -159,17 +160,17 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testParseZero() {
-            var integerPrinterParser = new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.TYPE);
-            var ctx = new SymbolParseContext(null, null);
+            var integerPrinterParser = new TokenFormatterBuilder.IntegerPrinterParser(TokenField.TYPE);
+            var ctx = new TokenParseContext(null, null);
             assertEquals(2, integerPrinterParser.parse(ctx, " 0 ", 1));
-            Symbol symbol = ctx.resolveFields();
-            assertEquals(0, symbol.type());
+            Token symbol = ctx.resolveFields();
+            assertEquals(0, symbol.getType());
         }
 
         @Test
         void testParseWithNonNumeric() {
-            var integerPrinterParser = new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.TYPE);
-            var ctx = new SymbolParseContext(null, null);
+            var integerPrinterParser = new TokenFormatterBuilder.IntegerPrinterParser(TokenField.TYPE);
+            var ctx = new TokenParseContext(null, null);
             assertEquals(~1, integerPrinterParser.parse(ctx, " abc", 1));
             assertEquals("Expected an integer for field 'type' but found 'abc'",
                     ctx.getErrorMessage());
@@ -178,46 +179,46 @@ public class SymbolFormatterBuilderTest {
         @Test
         void testToString() {
             assertAll(() -> assertEquals("i",
-                            new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.TYPE,
+                            new TokenFormatterBuilder.IntegerPrinterParser(TokenField.TYPE,
                                     true).toString()),
                     () -> assertEquals("I",
-                            new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.TYPE,
+                            new TokenFormatterBuilder.IntegerPrinterParser(TokenField.TYPE,
                                     false).toString()),
                     () -> assertEquals("n",
-                            new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.INDEX,
+                            new TokenFormatterBuilder.IntegerPrinterParser(TokenField.INDEX,
                                     true).toString()),
                     () -> assertEquals("N",
-                            new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.INDEX,
+                            new TokenFormatterBuilder.IntegerPrinterParser(TokenField.INDEX,
                                     false).toString()),
                     () -> assertEquals("r",
-                            new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.LINE,
+                            new TokenFormatterBuilder.IntegerPrinterParser(TokenField.LINE,
                                     true).toString()),
                     () -> assertEquals("R",
-                            new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.LINE,
+                            new TokenFormatterBuilder.IntegerPrinterParser(TokenField.LINE,
                                     false).toString()),
                     () -> assertEquals("p",
-                            new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.POSITION,
+                            new TokenFormatterBuilder.IntegerPrinterParser(TokenField.POSITION,
                                     true).toString()),
                     () -> assertEquals("P",
-                            new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.POSITION,
+                            new TokenFormatterBuilder.IntegerPrinterParser(TokenField.POSITION,
                                     false).toString()),
                     () -> assertEquals("c",
-                            new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.CHANNEL,
+                            new TokenFormatterBuilder.IntegerPrinterParser(TokenField.CHANNEL,
                                     true).toString()),
                     () -> assertEquals("C",
-                            new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.CHANNEL,
+                            new TokenFormatterBuilder.IntegerPrinterParser(TokenField.CHANNEL,
                                     false).toString()),
                     () -> assertEquals("b",
-                            new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.START,
+                            new TokenFormatterBuilder.IntegerPrinterParser(TokenField.START,
                                     true).toString()),
                     () -> assertEquals("B",
-                            new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.START,
+                            new TokenFormatterBuilder.IntegerPrinterParser(TokenField.START,
                                     false).toString()),
                     () -> assertEquals("e",
-                            new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.STOP,
+                            new TokenFormatterBuilder.IntegerPrinterParser(TokenField.STOP,
                                     true).toString()),
                     () -> assertEquals("E",
-                            new SymbolFormatterBuilder.IntegerPrinterParser(SymbolField.STOP,
+                            new TokenFormatterBuilder.IntegerPrinterParser(TokenField.STOP,
                                     false).toString()));
         }
 
@@ -226,12 +227,12 @@ public class SymbolFormatterBuilderTest {
     @Nested
     class LiteralPrinterParserTest {
 
-        private static final SymbolFormatContext FORMAT_CTX = new SymbolFormatContext(null, null);
-        private static final SymbolParseContext PARSE_CTX = new SymbolParseContext(null, null);
+        private static final TokenFormatContext FORMAT_CTX = new TokenFormatContext(null, null);
+        private static final TokenParseContext PARSE_CTX = new TokenParseContext(null, null);
 
         @Test
         void testFormat() {
-            var printer = new SymbolFormatterBuilder.LiteralPrinterParser("=>");
+            var printer = new TokenFormatterBuilder.LiteralPrinterParser("=>");
             var buf = new StringBuilder();
             assertTrue(printer.format(FORMAT_CTX, buf));
             assertEquals("=>", buf.toString());
@@ -239,7 +240,7 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testFormatEmpty() {
-            var printer = new SymbolFormatterBuilder.LiteralPrinterParser("");
+            var printer = new TokenFormatterBuilder.LiteralPrinterParser("");
             var buf = new StringBuilder();
             assertTrue(printer.format(FORMAT_CTX, buf));
             assertTrue(buf.isEmpty());
@@ -247,72 +248,72 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testPeekSuccess() {
-            var parser = new SymbolFormatterBuilder.LiteralPrinterParser("=>");
+            var parser = new TokenFormatterBuilder.LiteralPrinterParser("=>");
             assertEquals(2, parser.peek(PARSE_CTX, "=> 123", 0));
             assertEquals(5, parser.peek(PARSE_CTX, "abc=>123", 3));
         }
 
         @Test
         void testPeekFailure() {
-            var parser = new SymbolFormatterBuilder.LiteralPrinterParser("=>");
+            var parser = new TokenFormatterBuilder.LiteralPrinterParser("=>");
             assertEquals(~0, parser.peek(PARSE_CTX, "-> 123", 0));
         }
 
         @Test
         void testPeekOutOfBounds() {
-            var parser = new SymbolFormatterBuilder.LiteralPrinterParser("=>");
+            var parser = new TokenFormatterBuilder.LiteralPrinterParser("=>");
             assertEquals(~0, parser.peek(PARSE_CTX, "=", 0));
             assertEquals(~1, parser.peek(PARSE_CTX, "a=", 1));
         }
 
         @Test
         void testPeekAtEnd() {
-            var parser = new SymbolFormatterBuilder.LiteralPrinterParser("=>");
+            var parser = new TokenFormatterBuilder.LiteralPrinterParser("=>");
             assertEquals(2, parser.peek(PARSE_CTX, "=>", 0));
         }
 
         @Test
         void testPeekEmpty() {
-            var parser = new SymbolFormatterBuilder.LiteralPrinterParser("");
+            var parser = new TokenFormatterBuilder.LiteralPrinterParser("");
             assertEquals(0, parser.peek(PARSE_CTX, "abc", 0));
             assertEquals(3, parser.peek(PARSE_CTX, "abc", 3));
         }
 
         @Test
         void testPeekInvalidPosition() {
-            var parser = new SymbolFormatterBuilder.LiteralPrinterParser("=>");
+            var parser = new TokenFormatterBuilder.LiteralPrinterParser("=>");
             assertThrows(IndexOutOfBoundsException.class, () -> parser.peek(PARSE_CTX, "=>", -1));
             assertThrows(IndexOutOfBoundsException.class, () -> parser.peek(PARSE_CTX, "=>", 3));
         }
 
         @Test
         void testParseSuccess() {
-            var parser = new SymbolFormatterBuilder.LiteralPrinterParser("=>");
-            var ctx = new SymbolParseContext(null, null);
+            var parser = new TokenFormatterBuilder.LiteralPrinterParser("=>");
+            var ctx = new TokenParseContext(null, null);
             assertEquals(2, parser.parse(ctx, "=>123", 0));
             assertNull(ctx.getErrorMessage());
         }
 
         @Test
         void testParseFailure() {
-            var parser = new SymbolFormatterBuilder.LiteralPrinterParser("=>");
-            var ctx = new SymbolParseContext(null, null);
+            var parser = new TokenFormatterBuilder.LiteralPrinterParser("=>");
+            var ctx = new TokenParseContext(null, null);
             assertEquals(~0, parser.parse(ctx, "->123", 0));
             assertEquals("Expected literal '=>' but found '->'", ctx.getErrorMessage());
         }
 
         @Test
         void testParseFailureWithSpecialChars() {
-            var parser = new SymbolFormatterBuilder.LiteralPrinterParser("a\nb");
-            var ctx = new SymbolParseContext(null, null);
+            var parser = new TokenFormatterBuilder.LiteralPrinterParser("a\nb");
+            var ctx = new TokenParseContext(null, null);
             assertEquals(~0, parser.parse(ctx, "acb", 0));
             assertEquals("Expected literal 'a\\nb' but found 'acb'", ctx.getErrorMessage());
         }
 
         @Test
         void testParseEmpty() {
-            var parser = new SymbolFormatterBuilder.LiteralPrinterParser("");
-            var ctx = new SymbolParseContext(null, null);
+            var parser = new TokenFormatterBuilder.LiteralPrinterParser("");
+            var ctx = new TokenParseContext(null, null);
             assertEquals(0, parser.parse(ctx, "abc", 0));
             assertNull(ctx.getErrorMessage());
             assertEquals(3, parser.parse(ctx, "abc", 3));
@@ -322,49 +323,49 @@ public class SymbolFormatterBuilderTest {
         @Test
         void testToString() {
             assertAll(() -> assertEquals("'abc'",
-                            new SymbolFormatterBuilder.LiteralPrinterParser("abc").toString()),
+                            new TokenFormatterBuilder.LiteralPrinterParser("abc").toString()),
                     () -> assertEquals("",
-                            new SymbolFormatterBuilder.LiteralPrinterParser("").toString()),
+                            new TokenFormatterBuilder.LiteralPrinterParser("").toString()),
                     () -> assertEquals("'a[b'",
-                            new SymbolFormatterBuilder.LiteralPrinterParser("a[b").toString()),
+                            new TokenFormatterBuilder.LiteralPrinterParser("a[b").toString()),
                     () -> assertEquals("'a[b]c'",
-                            new SymbolFormatterBuilder.LiteralPrinterParser("a[b]c").toString()),
+                            new TokenFormatterBuilder.LiteralPrinterParser("a[b]c").toString()),
                     () -> assertEquals("a\\'\\[\\b\\]",
-                            new SymbolFormatterBuilder.LiteralPrinterParser("a'[b]").toString()),
+                            new TokenFormatterBuilder.LiteralPrinterParser("a'[b]").toString()),
                     () -> assertEquals("\\s",
-                            new SymbolFormatterBuilder.LiteralPrinterParser("s").toString()),
+                            new TokenFormatterBuilder.LiteralPrinterParser("s").toString()),
                     () -> assertEquals("'[]'",
-                            new SymbolFormatterBuilder.LiteralPrinterParser("[]").toString()),
+                            new TokenFormatterBuilder.LiteralPrinterParser("[]").toString()),
                     () -> assertEquals("\\[",
-                            new SymbolFormatterBuilder.LiteralPrinterParser("[").toString()));
+                            new TokenFormatterBuilder.LiteralPrinterParser("[").toString()));
         }
     }
 
     @Nested
     class TextPrinterParserTest {
 
-        // FORMAT_CTX with a Symbol that has some text
-        private static final Symbol SYMBOL_WITH_TEXT = Symbol.of().text("hello world").get();
-        private static final SymbolFormatContext FORMAT_CTX_TEXT = new SymbolFormatContext(
+        // FORMAT_CTX with a Token that has some getText
+        private static final Token SYMBOL_WITH_TEXT = new TokenBuilder().text("hello world").get();
+        private static final TokenFormatContext FORMAT_CTX_TEXT = new TokenFormatContext(
                 SYMBOL_WITH_TEXT,
                 null);
 
-        private static final Symbol SYMBOL_EMPTY_TEXT = Symbol.of().text("").get();
-        private static final SymbolFormatContext FORMAT_CTX_EMPTY = new SymbolFormatContext(
+        private static final Token SYMBOL_EMPTY_TEXT = new TokenBuilder().text("").get();
+        private static final TokenFormatContext FORMAT_CTX_EMPTY = new TokenFormatContext(
                 SYMBOL_EMPTY_TEXT,
                 null);
 
         // This is a test helper that creates a TextPrinterParser and wraps it in a CompositePrinterParser
-        // so it can be used in SymbolParseContext for peek/parse tests where successors are needed.
-        private SymbolParseContext createTextParseContext(TextPrinterParser textParser,
-                                                          SymbolPrinterParser... successors) {
-            List<SymbolPrinterParser> chain = new ArrayList<>();
+        // so it can be used in TokenParseContext for peek/parse tests where successors are needed.
+        private TokenParseContext createTextParseContext(TextPrinterParser textParser,
+                                                         TokenPrinterParser... successors) {
+            List<TokenPrinterParser> chain = new ArrayList<>();
             chain.add(textParser); // The parser being tested
             Collections.addAll(chain, successors); // Successors in the chain
-            SymbolFormatterBuilder.CompositePrinterParser rootParser = new SymbolFormatterBuilder.CompositePrinterParser(
+            TokenFormatterBuilder.CompositePrinterParser rootParser = new TokenFormatterBuilder.CompositePrinterParser(
                     chain,
                     false);
-            return new SymbolParseContext(rootParser, null);
+            return new TokenParseContext(rootParser, null);
         }
 
         // --- format() tests ---
@@ -390,8 +391,8 @@ public class SymbolFormatterBuilderTest {
             // Assuming TextOption.ESCAPED escapes \n, \t, \, '
             var printer = new TextPrinterParser(TextOption.ESCAPED);
             StringBuilder buf = new StringBuilder();
-            Symbol symbol = Symbol.of().text("hello\nworld\t'\\").get(); // Text with special chars
-            SymbolFormatContext ctx = new SymbolFormatContext(symbol, null);
+            Token symbol = new TokenBuilder().text("hello\nworld\t'\\").get(); // Text with special chars
+            TokenFormatContext ctx = new TokenFormatContext(symbol, null);
 
             assertTrue(printer.format(ctx, buf));
             assertEquals("hello\\nworld\\t'\\\\", buf.toString()); // Expected escaped string
@@ -411,7 +412,7 @@ public class SymbolFormatterBuilderTest {
         @Test
         void testPeekEmptyInput() {
             TextPrinterParser textParser = new TextPrinterParser(TextOption.NOTHING);
-            SymbolParseContext ctx = createTextParseContext(textParser);
+            TokenParseContext ctx = createTextParseContext(textParser);
             assertEquals(0, textParser.peek(ctx, "", 0));
         }
 
@@ -421,7 +422,7 @@ public class SymbolFormatterBuilderTest {
             var ctx = createTextParseContext(textParser);
             int end = textParser.parse(ctx, "", 0);
             assertEquals(0, end);
-            assertEquals("", ctx.resolveFields().text());
+            assertEquals("", ctx.resolveFields().getText());
             assertNull(ctx.getErrorMessage());
         }
 
@@ -429,18 +430,18 @@ public class SymbolFormatterBuilderTest {
         void testPeekNothingOptionNoSuccessors() {
             // TextPrinterParser is the only parser in the chain
             TextPrinterParser textParser = new TextPrinterParser(TextOption.NOTHING);
-            SymbolParseContext ctx = createTextParseContext(textParser);
+            TokenParseContext ctx = createTextParseContext(textParser);
 
-            assertEquals("some text to parse".length(),
-                    textParser.peek(ctx, "some text to parse", 0));
+            assertEquals("some getText to parse".length(),
+                    textParser.peek(ctx, "some getText to parse", 0));
         }
 
         @Test
         void testPeekNothingOptionWithLiteralSuccessor() {
             // TextPrinterParser followed by a LiteralPrinterParser("END")
             TextPrinterParser textParser = new TextPrinterParser(TextOption.NOTHING);
-            SymbolParseContext ctx = createTextParseContext(textParser,
-                    new SymbolFormatterBuilder.LiteralPrinterParser("END"));
+            TokenParseContext ctx = createTextParseContext(textParser,
+                    new TokenFormatterBuilder.LiteralPrinterParser("END"));
             assertEquals("hello world".length(), textParser.peek(ctx, "hello worldEND", 0));
         }
 
@@ -449,8 +450,8 @@ public class SymbolFormatterBuilderTest {
             // TextPrinterParser followed by a LiteralPrinterParser("END")
             // But "END" is not in the input
            TextPrinterParser textParser = new TextPrinterParser(TextOption.NOTHING);
-            SymbolParseContext ctx = createTextParseContext(textParser,
-                    new SymbolFormatterBuilder.LiteralPrinterParser("END"));
+            TokenParseContext ctx = createTextParseContext(textParser,
+                    new TokenFormatterBuilder.LiteralPrinterParser("END"));
             assertEquals("hello world".length(), textParser.peek(ctx, "hello world", 0));
         }
 
@@ -459,8 +460,8 @@ public class SymbolFormatterBuilderTest {
             // TextPrinterParser(ESCAPED) followed by LiteralPrinterParser("END")
             // Input has escaped characters
             TextPrinterParser textPrinterParser = new TextPrinterParser(TextOption.ESCAPED);
-            SymbolParseContext ctx = createTextParseContext(textPrinterParser,
-                    new SymbolFormatterBuilder.LiteralPrinterParser("END"));
+            TokenParseContext ctx = createTextParseContext(textPrinterParser,
+                    new TokenFormatterBuilder.LiteralPrinterParser("END"));
 
             assertEquals(12, textPrinterParser.peek(ctx, "hello\\nworldEND", 0));
         }
@@ -470,9 +471,9 @@ public class SymbolFormatterBuilderTest {
             // TextPrinterParser(ESCAPED) followed by LiteralPrinterParser("END")
             // Input has invalid escape sequence
             TextPrinterParser textPrinterParser = new TextPrinterParser(TextOption.ESCAPED);
-            SymbolParseContext ctx = createTextParseContext(textPrinterParser,
-                    new SymbolFormatterBuilder.LiteralPrinterParser("END"));
-            assertEquals(~5, textPrinterParser.peek(ctx, "hello\\qworldEND", 0)); // invalid escape at position 5
+            TokenParseContext ctx = createTextParseContext(textPrinterParser,
+                    new TokenFormatterBuilder.LiteralPrinterParser("END"));
+            assertEquals(~5, textPrinterParser.peek(ctx, "hello\\qworldEND", 0)); // invalid escape at getCharPositionInLine 5
         }
 
         // --- parse() tests ---
@@ -481,9 +482,9 @@ public class SymbolFormatterBuilderTest {
         void testParseNothingOption() {
             TextPrinterParser textPrinterParser = new TextPrinterParser(TextOption.NOTHING);
             var ctx = createTextParseContext(textPrinterParser);
-            int end = textPrinterParser.parse(ctx, "simple text", 0);
-            assertEquals("simple text".length(), end);
-            assertEquals("simple text", ctx.resolveFields().text());
+            int end = textPrinterParser.parse(ctx, "simple getText", 0);
+            assertEquals("simple getText".length(), end);
+            assertEquals("simple getText", ctx.resolveFields().getText());
             assertNull(ctx.getErrorMessage());
         }
 
@@ -494,7 +495,7 @@ public class SymbolFormatterBuilderTest {
 
             int end = textPrinterParser.parse(ctx, "escaped\\ntext", 0);
             assertEquals("escaped\\ntext".length(), end); // consumes entire string
-            assertEquals("escaped\ntext", ctx.resolveFields().text()); // unescaped result
+            assertEquals("escaped\ntext", ctx.resolveFields().getText()); // unescaped result
             assertNull(ctx.getErrorMessage());
         }
 
@@ -504,7 +505,7 @@ public class SymbolFormatterBuilderTest {
             var ctx = createTextParseContext(textPrinterParser);
 
             int end = textPrinterParser.parse(ctx, "invalid\\qescape", 0);
-            assertEquals(~7, end); // Fails at '\q' (position 7)
+            assertEquals(~7, end); // Fails at '\q' (getCharPositionInLine 7)
             assertNotNull(ctx.getErrorMessage());
             assertEquals("Invalid escape sequence found near 'invalid\\qe'", ctx.getErrorMessage());
         }
@@ -524,8 +525,8 @@ public class SymbolFormatterBuilderTest {
         }
 
         @Test
-        void testParseWithTextInsideOptionalGroup() throws SymbolParseException {
-            var formatter = new SymbolFormatterBuilder()
+        void testParseWithTextInsideOptionalGroup() throws TokenParseException {
+            var formatter = new TokenFormatterBuilder()
                     .appendLiteral("START-")
                     .startOptional()
                     .appendText()
@@ -535,19 +536,19 @@ public class SymbolFormatterBuilderTest {
                     .toFormatter();
 
             // Optional part is present
-            Symbol symbol1 = formatter.parse("START-text-MIDDLE-END");
-            assertEquals("text", symbol1.text());
+            Token symbol1 = formatter.parse("START-getText-MIDDLE-END");
+            assertEquals("getText", symbol1.getText());
 
             // Optional part is absent
-            Symbol symbol2 = formatter.parse("START--END");
-            assertEquals(SymbolField.TEXT.getDefault(), symbol2.text());
+            Token symbol2 = formatter.parse("START--END");
+            assertEquals(TokenField.TEXT.getDefault(), symbol2.getText());
         }
     }
 
     @Nested
     class SymbolicTypePrinterParserTest {
 
-        private static final SymbolFormatterBuilder.SymbolicTypePrinterParser PARSER = new SymbolFormatterBuilder.SymbolicTypePrinterParser();
+        private static final TokenFormatterBuilder.SymbolicTypePrinterParser PARSER = new TokenFormatterBuilder.SymbolicTypePrinterParser();
         private static final Vocabulary VOCABULARY;
 
         static {
@@ -565,14 +566,14 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testFormatSuccess() {
-            Symbol symbolA = Symbol.of().type(1).get(); // Type 1 is "A"
-            SymbolFormatContext ctxA = new SymbolFormatContext(symbolA, VOCABULARY);
+            Token symbolA = new TokenBuilder().type(1).get(); // Type 1 is "A"
+            TokenFormatContext ctxA = new TokenFormatContext(symbolA, VOCABULARY);
             StringBuilder bufA = new StringBuilder();
             assertTrue(PARSER.format(ctxA, bufA));
             assertEquals("A", bufA.toString());
 
-            Symbol symbolEof = Symbol.of().type(Symbol.EOF).get();
-            SymbolFormatContext ctxEof = new SymbolFormatContext(symbolEof, VOCABULARY);
+            Token symbolEof = new TokenBuilder().type(Token.EOF).get();
+            TokenFormatContext ctxEof = new TokenFormatContext(symbolEof, VOCABULARY);
             StringBuilder bufEof = new StringBuilder();
             assertTrue(PARSER.format(ctxEof, bufEof));
             assertEquals("EOF", bufEof.toString());
@@ -580,8 +581,8 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testFormatNoVocabulary() {
-            Symbol symbol = Symbol.of().type(1).get();
-            SymbolFormatContext ctx = new SymbolFormatContext(symbol, null); // No vocabulary
+            Token symbol = new TokenBuilder().type(1).get();
+            TokenFormatContext ctx = new TokenFormatContext(symbol, null); // No vocabulary
             StringBuilder buf = new StringBuilder();
             assertFalse(PARSER.format(ctx, buf));
             assertTrue(buf.isEmpty());
@@ -593,8 +594,8 @@ public class SymbolFormatterBuilderTest {
             String[] symbolicNames = {null, "A", null};
             Vocabulary vocab = new VocabularyImpl(literalNames, symbolicNames);
 
-            Symbol symbol = Symbol.of().type(2).get(); // Type 2 has literal name 'b' but no symbolic name
-            SymbolFormatContext ctx = new SymbolFormatContext(symbol, vocab);
+            Token symbol = new TokenBuilder().type(2).get(); // Type 2 has literal name 'b' but no symbolic name
+            TokenFormatContext ctx = new TokenFormatContext(symbol, vocab);
             StringBuilder buf = new StringBuilder();
             assertFalse(PARSER.format(ctx, buf));
             assertTrue(buf.isEmpty());
@@ -602,60 +603,60 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testPeekSuccess() {
-            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            TokenParseContext ctx = new TokenParseContext(null, VOCABULARY);
             assertEquals("A".length(), PARSER.peek(ctx, "A rest of string", 0));
             assertEquals(1 + "B".length(), PARSER.peek(ctx, " B rest of string", 1));
         }
 
         @Test
         void testPeekLongestMatch() {
-            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            TokenParseContext ctx = new TokenParseContext(null, VOCABULARY);
             assertEquals("LONGEST_B".length(), PARSER.peek(ctx, "LONGEST_B", 0));
             assertEquals("LONG".length(), PARSER.peek(ctx, "LONG", 0));
         }
 
         @Test
         void testPeekFailure() {
-            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            TokenParseContext ctx = new TokenParseContext(null, VOCABULARY);
             assertEquals(~0, PARSER.peek(ctx, "D rest of string", 0)); // D is not a symbolic name
         }
 
         @Test
         void testPeekNoVocabulary() {
-            SymbolParseContext ctx = new SymbolParseContext(null, null); // No vocabulary
+            TokenParseContext ctx = new TokenParseContext(null, null); // No vocabulary
             assertEquals(~0, PARSER.peek(ctx, "A", 0));
         }
 
         @Test
         void testPeekNoInput() {
-            SymbolParseContext ctx = new SymbolParseContext(null,VOCABULARY); // No vocabulary
+            TokenParseContext ctx = new TokenParseContext(null,VOCABULARY); // No vocabulary
             assertEquals(~0, PARSER.peek(ctx, "", 0));
         }
 
         @Test
         void testParseEmptyInput() {
-            SymbolParseContext ctx = new SymbolParseContext(null,VOCABULARY); // No vocabulary
+            TokenParseContext ctx = new TokenParseContext(null,VOCABULARY); // No vocabulary
             assertEquals(~0, PARSER.parse(ctx, "", 0));
         }
 
         @Test
         void testPeekOutOfBounds() {
-            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            TokenParseContext ctx = new TokenParseContext(null, VOCABULARY);
             assertThrows(IndexOutOfBoundsException.class, () -> PARSER.peek(ctx, "A", -1));
             assertThrows(IndexOutOfBoundsException.class, () -> PARSER.peek(ctx, "A", 2));
         }
 
         @Test
         void testParseSuccess() {
-            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            TokenParseContext ctx = new TokenParseContext(null, VOCABULARY);
             assertEquals("A".length(), PARSER.parse(ctx, "A rest", 0));
-            assertEquals(1, ctx.resolveFields().type()); // Type 1 is "A"
+            assertEquals(1, ctx.resolveFields().getType()); // Type 1 is "A"
             assertNull(ctx.getErrorMessage());
         }
 
         @Test
         void testParseFailure() {
-            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            TokenParseContext ctx = new TokenParseContext(null, VOCABULARY);
             assertEquals(~0, PARSER.parse(ctx, "D rest", 0));
             assertNotNull(ctx.getErrorMessage());
             assertEquals("Unrecognized symbolic type name starting with 'D res'", ctx.getErrorMessage());
@@ -663,7 +664,7 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testParseNoVocabulary() {
-            SymbolParseContext ctx = new SymbolParseContext(null, null); // No vocabulary
+            TokenParseContext ctx = new TokenParseContext(null, null); // No vocabulary
             assertEquals(~0, PARSER.parse(ctx, "A rest", 0));
             assertNotNull(ctx.getErrorMessage());
             assertEquals("No vocabulary set", ctx.getErrorMessage());
@@ -671,23 +672,23 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testParseWithAmbiguousSymbolicName() {
-            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            TokenParseContext ctx = new TokenParseContext(null, VOCABULARY);
             assertEquals("B".length(), PARSER.parse(ctx, "B", 0));
-            assertEquals(2, ctx.resolveFields().type()); // Should resolve to the first type (2) for "B"
+            assertEquals(2, ctx.resolveFields().getType()); // Should resolve to the first getType (2) for "B"
         }
 
         @Test
         void testParseLongestMatch() {
-            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            TokenParseContext ctx = new TokenParseContext(null, VOCABULARY);
             assertEquals("LONGEST_B".length(), PARSER.parse(ctx, "LONGEST_B", 0));
-            assertEquals(5, ctx.resolveFields().type());
+            assertEquals(5, ctx.resolveFields().getType());
         }
 
         @Test
         void testParseEOF() {
-            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            TokenParseContext ctx = new TokenParseContext(null, VOCABULARY);
             assertEquals("EOF".length(), PARSER.parse(ctx, "EOF", 0));
-            assertEquals(Symbol.EOF, ctx.resolveFields().type());
+            assertEquals(Token.EOF, ctx.resolveFields().getType());
         }
 
         @Test
@@ -699,7 +700,7 @@ public class SymbolFormatterBuilderTest {
     @Nested
     class LiteralTypePrinterParserTest {
 
-        private static final SymbolFormatterBuilder.LiteralTypePrinterParser PARSER = new SymbolFormatterBuilder.LiteralTypePrinterParser();
+        private static final TokenFormatterBuilder.LiteralTypePrinterParser PARSER = new TokenFormatterBuilder.LiteralTypePrinterParser();
         private static final Vocabulary VOCABULARY;
 
         static {
@@ -716,8 +717,8 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testFormatSuccess() {
-            Symbol symbol = Symbol.of().type(1).get(); // Type 1 is literal 'a'
-            SymbolFormatContext ctx = new SymbolFormatContext(symbol, VOCABULARY);
+            Token symbol = new TokenBuilder().type(1).get(); // Type 1 is literal 'a'
+            TokenFormatContext ctx = new TokenFormatContext(symbol, VOCABULARY);
             StringBuilder buf = new StringBuilder();
             assertTrue(PARSER.format(ctx, buf));
             assertEquals("'a'", buf.toString());
@@ -725,8 +726,8 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testFormatNoVocabulary() {
-            Symbol symbol = Symbol.of().type(1).get();
-            SymbolFormatContext ctx = new SymbolFormatContext(symbol, null); // No vocabulary
+            Token symbol = new TokenBuilder().type(1).get();
+            TokenFormatContext ctx = new TokenFormatContext(symbol, null); // No vocabulary
             StringBuilder buf = new StringBuilder();
             assertFalse(PARSER.format(ctx, buf));
             assertTrue(buf.isEmpty());
@@ -734,8 +735,8 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testFormatNoLiteralName() {
-            Symbol symbol = Symbol.of().type(3).get(); // Type 3 has symbolic name C but no literal name
-            SymbolFormatContext ctx = new SymbolFormatContext(symbol, VOCABULARY);
+            Token symbol = new TokenBuilder().type(3).get(); // Type 3 has symbolic name C but no literal name
+            TokenFormatContext ctx = new TokenFormatContext(symbol, VOCABULARY);
             StringBuilder buf = new StringBuilder();
             assertFalse(PARSER.format(ctx, buf));
             assertTrue(buf.isEmpty());
@@ -743,62 +744,62 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testPeekSuccess() {
-            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            TokenParseContext ctx = new TokenParseContext(null, VOCABULARY);
             assertEquals("'a'".length(), PARSER.peek(ctx, "'a' rest of string", 0));
             assertEquals(1 + "'b'".length(), PARSER.peek(ctx, " 'b' rest of string", 1));
         }
 
         @Test
         void testPeekLongestMatch() {
-            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            TokenParseContext ctx = new TokenParseContext(null, VOCABULARY);
             assertEquals("'longest_b'".length(), PARSER.peek(ctx, "'longest_b'", 0));
             assertEquals("'long'".length(), PARSER.peek(ctx, "'long'", 0));
         }
 
         @Test
         void testPeekFailure() {
-            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            TokenParseContext ctx = new TokenParseContext(null, VOCABULARY);
             assertEquals(~0, PARSER.peek(ctx, "'d' rest of string", 0)); // 'd' is not in vocabulary
         }
 
         @Test
         void testPeekNoVocabulary() {
-            SymbolParseContext ctx = new SymbolParseContext(null, null); // No vocabulary
+            TokenParseContext ctx = new TokenParseContext(null, null); // No vocabulary
             assertEquals(~0, PARSER.peek(ctx, "'a'", 0));
         }
 
         @Test
         void testPeekOutOfBounds() {
-            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            TokenParseContext ctx = new TokenParseContext(null, VOCABULARY);
             assertThrows(IndexOutOfBoundsException.class, () -> PARSER.peek(ctx, "'a'", -1));
             assertThrows(IndexOutOfBoundsException.class, () -> PARSER.peek(ctx, "'a'", 4));
         }
 
         @Test
         void testPeekNoInput() {
-            SymbolParseContext ctx = new SymbolParseContext(null,VOCABULARY); // No vocabulary
+            TokenParseContext ctx = new TokenParseContext(null,VOCABULARY); // No vocabulary
             assertEquals(~0, PARSER.peek(ctx, "", 0));
         }
 
         @Test
         void testParseEmptyInput() {
-            SymbolParseContext ctx = new SymbolParseContext(null,VOCABULARY); // No vocabulary
+            TokenParseContext ctx = new TokenParseContext(null,VOCABULARY); // No vocabulary
             assertEquals(~0, PARSER.parse(ctx, "", 0));
         }
 
         @Test
         void testParseSuccess() {
-            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            TokenParseContext ctx = new TokenParseContext(null, VOCABULARY);
             assertEquals("'a'".length(), PARSER.parse(ctx, "'a' rest", 0));
-            Symbol result = ctx.resolveFields();
-            assertEquals(1, result.type());
-            assertEquals("a", result.text());
+            Token result = ctx.resolveFields();
+            assertEquals(1, result.getType());
+            assertEquals("a", result.getText());
             assertNull(ctx.getErrorMessage());
         }
 
         @Test
         void testParseFailure() {
-            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            TokenParseContext ctx = new TokenParseContext(null, VOCABULARY);
             assertEquals(~0, PARSER.parse(ctx, "'d' rest", 0));
             assertNotNull(ctx.getErrorMessage());
             assertEquals("Unrecognized literal type name starting with ''d' r'", ctx.getErrorMessage());
@@ -806,7 +807,7 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testParseNoVocabulary() {
-            SymbolParseContext ctx = new SymbolParseContext(null, null); // No vocabulary
+            TokenParseContext ctx = new TokenParseContext(null, null); // No vocabulary
             assertEquals(~0, PARSER.parse(ctx, "'a' rest", 0));
             assertNotNull(ctx.getErrorMessage());
             assertEquals("No vocabulary set", ctx.getErrorMessage());
@@ -814,18 +815,18 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testParseWithAmbiguousLiteralName() {
-            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            TokenParseContext ctx = new TokenParseContext(null, VOCABULARY);
             assertEquals("'b'".length(), PARSER.parse(ctx, "'b'", 0));
-            assertEquals(2, ctx.resolveFields().type()); // Should resolve to the first type (2) for "'b'"
+            assertEquals(2, ctx.resolveFields().getType()); // Should resolve to the first getType (2) for "'b'"
         }
 
         @Test
         void testParseLongestMatch() {
-            SymbolParseContext ctx = new SymbolParseContext(null, VOCABULARY);
+            TokenParseContext ctx = new TokenParseContext(null, VOCABULARY);
             assertEquals("'longest_b'".length(), PARSER.parse(ctx, "'longest_b'", 0));
-            Symbol result = ctx.resolveFields();
-            assertEquals(5, result.type());
-            assertEquals("longest_b", result.text());
+            Token result = ctx.resolveFields();
+            assertEquals(5, result.getType());
+            assertEquals("longest_b", result.getText());
         }
 
         @Test
@@ -837,10 +838,10 @@ public class SymbolFormatterBuilderTest {
     @Nested
     class TypePrinterParserTest {
         private static final Vocabulary VOCABULARY;
-        private static final Symbol SYMBOL_SYM_ONLY = Symbol.of().type(1).get(); // Symbolic: A
-        private static final Symbol SYMBOL_BOTH = Symbol.of().type(2).get(); // Symbolic: B, Literal: 'b'
-        private static final Symbol SYMBOL_LIT_ONLY = Symbol.of().type(3).get(); // Literal: 'c'
-        private static final Symbol SYMBOL_NEITHER = Symbol.of().type(4).get(); // No symbolic or literal name
+        private static final Token SYMBOL_SYM_ONLY = new TokenBuilder().type(1).get(); // Symbolic: A
+        private static final Token SYMBOL_BOTH = new TokenBuilder().type(2).get(); // Symbolic: B, Literal: 'b'
+        private static final Token SYMBOL_LIT_ONLY = new TokenBuilder().type(3).get(); // Literal: 'c'
+        private static final Token SYMBOL_NEITHER = new TokenBuilder().type(4).get(); // No symbolic or literal name
 
         static {
             String[] literalNames = {null, null, "'b'", "'c'", null, null};
@@ -850,147 +851,147 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testFormatIntegerOnly() {
-            var p = new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.INTEGER_ONLY);
+            var p = new TokenFormatterBuilder.TypePrinterParser(TypeFormat.INTEGER_ONLY);
             var buf = new StringBuilder();
-            assertTrue(p.format(new SymbolFormatContext(SYMBOL_BOTH, VOCABULARY), buf));
+            assertTrue(p.format(new TokenFormatContext(SYMBOL_BOTH, VOCABULARY), buf));
             assertEquals("2", buf.toString());
         }
 
         @Test
         void testFormatSymbolicOnly() {
-            var p = new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.SYMBOLIC_ONLY);
+            var p = new TokenFormatterBuilder.TypePrinterParser(TypeFormat.SYMBOLIC_ONLY);
             var buf = new StringBuilder();
 
             // Success
-            assertTrue(p.format(new SymbolFormatContext(SYMBOL_SYM_ONLY, VOCABULARY), buf));
+            assertTrue(p.format(new TokenFormatContext(SYMBOL_SYM_ONLY, VOCABULARY), buf));
             assertEquals("A", buf.toString());
 
             // Failure
             buf.setLength(0);
-            assertFalse(p.format(new SymbolFormatContext(SYMBOL_LIT_ONLY, VOCABULARY), buf));
+            assertFalse(p.format(new TokenFormatContext(SYMBOL_LIT_ONLY, VOCABULARY), buf));
             assertTrue(buf.isEmpty());
         }
 
         @Test
         void testFormatLiteralOnly() {
-            var p = new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.LITERAL_ONLY);
+            var p = new TokenFormatterBuilder.TypePrinterParser(TypeFormat.LITERAL_ONLY);
             var buf = new StringBuilder();
 
             // Success
-            assertTrue(p.format(new SymbolFormatContext(SYMBOL_LIT_ONLY, VOCABULARY), buf));
+            assertTrue(p.format(new TokenFormatContext(SYMBOL_LIT_ONLY, VOCABULARY), buf));
             assertEquals("'c'", buf.toString());
 
             // Failure
             buf.setLength(0);
-            assertFalse(p.format(new SymbolFormatContext(SYMBOL_SYM_ONLY, VOCABULARY), buf));
+            assertFalse(p.format(new TokenFormatContext(SYMBOL_SYM_ONLY, VOCABULARY), buf));
             assertTrue(buf.isEmpty());
         }
 
         @Test
         void testFormatSymbolicFirst() {
-            var p = new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.SYMBOLIC_FIRST);
+            var p = new TokenFormatterBuilder.TypePrinterParser(TypeFormat.SYMBOLIC_FIRST);
             var buf = new StringBuilder();
 
             // Prefers symbolic
-            p.format(new SymbolFormatContext(SYMBOL_BOTH, VOCABULARY), buf);
+            p.format(new TokenFormatContext(SYMBOL_BOTH, VOCABULARY), buf);
             assertEquals("B", buf.toString());
             buf.setLength(0);
 
             // Falls back to literal
-            p.format(new SymbolFormatContext(SYMBOL_LIT_ONLY, VOCABULARY), buf);
+            p.format(new TokenFormatContext(SYMBOL_LIT_ONLY, VOCABULARY), buf);
             assertEquals("'c'", buf.toString());
             buf.setLength(0);
 
             // Falls back to integer
-            p.format(new SymbolFormatContext(SYMBOL_NEITHER, VOCABULARY), buf);
+            p.format(new TokenFormatContext(SYMBOL_NEITHER, VOCABULARY), buf);
             assertEquals("4", buf.toString());
         }
 
         @Test
         void testFormatLiteralFirst() {
-            var p = new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.LITERAL_FIRST);
+            var p = new TokenFormatterBuilder.TypePrinterParser(TypeFormat.LITERAL_FIRST);
             var buf = new StringBuilder();
 
             // Prefers literal
-            p.format(new SymbolFormatContext(SYMBOL_BOTH, VOCABULARY), buf);
+            p.format(new TokenFormatContext(SYMBOL_BOTH, VOCABULARY), buf);
             assertEquals("'b'", buf.toString());
             buf.setLength(0);
 
             // Falls back to symbolic
-            p.format(new SymbolFormatContext(SYMBOL_SYM_ONLY, VOCABULARY), buf);
+            p.format(new TokenFormatContext(SYMBOL_SYM_ONLY, VOCABULARY), buf);
             assertEquals("A", buf.toString());
             buf.setLength(0);
 
             // Falls back to integer
-            p.format(new SymbolFormatContext(SYMBOL_NEITHER, VOCABULARY), buf);
+            p.format(new TokenFormatContext(SYMBOL_NEITHER, VOCABULARY), buf);
             assertEquals("4", buf.toString());
         }
 
         @Test
         void testParseSymbolicFirst() {
-            var p = new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.SYMBOLIC_FIRST);
-            var ctx = new SymbolParseContext(null, VOCABULARY);
+            var p = new TokenFormatterBuilder.TypePrinterParser(TypeFormat.SYMBOLIC_FIRST);
+            var ctx = new TokenParseContext(null, VOCABULARY);
 
             p.parse(ctx, "A", 0);
-            assertEquals(1, ctx.resolveFields().type());
+            assertEquals(1, ctx.resolveFields().getType());
 
-            ctx = new SymbolParseContext(null, VOCABULARY);
+            ctx = new TokenParseContext(null, VOCABULARY);
             p.parse(ctx, "'c'", 0);
-            assertEquals(3, ctx.resolveFields().type());
+            assertEquals(3, ctx.resolveFields().getType());
 
-            ctx = new SymbolParseContext(null, VOCABULARY);
+            ctx = new TokenParseContext(null, VOCABULARY);
             p.parse(ctx, "4", 0);
-            assertEquals(4, ctx.resolveFields().type());
+            assertEquals(4, ctx.resolveFields().getType());
 
             // "123" is a symbolic name, should be parsed as such first
-            ctx = new SymbolParseContext(null, VOCABULARY);
+            ctx = new TokenParseContext(null, VOCABULARY);
             p.parse(ctx, "123", 0);
-            assertEquals(5, ctx.resolveFields().type());
+            assertEquals(5, ctx.resolveFields().getType());
         }
 
         @Test
         void testParseLiteralFirst() {
-            var p = new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.LITERAL_FIRST);
-            var ctx = new SymbolParseContext(null, VOCABULARY);
+            var p = new TokenFormatterBuilder.TypePrinterParser(TypeFormat.LITERAL_FIRST);
+            var ctx = new TokenParseContext(null, VOCABULARY);
 
             p.parse(ctx, "'b'", 0);
-            assertEquals(2, ctx.resolveFields().type());
+            assertEquals(2, ctx.resolveFields().getType());
 
-            ctx = new SymbolParseContext(null, VOCABULARY);
+            ctx = new TokenParseContext(null, VOCABULARY);
             p.parse(ctx, "A", 0);
-            assertEquals(1, ctx.resolveFields().type());
+            assertEquals(1, ctx.resolveFields().getType());
 
-            ctx = new SymbolParseContext(null, VOCABULARY);
+            ctx = new TokenParseContext(null, VOCABULARY);
             p.parse(ctx, "4", 0);
-            assertEquals(4, ctx.resolveFields().type());
+            assertEquals(4, ctx.resolveFields().getType());
         }
 
         @Test
         void testParseFailure() {
-            var p = new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.SYMBOLIC_FIRST);
-            var ctx = new SymbolParseContext(null, VOCABULARY);
+            var p = new TokenFormatterBuilder.TypePrinterParser(TypeFormat.SYMBOLIC_FIRST);
+            var ctx = new TokenParseContext(null, VOCABULARY);
             assertEquals(~0, p.parse(ctx, "unrecognized", 0));
             assertEquals("Unrecognized type information starting with 'unrec'", ctx.getErrorMessage());
         }
 
         @Test
         void testToString() {
-            assertEquals("i", new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.INTEGER_ONLY).toString());
-            assertEquals("s", new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.SYMBOLIC_ONLY).toString());
-            assertEquals("l", new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.LITERAL_ONLY).toString());
-            assertEquals("S", new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.SYMBOLIC_FIRST).toString());
-            assertEquals("L", new SymbolFormatterBuilder.TypePrinterParser(TypeFormat.LITERAL_FIRST).toString());
+            assertEquals("i", new TokenFormatterBuilder.TypePrinterParser(TypeFormat.INTEGER_ONLY).toString());
+            assertEquals("s", new TokenFormatterBuilder.TypePrinterParser(TypeFormat.SYMBOLIC_ONLY).toString());
+            assertEquals("l", new TokenFormatterBuilder.TypePrinterParser(TypeFormat.LITERAL_ONLY).toString());
+            assertEquals("S", new TokenFormatterBuilder.TypePrinterParser(TypeFormat.SYMBOLIC_FIRST).toString());
+            assertEquals("L", new TokenFormatterBuilder.TypePrinterParser(TypeFormat.LITERAL_FIRST).toString());
         }
     }
 
     @Nested
     class EOFPrinterParserTest {
-        private static final SymbolFormatterBuilder.EOFPrinterParser PARSER = new SymbolFormatterBuilder.EOFPrinterParser();
+        private static final TokenFormatterBuilder.EOFPrinterParser PARSER = new TokenFormatterBuilder.EOFPrinterParser();
 
         @Test
         void testFormatSuccess() {
-            Symbol symbol = Symbol.of().type(Symbol.EOF).get();
-            SymbolFormatContext ctx = new SymbolFormatContext(symbol, null);
+            Token symbol = new TokenBuilder().type(Token.EOF).get();
+            TokenFormatContext ctx = new TokenFormatContext(symbol, null);
             StringBuilder buf = new StringBuilder();
             assertTrue(PARSER.format(ctx, buf));
             assertEquals("EOF", buf.toString());
@@ -998,8 +999,8 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testFormatFailure() {
-            Symbol symbol = Symbol.of().type(1).get(); // Not EOF
-            SymbolFormatContext ctx = new SymbolFormatContext(symbol, null);
+            Token symbol = new TokenBuilder().type(1).get(); // Not EOF
+            TokenFormatContext ctx = new TokenFormatContext(symbol, null);
             StringBuilder buf = new StringBuilder();
             assertFalse(PARSER.format(ctx, buf));
             assertTrue(buf.isEmpty());
@@ -1007,14 +1008,14 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testPeekSuccess() {
-            SymbolParseContext ctx = new SymbolParseContext(null, null);
+            TokenParseContext ctx = new TokenParseContext(null, null);
             assertEquals(3, PARSER.peek(ctx, "EOF", 0));
             assertEquals(5, PARSER.peek(ctx, "  EOF  ", 2));
         }
 
         @Test
         void testPeekFailure() {
-            SymbolParseContext ctx = new SymbolParseContext(null, null);
+            TokenParseContext ctx = new TokenParseContext(null, null);
             assertEquals(~0, PARSER.peek(ctx, "EOX", 0));
             assertEquals(~0, PARSER.peek(ctx, "EO", 0));
             assertEquals(~0, PARSER.peek(ctx, "FOE", 0));
@@ -1024,29 +1025,29 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testPeekOutOfBounds() {
-            SymbolParseContext ctx = new SymbolParseContext(null, null);
+            TokenParseContext ctx = new TokenParseContext(null, null);
             assertThrows(IndexOutOfBoundsException.class, () -> PARSER.peek(ctx, "EOF", -1));
             assertThrows(IndexOutOfBoundsException.class, () -> PARSER.peek(ctx, "EOF", 4));
         }
 
         @Test
         void testParseSuccess() {
-            SymbolParseContext ctx = new SymbolParseContext(null, null);
+            TokenParseContext ctx = new TokenParseContext(null, null);
             assertEquals(3, PARSER.parse(ctx, "EOF", 0));
-            Symbol result = ctx.resolveFields();
-            assertEquals(Symbol.EOF, result.type());
-            assertEquals("<EOF>", result.text());
+            Token result = ctx.resolveFields();
+            assertEquals(Token.EOF, result.getType());
+            assertEquals("<EOF>", result.getText());
             assertNull(ctx.getErrorMessage());
         }
 
         @Test
         void testParseFailure() {
-            SymbolParseContext ctx = new SymbolParseContext(null, null);
+            TokenParseContext ctx = new TokenParseContext(null, null);
             assertEquals(~0, PARSER.parse(ctx, "EOX", 0));
             assertNotNull(ctx.getErrorMessage());
             assertEquals("Expected 'EOF' but found 'EOX'", ctx.getErrorMessage());
 
-            ctx = new SymbolParseContext(null, null);
+            ctx = new TokenParseContext(null, null);
             assertEquals(~0, PARSER.parse(ctx, "EO", 0));
             assertNotNull(ctx.getErrorMessage());
             assertEquals("Expected 'EOF' but found 'EO'", ctx.getErrorMessage());
@@ -1064,20 +1065,20 @@ public class SymbolFormatterBuilderTest {
         @Test
         void testConstructorValidation() {
             assertThrows(IllegalArgumentException.class,
-                    () -> new SymbolFormatterBuilder.WhitespacePrinterParser("a"));
+                    () -> new TokenFormatterBuilder.WhitespacePrinterParser("a"));
             assertDoesNotThrow(
-                    () -> new SymbolFormatterBuilder.WhitespacePrinterParser("   \t\n  "));
-            assertDoesNotThrow(() -> new SymbolFormatterBuilder.WhitespacePrinterParser(""));
+                    () -> new TokenFormatterBuilder.WhitespacePrinterParser("   \t\n  "));
+            assertDoesNotThrow(() -> new TokenFormatterBuilder.WhitespacePrinterParser(""));
         }
 
         @Test
         void testFormat() {
-            var p = new SymbolFormatterBuilder.WhitespacePrinterParser("   \t\n  ");
+            var p = new TokenFormatterBuilder.WhitespacePrinterParser("   \t\n  ");
             var buf = new StringBuilder();
             assertTrue(p.format(null, buf)); // Context can be null for this parser
             assertEquals("   \t\n  ", buf.toString());
 
-            var pEmpty = new SymbolFormatterBuilder.WhitespacePrinterParser("");
+            var pEmpty = new TokenFormatterBuilder.WhitespacePrinterParser("");
             var bufEmpty = new StringBuilder();
             assertTrue(pEmpty.format(null, bufEmpty));
             assertTrue(bufEmpty.isEmpty());
@@ -1085,8 +1086,8 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testPeekAndParse() {
-            var p = new SymbolFormatterBuilder.WhitespacePrinterParser(""); // Whitespace content doesn't matter for parsing
-            var ctx = new SymbolParseContext(null, null);
+            var p = new TokenFormatterBuilder.WhitespacePrinterParser(""); // Whitespace content doesn't matter for parsing
+            var ctx = new TokenParseContext(null, null);
 
             // No whitespace
             assertEquals(0, p.peek(ctx, "abc", 0));
@@ -1108,44 +1109,44 @@ public class SymbolFormatterBuilderTest {
             assertEquals(3, p.peek(ctx, "   ", 0));
             assertEquals(3, p.parse(ctx, "   ", 0));
 
-            // Invalid position
+            // Invalid getCharPositionInLine
             assertThrows(IndexOutOfBoundsException.class, () -> p.peek(ctx, " ", -1));
             assertThrows(IndexOutOfBoundsException.class, () -> p.peek(ctx, " ", 2));
         }
 
         @Test
         void testToString() {
-            assertEquals(" ", new SymbolFormatterBuilder.WhitespacePrinterParser(" ").toString());
-            assertEquals("\t\n", new SymbolFormatterBuilder.WhitespacePrinterParser("\t\n").toString());
-            assertEquals("", new SymbolFormatterBuilder.WhitespacePrinterParser("").toString());
+            assertEquals(" ", new TokenFormatterBuilder.WhitespacePrinterParser(" ").toString());
+            assertEquals("\t\n", new TokenFormatterBuilder.WhitespacePrinterParser("\t\n").toString());
+            assertEquals("", new TokenFormatterBuilder.WhitespacePrinterParser("").toString());
         }
     }
 
     @Nested
     class CompositePrinterParserTest {
 
-        private final SymbolPrinterParser succeedingParser = new SymbolFormatterBuilder.LiteralPrinterParser(
+        private final TokenPrinterParser succeedingParser = new TokenFormatterBuilder.LiteralPrinterParser(
                 "OK");
-        private final SymbolPrinterParser failingParser = new SymbolPrinterParser() {
+        private final TokenPrinterParser failingParser = new TokenPrinterParser() {
             @Override
-            public boolean format(SymbolFormatContext context, StringBuilder buf) {
+            public boolean format(TokenFormatContext context, StringBuilder buf) {
                 return false;
             }
 
             @Override
-            public int parse(SymbolParseContext context, CharSequence text, int position) {
+            public int parse(TokenParseContext context, CharSequence text, int position) {
                 return ~position;
             }
 
             @Override
-            public int peek(SymbolParseContext context, CharSequence text, int position) {
+            public int peek(TokenParseContext context, CharSequence text, int position) {
                 return ~position;
             }
         };
 
         @Test
         void testFormatNonOptional() {
-            var composite = new SymbolFormatterBuilder.CompositePrinterParser(
+            var composite = new TokenFormatterBuilder.CompositePrinterParser(
                     List.of(succeedingParser, succeedingParser),
                     false);
             var buf = new StringBuilder();
@@ -1155,7 +1156,7 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testFormatNonOptionalWithFailure() {
-            var composite = new SymbolFormatterBuilder.CompositePrinterParser(
+            var composite = new TokenFormatterBuilder.CompositePrinterParser(
                     List.of(succeedingParser, failingParser),
                     false);
             var buf = new StringBuilder("Initial");
@@ -1165,7 +1166,7 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testFormatOptional() {
-            var composite = new SymbolFormatterBuilder.CompositePrinterParser(
+            var composite = new TokenFormatterBuilder.CompositePrinterParser(
                     List.of(succeedingParser, succeedingParser),
                     true);
             var buf = new StringBuilder();
@@ -1175,7 +1176,7 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testFormatOptionalWithFailure() {
-            var composite = new SymbolFormatterBuilder.CompositePrinterParser(
+            var composite = new TokenFormatterBuilder.CompositePrinterParser(
                     List.of(succeedingParser, failingParser),
                     true);
             var buf = new StringBuilder("Initial");
@@ -1185,16 +1186,16 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testParseNonOptional() {
-            var composite = new SymbolFormatterBuilder.CompositePrinterParser(
+            var composite = new TokenFormatterBuilder.CompositePrinterParser(
                     List.of(succeedingParser, succeedingParser),
                     false);
-            assertEquals(4, composite.parse(new SymbolParseContext(null, null), "OKOK", 0));
-            assertEquals(~2, composite.parse(new SymbolParseContext(null, null), "OKFAIL", 0));
+            assertEquals(4, composite.parse(new TokenParseContext(null, null), "OKOK", 0));
+            assertEquals(~2, composite.parse(new TokenParseContext(null, null), "OKFAIL", 0));
         }
 
         @Test
         void testParseOptional() {
-            var composite = new SymbolFormatterBuilder.CompositePrinterParser(
+            var composite = new TokenFormatterBuilder.CompositePrinterParser(
                     List.of(succeedingParser, succeedingParser),
                     true);
             assertEquals(4, composite.parse(null, "OKOK", 0));
@@ -1203,12 +1204,12 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testToString() {
-            var nonOptional = new SymbolFormatterBuilder.CompositePrinterParser(
+            var nonOptional = new TokenFormatterBuilder.CompositePrinterParser(
                     List.of(succeedingParser),
                     false);
             assertEquals("OK", nonOptional.toString());
 
-            var optional = new SymbolFormatterBuilder.CompositePrinterParser(List.of(succeedingParser),
+            var optional = new TokenFormatterBuilder.CompositePrinterParser(List.of(succeedingParser),
                     true);
             assertEquals("[OK]", optional.toString());
         }
@@ -1219,58 +1220,58 @@ public class SymbolFormatterBuilderTest {
 
         @Test
         void testNestedOptionalThrowsException() {
-            var builder = new SymbolFormatterBuilder();
+            var builder = new TokenFormatterBuilder();
             builder.startOptional();
             assertThrows(IllegalStateException.class, builder::startOptional);
         }
 
         @Test
         void testEndWithoutStartThrowsException() {
-            var builder = new SymbolFormatterBuilder();
+            var builder = new TokenFormatterBuilder();
             assertThrows(IllegalStateException.class, builder::endOptional);
         }
 
         @Test
         void testFormatOptionalSection() {
-            // Strict channel 'c' is only printed if not default (0)
+            // Strict getChannel 'c' is only printed if not default (0)
             var vocab = new VocabularyImpl(new String[]{null, "ID"}, new String[]{null, "ID"});
-            var formatter = new SymbolFormatterBuilder().appendSymbolicType()
+            var formatter = new TokenFormatterBuilder().appendSymbolicType()
                     .startOptional()
                     .appendLiteral("[")
-                    .appendInteger(SymbolField.CHANNEL, true)
+                    .appendInteger(TokenField.CHANNEL, true)
                     .appendLiteral("]")
                     .endOptional()
                     .toFormatter().withVocabulary(vocab);
 
             // Channel is default, should be omitted
-            var symbolDefaultChannel = Symbol.of().type(1).channel(0).get();
+            var symbolDefaultChannel = new TokenBuilder().type(1).channel(0).get();
             assertEquals("ID", formatter.format(symbolDefaultChannel));
 
             // Channel is non-default, should be included
-            var symbolNonDefaultChannel = Symbol.of().type(1).channel(2).get();
+            var symbolNonDefaultChannel = new TokenBuilder().type(1).channel(2).get();
             assertEquals("ID[2]", formatter.format(symbolNonDefaultChannel));
         }
 
         @Test
-        void testParseOptionalSection() throws SymbolParseException {
+        void testParseOptionalSection() throws TokenParseException {
             var vocab = new VocabularyImpl(new String[]{null, "ID"}, new String[]{null, "ID"});
-            var formatter = new SymbolFormatterBuilder().appendSymbolicType()
+            var formatter = new TokenFormatterBuilder().appendSymbolicType()
                     .startOptional()
                     .appendLiteral(":")
-                    .appendInteger(SymbolField.LINE)
+                    .appendInteger(TokenField.LINE)
                     .endOptional()
                     .toFormatter().withVocabulary(vocab);
 
             // With optional section present
-            Symbol symbol1 = formatter.parse("ID:123");
-            assertEquals(1, symbol1.type());
-            assertEquals(123, symbol1.line());
+            Token symbol1 = formatter.parse("ID:123");
+            assertEquals(1, symbol1.getType());
+            assertEquals(123, symbol1.getLine());
 
             // Without optional section
-            Symbol symbol2 = formatter.parse("ID");
-            assertEquals(1, symbol2.type());
+            Token symbol2 = formatter.parse("ID");
+            assertEquals(1, symbol2.getType());
             assertEquals(-1,
-                    symbol2.line()); // Default value for line because it was not parsed
+                    symbol2.getLine()); // Default value for getLine because it was not parsed
         }
     }
 }

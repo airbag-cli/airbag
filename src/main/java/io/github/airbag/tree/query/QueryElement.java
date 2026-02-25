@@ -85,7 +85,7 @@ public abstract class QueryElement {
     }
 
     /**
-     * A {@link QueryElement} that matches a {@link DerivationTree.Rule} node with a specific rule index.
+     * A {@link QueryElement} that matches a {@link DerivationTree.Rule} node with a specific rule getTokenIndex.
      */
     static class Rule extends QueryElement {
 
@@ -112,7 +112,7 @@ public abstract class QueryElement {
     }
 
     /**
-     * A {@link QueryElement} that matches a {@link DerivationTree.Terminal} node with a specific token type.
+     * A {@link QueryElement} that matches a {@link DerivationTree.Terminal} node with a specific token getType.
      */
     static class Token extends QueryElement {
         private final boolean isInverted;

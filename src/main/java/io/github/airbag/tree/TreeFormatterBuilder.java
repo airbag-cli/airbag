@@ -12,7 +12,7 @@ import java.util.function.Consumer;
  * <p>
  * This builder provides a flexible way to define custom formats for converting
  * {@link DerivationTree} objects to and from strings. It works by allowing you to
- * specify a distinct format for each type of node in the tree:
+ * specify a distinct format for each getType of node in the tree:
  * <ul>
  *   <li>{@link DerivationTree.Rule} nodes</li>
  *   <li>{@link DerivationTree.Terminal} nodes</li>
@@ -22,9 +22,9 @@ import java.util.function.Consumer;
  * <h3>Usage</h3>
  * To create a formatter, you instantiate a {@code TreeFormatterBuilder} and use the
  * {@link #onRule(Consumer)}, {@link #onTerminal(Consumer)}, and {@link #onError(Consumer)}
- * methods to define the format for each node type. These methods provide a
+ * methods to define the format for each node getType. These methods provide a
  * {@link NodeFormatterBuilder} instance within a lambda, which is used to define the
- * actual format for that node type.
+ * actual format for that node getType.
  * <p>
  * Once all node formats are defined, you call {@link #toFormatter()} to create the
  * immutable and thread-safe {@link TreeFormatter} instance.
@@ -44,7 +44,7 @@ import java.util.function.Consumer;
  *     )
  *     .onTerminal(terminalNode -> terminalNode
  *         .appendLiteral("(")
- *         .appendSymbol() // Uses the SymbolFormatter; for terminals, often just the text
+ *         .appendSymbol() // Uses the TokenFormatter; for terminals, often just the getText
  *         .appendLiteral(")")
  *     )
  *     .onError(errorNode -> errorNode
@@ -54,7 +54,7 @@ import java.util.function.Consumer;
  *     )
  *     .toFormatter();
  *
- * // The resulting formatter can then be customized with a Recognizer or SymbolFormatter
+ * // The resulting formatter can then be customized with a Recognizer or TokenFormatter
  * TreeFormatter finalFormatter = lispFormatter.withRecognizer(myRecognizer);
  *
  * // Format a tree to a string
@@ -135,9 +135,9 @@ public class TreeFormatterBuilder {
     /**
      * Builds the immutable {@link TreeFormatter} from the configured node formats.
      * <p>
-     * If a format for a specific node type (e.g., rule, terminal) has not been defined,
+     * If a format for a specific node getType (e.g., rule, terminal) has not been defined,
      * it will default to an empty format. This may lead to unexpected behavior or errors
-     * during formatting or parsing if that node type is encountered.
+     * during formatting or parsing if that node getType is encountered.
      *
      * @return The newly created, immutable {@link TreeFormatter} instance.
      */

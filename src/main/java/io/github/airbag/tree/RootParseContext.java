@@ -1,29 +1,29 @@
 package io.github.airbag.tree;
 
-import io.github.airbag.symbol.Symbol;
-import io.github.airbag.symbol.SymbolFormatter;
+import io.github.airbag.token.TokenFormatter;
 import io.github.airbag.tree.pattern.PatternFormatter;
 import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.Token;
 
 import java.util.*;
 
 class RootParseContext implements NodeParseContext{
 
-    private final SymbolFormatter symbolFormatter;
+    private final TokenFormatter symbolFormatter;
     private final PatternFormatter patternFormatter;
     private final Recognizer<?,?> recognizer;
     private NodeParseContext root;
     private int maxError;
     private final Set<String> errorMessages = new TreeSet<>();
 
-    RootParseContext(SymbolFormatter symbolFormatter, PatternFormatter patternFormatter, Recognizer<?, ?> recognizer) {
+    RootParseContext(TokenFormatter symbolFormatter, PatternFormatter patternFormatter, Recognizer<?, ?> recognizer) {
         this.symbolFormatter = symbolFormatter;
         this.patternFormatter = patternFormatter;
         this.recognizer = recognizer;
     }
 
     @Override
-    public SymbolFormatter symbolFormatter() {
+    public TokenFormatter symbolFormatter() {
         return symbolFormatter;
     }
 
@@ -108,7 +108,7 @@ class RootParseContext implements NodeParseContext{
         }
 
         @Override
-        public SymbolFormatter symbolFormatter() {
+        public TokenFormatter symbolFormatter() {
             return symbolFormatter;
         }
 
@@ -155,22 +155,22 @@ class RootParseContext implements NodeParseContext{
     class Terminal implements NodeParseContext {
 
         private final NodeParseContext parent;
-        private Symbol symbol;
+        private Token symbol;
 
         public Terminal(NodeParseContext parent) {
             this.parent = parent;
         }
 
-        public Symbol getSymbol() {
+        public Token getSymbol() {
             return symbol;
         }
 
-        public void setSymbol(Symbol symbol) {
+        public void setSymbol(Token symbol) {
             this.symbol = symbol;
         }
 
         @Override
-        public SymbolFormatter symbolFormatter() {
+        public TokenFormatter symbolFormatter() {
             return symbolFormatter;
         }
 
@@ -214,22 +214,22 @@ class RootParseContext implements NodeParseContext{
     class Error implements NodeParseContext {
 
         private final NodeParseContext parent;
-        private Symbol symbol;
+        private Token symbol;
 
         public Error(NodeParseContext parent) {
             this.parent = parent;
         }
 
-        public Symbol getSymbol() {
+        public Token getSymbol() {
             return symbol;
         }
 
-        public void setSymbol(Symbol symbol) {
+        public void setSymbol(Token symbol) {
             this.symbol = symbol;
         }
 
         @Override
-        public SymbolFormatter symbolFormatter() {
+        public TokenFormatter symbolFormatter() {
             return symbolFormatter;
         }
 
@@ -281,7 +281,7 @@ class RootParseContext implements NodeParseContext{
         }
 
         @Override
-        public SymbolFormatter symbolFormatter() {
+        public TokenFormatter symbolFormatter() {
             return symbolFormatter;
         }
 

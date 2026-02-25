@@ -1,6 +1,8 @@
 package io.github.airbag.tree;
 
-import io.github.airbag.symbol.Symbol;
+
+import io.github.airbag.tree.pattern.Pattern;
+import org.antlr.v4.runtime.Token;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -14,7 +16,7 @@ import java.util.List;
 public abstract sealed class Node implements DerivationTree permits Node.Rule, Node.Terminal, Node.Error, Node.Pattern {
 
     /**
-     * The index of this node. For a rule, it's the rule index; for a terminal, it's the token type.
+     * The getTokenIndex of this node. For a rule, it's the rule getTokenIndex; for a terminal, it's the token getType.
      */
     private final int index;
 
@@ -32,7 +34,7 @@ public abstract sealed class Node implements DerivationTree permits Node.Rule, N
      * Constructs a new node and links it to its Terminal.
      *
      * @param parent The Terminal node. If null, this node is considered the root.
-     * @param index  The index for this node.
+     * @param index  The getTokenIndex for this node.
      */
     protected Node(DerivationTree parent, int index) {
         this.index = index;
@@ -67,13 +69,18 @@ public abstract sealed class Node implements DerivationTree permits Node.Rule, N
     }
 
     @Override
-    public boolean matches(DerivationTree other) {
-        return depth() == other.depth() && index() == other.index();
+    public String toString() {
+        return TreeFormatter.SIMPLE.format(this);
     }
 
     @Override
-    public String toString() {
-        return TreeFormatter.SIMPLE.format(this);
+    public int getChildCount() {
+        return size();
+    }
+
+    @Override
+    public String toStringTree() {
+        return toString();
     }
 
     public final static class Rule extends Node implements DerivationTree.Rule {
@@ -82,7 +89,7 @@ public abstract sealed class Node implements DerivationTree permits Node.Rule, N
          * Constructs a new node and links it to its Terminal.
          *
          * @param parent The Terminal node. If null, this node is considered the root.
-         * @param index  The index for this node.
+         * @param index  The getTokenIndex for this node.
          */
         private Rule(DerivationTree parent, int index) {
             super(parent, index);
@@ -97,14 +104,14 @@ public abstract sealed class Node implements DerivationTree permits Node.Rule, N
         }
 
         @Override
-        public boolean matches(DerivationTree other) {
-            return other instanceof DerivationTree.Rule && super.matches(other);
+        public Integer getPayload() {
+            return index();
         }
     }
 
     public final static class Terminal extends Node implements DerivationTree.Terminal {
 
-        private final Symbol symbol;
+        private final Token symbol;
 
         /**
          * Constructs a new node and links it to its Terminal.
@@ -112,33 +119,33 @@ public abstract sealed class Node implements DerivationTree permits Node.Rule, N
          * @param parent The Terminal node. If null, this node is considered the root.
          * @param symbol The symbol attached to the node.
          */
-        private Terminal(DerivationTree parent, Symbol symbol) {
-            super(parent, symbol.type());
+        private Terminal(DerivationTree parent, Token symbol) {
+            super(parent, symbol.getType());
             this.symbol = symbol;
         }
 
-        public static Node.Terminal attachTo(DerivationTree parent, Symbol symbol) {
+        public static Node.Terminal attachTo(DerivationTree parent, Token symbol) {
             return new Node.Terminal(parent, symbol);
         }
 
-        public static Node.Terminal root(Symbol symbol) {
+        public static Node.Terminal root(Token symbol) {
             return attachTo(null, symbol);
         }
 
         @Override
-        public Symbol symbol() {
+        public Token symbol() {
             return symbol;
         }
 
         @Override
-        public boolean matches(DerivationTree other) {
-            return other instanceof DerivationTree.Terminal && super.matches(other);
+        public Token getPayload() {
+            return symbol();
         }
     }
 
     public final static class Error extends Node implements DerivationTree.Error {
 
-        private final Symbol symbol;
+        private final Token symbol;
 
         /**
          * Constructs a new node and links it to its Terminal.
@@ -146,27 +153,28 @@ public abstract sealed class Node implements DerivationTree permits Node.Rule, N
          * @param parent The Terminal node. If null, this node is considered the root.
          * @param symbol The symbol attached to the node.
          */
-        private Error(DerivationTree parent, Symbol symbol) {
-            super(parent, symbol.type());
+        private Error(DerivationTree parent, Token symbol) {
+            super(parent, symbol.getType());
             this.symbol = symbol;
         }
 
-        public static Node.Error attachTo(DerivationTree parent, Symbol symbol) {
+        public static Node.Error attachTo(DerivationTree parent, Token symbol) {
             return new Node.Error(parent, symbol);
         }
 
-        public static Node.Error root(Symbol symbol) {
+        public static Node.Error root(Token symbol) {
             return attachTo(null, symbol);
         }
 
         @Override
-        public Symbol symbol() {
+        public Token symbol() {
             return symbol;
         }
 
+
         @Override
-        public boolean matches(DerivationTree other) {
-            return other instanceof DerivationTree.Error && super.matches(other);
+        public Token getPayload() {
+            return symbol();
         }
     }
 
@@ -178,7 +186,7 @@ public abstract sealed class Node implements DerivationTree permits Node.Rule, N
          * Constructs a new node and links it to its Terminal.
          *
          * @param parent The Terminal node. If null, this node is considered the root.
-         * @param index  The index for this node.
+         * @param index  The getTokenIndex for this node.
          */
         Pattern(DerivationTree parent, int index, io.github.airbag.tree.pattern.Pattern pattern) {
             super(parent, index);
@@ -195,6 +203,11 @@ public abstract sealed class Node implements DerivationTree permits Node.Rule, N
 
         @Override
         public io.github.airbag.tree.pattern.Pattern getPattern() {
+            return pattern;
+        }
+
+        @Override
+        public io.github.airbag.tree.pattern.Pattern getPayload() {
             return pattern;
         }
     }

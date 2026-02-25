@@ -1,10 +1,11 @@
 package io.github.airbag.tree.pattern;
 
-import io.github.airbag.symbol.Symbol;
-import io.github.airbag.symbol.SymbolFormatter;
+import io.github.airbag.token.TokenBuilder;
+import io.github.airbag.token.TokenFormatter;
+import io.github.airbag.token.TokenField;
 import io.github.airbag.tree.DerivationTree;
 import io.github.airbag.tree.Node;
-import io.github.airbag.symbol.SymbolField;
+import org.antlr.v4.runtime.Token;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -24,15 +25,15 @@ public class PatternBuilderTest {
     @Nested
     class SymbolPatternElementTest {
 
-        private final Symbol SYMBOL = Symbol.of("[@1,2:3='My text',<4>,5:6]");
+        private final Token SYMBOL = TokenFormatter.ANTLR.parse("[@1,2:3='My getText',<4>,5:6]");
 
         @Test
         void testMatch() {
             var element = new PatternBuilder.SymbolPatternElement(SYMBOL,
-                    SymbolField.equalizer(SymbolField.simple()));
+                    TokenField.equalizer(TokenField.simple()));
             var elementStrict = new PatternBuilder.SymbolPatternElement(SYMBOL,
-                    SymbolField.equalizer(SymbolField.all()));
-            DerivationTree terminal = Node.Terminal.root(Symbol.of("[@1,4:3='My text',<4>,10:11]"));
+                    TokenField.equalizer(TokenField.all()));
+            DerivationTree terminal = Node.Terminal.root(TokenFormatter.ANTLR.parse("[@1,4:3='My getText',<4>,10:11]"));
             var ctx = new PatternContext(terminal);
             assertTrue(element.isMatch(ctx));
             assertFalse(elementStrict.isMatch(ctx));
@@ -41,9 +42,9 @@ public class PatternBuilderTest {
         @Test
         void testMatchSuccessfulNestedNode() {
             var element = new PatternBuilder.SymbolPatternElement(SYMBOL,
-                    SymbolField.equalizer(SymbolField.simple()));
+                    TokenField.equalizer(TokenField.simple()));
             DerivationTree rule = Node.Rule.root(4);
-            DerivationTree terminal = Node.Terminal.attachTo(rule,Symbol.of("[@1,4:3='My text',<4>,10:11]"));
+            DerivationTree terminal = Node.Terminal.attachTo(rule, TokenFormatter.ANTLR.parse("[@1,4:3='My getText',<4>,10:11]"));
             var ctx = new PatternContext(terminal);
             assertTrue(element.isMatch(ctx));
         }
@@ -72,7 +73,7 @@ public class PatternBuilderTest {
         @Test
         void testWrongNode() {
             var element = new PatternBuilder.RuleTagPatternElement(5);
-            DerivationTree terminal = Node.Terminal.root(Symbol.of("(5 'text')", SymbolFormatter.SIMPLE));
+            DerivationTree terminal = Node.Terminal.root(TokenFormatter.SIMPLE.parse("(5 'getText')"));
             var ctx = new PatternContext(terminal);
             assertFalse(element.isMatch(ctx));
         }
@@ -95,7 +96,7 @@ public class PatternBuilderTest {
         @Test
         void testSuccessfulMatch() {
             var element = new PatternBuilder.SymbolTagPatternElement(5);
-            DerivationTree terminal = Node.Terminal.root(Symbol.of().type(5).get());
+            DerivationTree terminal = Node.Terminal.root(new TokenBuilder().type(5).get());
             var ctx = new PatternContext(terminal);
             assertTrue(element.isMatch(ctx));
         }
@@ -103,7 +104,7 @@ public class PatternBuilderTest {
         @Test
         void testFailureMatch() {
             var element = new PatternBuilder.SymbolTagPatternElement(5);
-            DerivationTree terminal = Node.Terminal.root(Symbol.of().type(6).get());
+            DerivationTree terminal = Node.Terminal.root(new TokenBuilder().type(6).get());
             var ctx = new PatternContext(terminal);
             assertFalse(element.isMatch(ctx));
         }
@@ -119,7 +120,7 @@ public class PatternBuilderTest {
         @Test
         void testLabel() {
             var element = new PatternBuilder.SymbolTagPatternElement(5, "result");
-            DerivationTree rule = Node.Terminal.root(Symbol.of().type(5).get());
+            DerivationTree rule = Node.Terminal.root(new TokenBuilder().type(5).get());
             var ctx = new PatternContext(rule);
             assertTrue(element.isMatch(ctx));
             assertNotNull(ctx.getLabel("result"));
@@ -133,14 +134,14 @@ public class PatternBuilderTest {
         @Test
         void testAppendSymbolDefaultEqualizer() {
             // Given
-            Symbol expectedSymbol = Symbol.of().text("hello").type(1).line(1).position(0).get();
+            Token expectedSymbol = new TokenBuilder().text("hello").type(1).line(1).position(0).get();
             Pattern pattern = new PatternBuilder().appendSymbol(expectedSymbol).toPattern();
 
             DerivationTree parentMatching = Node.Rule.root(0); // Dummy parent
-            Node.Terminal.attachTo(parentMatching, Symbol.of().text("hello").type(1).line(1).position(0).get());
+            Node.Terminal.attachTo(parentMatching, new TokenBuilder().text("hello").type(1).line(1).position(0).get());
 
             DerivationTree parentNonMatching = Node.Rule.root(0); // Dummy parent
-            Node.Terminal.attachTo(parentNonMatching, Symbol.of().text("world").type(1).line(1).position(0).get());
+            Node.Terminal.attachTo(parentNonMatching, new TokenBuilder().text("world").type(1).line(1).position(0).get());
 
             // When
             MatchResult successResult = pattern.match(parentMatching); // Pass parent
@@ -154,16 +155,16 @@ public class PatternBuilderTest {
         @Test
         void testAppendSymbolCustomEqualizer() {
             // Given
-            Symbol expectedSymbol = Symbol.of().type(2).get(); // Only type matters
+            Token expectedSymbol = new TokenBuilder().type(2).get(); // Only getType matters
             Pattern pattern = new PatternBuilder()
-                    .appendSymbol(expectedSymbol, SymbolField.equalizer(Set.of(SymbolField.TYPE)))
+                    .appendSymbol(expectedSymbol, TokenField.equalizer(Set.of(TokenField.TYPE)))
                     .toPattern();
 
             DerivationTree parentMatching = Node.Rule.root(0); // Dummy parent
-            Node.Terminal.attachTo(parentMatching, Symbol.of().text("anything").type(2).line(5).position(10).get());
+            Node.Terminal.attachTo(parentMatching, new TokenBuilder().text("anything").type(2).line(5).position(10).get());
 
             DerivationTree parentNonMatching = Node.Rule.root(0); // Dummy parent
-            Node.Terminal.attachTo(parentNonMatching, Symbol.of().text("anything").type(3).line(5).position(10).get());
+            Node.Terminal.attachTo(parentNonMatching, new TokenBuilder().text("anything").type(3).line(5).position(10).get());
 
             // When
             MatchResult successResult = pattern.match(parentMatching);
@@ -187,7 +188,7 @@ public class PatternBuilderTest {
             Node.Rule.attachTo(parentNonMatching, ruleIndex + 1);
 
             DerivationTree parentTerminal = Node.Rule.root(0);
-            Node.Terminal.attachTo(parentTerminal, Symbol.of().type(1).get());
+            Node.Terminal.attachTo(parentTerminal, new TokenBuilder().type(1).get());
 
             // When
             MatchResult successResult = pattern.match(parentMatching);
@@ -226,10 +227,10 @@ public class PatternBuilderTest {
             Pattern pattern = new PatternBuilder().appendSymbolTag(symbolIndex).toPattern();
 
             DerivationTree parentMatching = Node.Rule.root(0);
-            Node.Terminal.attachTo(parentMatching, Symbol.of().type(symbolIndex).get());
+            Node.Terminal.attachTo(parentMatching, new TokenBuilder().type(symbolIndex).get());
 
             DerivationTree parentNonMatching = Node.Rule.root(0);
-            Node.Terminal.attachTo(parentNonMatching, Symbol.of().type(symbolIndex + 1).get());
+            Node.Terminal.attachTo(parentNonMatching, new TokenBuilder().type(symbolIndex + 1).get());
 
             DerivationTree parentRule = Node.Rule.root(0);
             Node.Rule.attachTo(parentRule, 1);
@@ -253,7 +254,7 @@ public class PatternBuilderTest {
             Pattern pattern = new PatternBuilder().appendSymbolTag(symbolIndex, label).toPattern();
 
             DerivationTree parentMatching = Node.Rule.root(0);
-            DerivationTree terminalNode = Node.Terminal.attachTo(parentMatching, Symbol.of().type(symbolIndex).get());
+            DerivationTree terminalNode = Node.Terminal.attachTo(parentMatching, new TokenBuilder().type(symbolIndex).get());
 
             // When
             MatchResult successResult = pattern.match(parentMatching);
@@ -271,7 +272,7 @@ public class PatternBuilderTest {
             Pattern pattern = new PatternBuilder().appendWildcard().toPattern();
 
             DerivationTree ruleTree = Node.Rule.root(2);
-            Node.Terminal.attachTo(ruleTree, Symbol.of().get());
+            Node.Terminal.attachTo(ruleTree, new TokenBuilder().get());
 
             // When
             MatchResult successResultRule = pattern.match(ruleTree);
