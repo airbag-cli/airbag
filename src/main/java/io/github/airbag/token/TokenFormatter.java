@@ -193,6 +193,114 @@ public class TokenFormatter {
     public static final TokenFormatter SIMPLE = EOF.withAlternative(LITERAL)
             .withAlternative(SYMBOLIC);
 
+/**
+ * A formatter that formats and parses ANTLR {@link Token} objects into/from a JSON object structure.
+ * <p>
+ * This formatter outputs a token as a flat JSON object, with each token field mapped to a key-value pair.
+ * The keys are quoted strings, and values correspond to the token's properties.
+ * {@code "symbolicName"} and {@code "literalName"} are included as separate fields, derived from the token's type
+ * using the provided {@link Vocabulary}.
+ * <p>
+ * The output JSON structure includes:
+ * <ul>
+ *     <li>{@code "type"}: The token's integer type ({@code "I"}).</li>
+ *     <li>{@code "text"}: The token's text ({@code "X"}).</li>
+ *     <li>{@code "symbolicName"}: The symbolic name of the token, if available ({@code "s"}). Optional.</li>
+ *     <li>{@code "literalName"}: The literal name of the token, if available ({@code "l"}). Optional.</li>
+ *     <li>{@code "channel"}: The token's channel ({@code "c"}). Optional.</li>
+ *     <li>{@code "index"}: The token's index in the token stream ({@code "n"}). Optional.</li>
+ *     <li>{@code "line"}: The line number where the token appears ({@code "r"}). Optional.</li>
+ *     <li>{@code "charPositionInLine"}: The character position in the line ({@code "p"}). Optional.</li>
+ *     <li>{@code "startIndex"}: The starting character index in the input stream ({@code "b"}). Optional.</li>
+ *     <li>{@code "stopIndex"}: The stopping character index in the input stream ({@code "e"}). Optional.</li>
+ * </ul>
+ * <p>
+ * Due to its implementation via {@link #ofPattern(String)}, this formatter's parsing behavior is **order-dependent**.
+ * This means that for successful parsing, the fields in the input JSON string must appear in the exact order
+ * defined in the formatter's internal pattern.
+ * <p>
+ * <b>Example Output:</b>
+ * <pre>{@code
+ * {
+ *     "type": 5,
+ *     "text": "54",
+ *     "symbolicName": "INT",
+ *     "channel": 0,
+ *     "index": 12,
+ *     "line": 3,
+ *     "charPositionInLine": 8,
+ *     "startIndex": 100,
+ *     "stopIndex": 101
+ * }
+ * }</pre>
+ */
+    public static final TokenFormatter JSON = new TokenFormatterBuilder().appendPattern("""
+            {
+                '"type"' : "I",
+                '"text"' : "X",
+                ['"symbolicName"' : "s",][
+                '"literalName"' : "l",][
+                '"channel"' : "c",][
+                '"index"' : "n",][
+                '"line"' : "r",][
+                '"charPositionInLine"' : "p",][
+                '"startIndex"' : "b",][
+                '"stopIndex"' : "e"]
+            }""").toFormatter();
+
+/**
+ * A formatter that formats and parses ANTLR {@link Token} objects into/from an XML structure.
+ * <p>
+ * This formatter outputs a token as an XML element with a flat structure, where most token fields
+ * are represented as child elements. The {@code symbolicName} and {@code literalName} are
+ * included as attributes of the {@code <type>} element.
+ * <p>
+ * The output XML structure adheres to the "All Elements" best practice, providing a clear and
+ * consistent representation:
+ * <ul>
+ *     <li>Root Element: {@code <token>}.</li>
+ *     <li>{@code <type>}: Contains the token's integer type as content, with optional {@code symbolic}
+ *         and {@code literal} attributes representing the token's symbolic and literal names ({@code "s"} and {@code "l"}).</li>
+ *     <li>{@code <text>}: Contains the token's text ({@code "x"}) as content.</li>
+ *     <li>Optional Child Elements:
+ *         <ul>
+ *             <li>{@code <channel>}: The token's channel ({@code "c"}).</li>
+ *             <li>{@code <index>}: The token's index in the token stream ({@code "n"}).</li>
+ *             <li>{@code <line>}: The line number where the token appears ({@code "r"}).</li>
+ *             <li>{@code <charPositionInLine>}: The character position in the line ({@code "p"}).</li>
+ *             <li>{@code <startIndex>}: The starting character index in the input stream ({@code "b"}).</li>
+ *             <li>{@code <stopIndex>}: The stopping character index in the input stream ({@code "e"}).</li>
+ *         </ul>
+ *     </li>
+ * </ul>
+ * <p>
+ * <b>Example Output:</b>
+ * <pre>{@code
+ * <token>
+ *     <type symbolic="INT">5</type>
+ *     <text>54</text>
+ *     <channel>0</channel>
+ *     <index>12</index>
+ *     <line>3</line>
+ *     <charPositionInLine>8</charPositionInLine>
+ *     <startIndex>100</startIndex>
+ *     <stopIndex>101</stopIndex>
+ * </token>
+ * }</pre>
+ */
+    public static final TokenFormatter XML = new TokenFormatterBuilder().appendPattern("""
+            '<token>'
+                '<type'[ 'symbolic'="s"][ 'literal'="l"]>I'</type>'
+                '<text>'x'</text>'[
+                '<channel>'c'</channel>'][
+                '<index>'n'</index>'][
+                '<line>'r'</line>'][
+                '<charPositionInLine>'p'</charPositionInLine>'][
+                '<startIndex>'b'</startIndex>'][
+                '<stopIndex>'e'</stopIndex>']
+            '</token>'
+            """).toFormatter();
+
     /**
      * The chain of parsers to attempt in order.
      */

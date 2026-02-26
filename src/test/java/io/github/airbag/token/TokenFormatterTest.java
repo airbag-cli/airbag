@@ -576,4 +576,96 @@ public class TokenFormatterTest {
                             """, e.getMessage());
         }
     }
+
+    @Nested
+    class JsonFormatterTest {
+
+        Token symbol = new TokenBuilder()
+                .type(8) // Corresponds to "ID" in the vocabulary
+                .text("testId")
+                .index(0)
+                .line(1)
+                .position(0)
+                .start(0)
+                .stop(5)
+                .get();
+
+        TokenFormatter JSON = TokenFormatter.JSON;
+
+        @Test
+        void testFormatToken() {
+            assertEquals("""
+                    {
+                        "type" : "8",
+                        "text" : "testId",
+                        "index" : "0",
+                        "line" : "1",
+                        "charPositionInLine" : "0",
+                        "startIndex" : "0",
+                        "stopIndex" : "5"
+                    }""", JSON.format(symbol));
+        }
+
+        @Test
+        void testFormatTokenWithVocab() {
+            assertEquals("""
+                    {
+                        "type" : "8",
+                        "text" : "testId",
+                        "symbolicName" : "ID",
+                        "index" : "0",
+                        "line" : "1",
+                        "charPositionInLine" : "0",
+                        "startIndex" : "0",
+                        "stopIndex" : "5"
+                    }""", JSON.withVocabulary(VOCABULARY).format(symbol));
+        }
+
+    }
+
+    @Nested
+    class XMLFormatterTest {
+
+        Token symbol = new TokenBuilder()
+                .type(8) // Corresponds to "ID" in the vocabulary
+                .text("testId")
+                .index(0)
+                .line(1)
+                .position(0)
+                .start(0)
+                .stop(5)
+                .get();
+
+        TokenFormatter XML = TokenFormatter.XML;
+
+        @Test
+        void testFormatToken() {
+            assertEquals("""
+                    <token>
+                        <type>8</type>
+                        <text>testId</text>
+                        <index>0</index>
+                        <line>1</line>
+                        <charPositionInLine>0</charPositionInLine>
+                        <startIndex>0</startIndex>
+                        <stopIndex>5</stopIndex>
+                    </token>
+                    """, XML.format(symbol));
+        }
+
+        @Test
+        void testFormatTokenWithVocab() {
+            assertEquals("""
+                    <token>
+                        <type symbolic="ID">8</type>
+                        <text>testId</text>
+                        <index>0</index>
+                        <line>1</line>
+                        <charPositionInLine>0</charPositionInLine>
+                        <startIndex>0</startIndex>
+                        <stopIndex>5</stopIndex>
+                    </token>
+                    """, XML.withVocabulary(VOCABULARY).format(symbol));
+        }
+    }
 }

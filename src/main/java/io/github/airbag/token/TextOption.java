@@ -1,6 +1,7 @@
 package io.github.airbag.token;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -23,6 +24,7 @@ public class TextOption {
      *     <li>Newline ({@code \n})</li>
      *     <li>Carriage return ({@code \r})</li>
      *     <li>Tab ({@code \t})</li>
+     *     <li>Double Quote ({@code "})</li>
      *     <li>Backslash ({@code \})</li>
      * </ul>
      */
@@ -54,6 +56,7 @@ public class TextOption {
                 entry('\n', 'n'),
                 entry('\r', 'r'),
                 entry('\t', 't'),
+                entry('"', '"'),
                 entry('\\', '\\')
         ));
         failOnDefault(false);
@@ -96,6 +99,12 @@ public class TextOption {
                 .stream()
                 .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
         return this;
+    }
+
+    public TextOption addEscapeMapping(Character character, Character escapedChar) {
+        Map<Character, Character> escapeMap = new HashMap<>(this.escapeMap);
+        escapeMap.put(character, escapedChar);
+        return withEscapeMap(escapeMap);
     }
 
     public TextOption failOnDefault(boolean failOnDefault) {
